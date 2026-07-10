@@ -1,0 +1,36 @@
+# Local-only planning material (German working notes, not part of the repo)
+/plan
+
+# Local Claude Code settings
+/.claude/settings.local.json
+
+# Python / Django
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.env
+*.sqlite3
+db.sqlite3
+/staticfiles/
+/media/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# JavaScript / Node dev tooling (runtime stays bundler-free)
+node_modules/
+npm-debug.log*
+.eslintcache
+
+# OS / editor
+.DS_Store
+*.log
+.idea/
+.vscode/
