@@ -5,7 +5,7 @@ description = "Visualises and sonifies the rhythm of the Swiss clock-face timeta
 requires-python = ">=3.13"
 dependencies = [
     "django>=5.2,<5.3",
-    "django-environ>=0.12",
+    "environs[django]>=15.0",
     "mysqlclient>=2.2",
     "gunicorn>=23.0",
 ]
@@ -36,10 +36,6 @@ python_version = "3.13"
 strict = true
 plugins = ["mypy_django_plugin.main"]
 mypy_path = "backend"
-
-[[tool.mypy.overrides]]
-module = "environ.*"
-ignore_missing_imports = true
 
 [tool.django-stubs]
 django_settings_module = "config.settings"

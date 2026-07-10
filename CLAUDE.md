@@ -51,6 +51,9 @@ Work is organised into packages (P0–P6) across three phases; see
 
 - **Python: fully typed** (signatures carry input/output). Tooling: mypy strict
   - django-stubs + ruff annotation rules.
+- **Python tests: typed as far as trivially possible.** Once mocks would force
+  us out of the type system into bespoke mock-only types, typing may be dropped.
+  The ruff `ANN` ignore for tests (and migrations) reflects this.
 - **JavaScript: untyped** (bundler-free) — hence the comment exception below.
 
 ### Comments
