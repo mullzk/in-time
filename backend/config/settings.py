@@ -21,6 +21,8 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -30,6 +32,15 @@ DATABASES = {"default": env.dj_db_url("DATABASE_URL")}
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR.parent / "staticfiles"
+
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+
+# HSTS (W004) and the http->https redirect (W008) are owned by nginx, not the
+# app, so check --deploy stays a meaningful gate instead of a permanent warning.
+SILENCED_SYSTEM_CHECKS = ["security.W004", "security.W008"]
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
