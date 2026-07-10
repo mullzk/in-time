@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      mariadb:
+        image: mariadb:11
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: in_time
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=10s --health-timeout=5s --health-retries=5
+
+    env:
+      DJANGO_SECRET_KEY: ci-not-secret
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1
+      DATABASE_URL: mysql://root:root@127.0.0.1:3306/in_time
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: jdx/mise-action@v2
+
+      - run: uv sync
+      - run: npm ci
+
+      - run: uv run ruff format --check .
+      - run: uv run ruff check .
+      - run: uv run mypy backend
+      - run: npx biome ci .
+      - run: npx prettier --check '**/*.{md,yml,yaml}'
+
+      - run: uv run pytest
+      - run: npm test

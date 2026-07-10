@@ -18,6 +18,7 @@ venv/
 db.sqlite3
 /staticfiles/
 /media/
+/data/
 .mypy_cache/
 .pytest_cache/
 .ruff_cache/

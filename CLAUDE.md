@@ -1,8 +1,8 @@
 # In Time — project instructions
 
-*In Time* visualises and sonifies the rhythm of the Swiss clock-face timetable
-(Taktfahrplan). See `README.md` for the product vision. This file governs how
-we build it.
+_In Time_ visualises and sonifies the rhythm of the Swiss clock-face timetable
+(Taktfahrplan). See `README.md` for the product vision. This file governs how we
+build it.
 
 ## Repository structure
 
@@ -39,6 +39,7 @@ Work is organised into packages (P0–P6) across three phases; see
 ## Coding guidelines
 
 ### Naming
+
 - Names are self-explanatory, **no developer abbreviations**. Domain
   abbreviations (LV95, GTFS) are fine; unclearer ones (e.g. CSA) are spelled
   out. Prefer a long name every time over any mental effort.
@@ -47,11 +48,13 @@ Work is organised into packages (P0–P6) across three phases; see
   C-style index loops.
 
 ### Typing
+
 - **Python: fully typed** (signatures carry input/output). Tooling: mypy strict
-  + django-stubs + ruff annotation rules.
+  - django-stubs + ruff annotation rules.
 - **JavaScript: untyped** (bundler-free) — hence the comment exception below.
 
 ### Comments
+
 - **No method/docstring comments** — what a method does must be clear from its
   name, its I/O from argument names and types.
 - Allowed: short, concise **class/module comments** (their responsibility).
@@ -62,17 +65,22 @@ Work is organised into packages (P0–P6) across three phases; see
   parameters when not self-evident from the parameter names.
 
 ### Structure
+
 - **Object-oriented by default.** Classes may be omitted only for
   web-request-independent procedures (daily build jobs).
 
 ### Config & secrets
+
 - **No hostname / real-infrastructure reference in the repo.** Everything via
   `.env` (dev) or Vault-injected env (prod). No hardcoded credentials.
 
 ### git commit messages
-- First line is 50 characters or less, imperative style. Then a blank line. Remaining text should be wrapped at 72 characters. 
-- Body should only explain what for which reason (motivation, no duplicating git diff).
-- brevity wins. Trivial commits do not require a body. 
+
+- First line is 50 characters or less, imperative style. Then a blank line.
+  Remaining text should be wrapped at 72 characters.
+- Body should only explain what for which reason (motivation, no duplicating git
+  diff).
+- brevity wins. Trivial commits do not require a body.
 
 ## Tooling
 
