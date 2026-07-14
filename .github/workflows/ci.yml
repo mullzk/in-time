@@ -70,6 +70,7 @@ jobs:
           git fetch origin main
           git checkout --force --detach "${{ github.sha }}"
           git clean -fd
+          ln -sfn ../shared/config/env .env
           mise install
           mise exec -- uv sync
           mise exec -- uv run python backend/manage.py check --deploy
