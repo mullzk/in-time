@@ -50,7 +50,7 @@ jobs:
       (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
       && github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'
     runs-on: ubuntu-latest
-    environment: staging
+    environment: intimedev
 
     steps:
       - name: Configure SSH
