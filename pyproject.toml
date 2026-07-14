@@ -1,0 +1,46 @@
+[project]
+name = "in-time"
+version = "0.0.0"
+description = "Visualises and sonifies the rhythm of the Swiss clock-face timetable"
+requires-python = ">=3.13"
+dependencies = [
+    "django>=5.2,<5.3",
+    "environs[django]>=15.0",
+    "mysqlclient>=2.2",
+    "gunicorn>=23.0",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.14",
+    "mypy>=1.18",
+    "django-stubs[compatible-mypy]>=5.2",
+    "pytest>=8.4",
+    "pytest-django>=4.11",
+    "pre-commit>=4.0",
+]
+
+[tool.ruff]
+target-version = "py313"
+src = ["backend"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "ANN", "DJ"]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["ANN"]
+"**/migrations/**" = ["ANN", "E501"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+plugins = ["mypy_django_plugin.main"]
+mypy_path = "backend"
+
+[tool.django-stubs]
+django_settings_module = "config.settings"
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings"
+pythonpath = ["backend"]
+python_files = ["test_*.py", "*_test.py"]
