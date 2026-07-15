@@ -16,6 +16,7 @@ DATA_DIR = env.path("IN_TIME_DATA_DIR", BASE_DIR.parent / "data")
 INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.staticfiles",
+    "pipeline",
 ]
 
 MIDDLEWARE = [
