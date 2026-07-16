@@ -5,10 +5,11 @@ from pathlib import Path
 
 
 class DataDir:
-    # Layout under IN_TIME_DATA_DIR. `artifacts/` holds only published outputs
-    # (served by nginx via the `current` symlink); `gtfs`/`build`/`catalog` are
-    # internal siblings. Publishing swaps `current` atomically, then removes the
-    # day it replaced.
+    """Layout under IN_TIME_DATA_DIR. `artifacts/` holds only published outputs
+    (served by nginx via the `current` symlink); `gtfs`/`build`/`catalog` are
+    internal siblings. Publishing swaps `current` atomically, then removes the
+    day it replaced."""
+
     def __init__(self, root: Path) -> None:
         self.root = Path(root)
 

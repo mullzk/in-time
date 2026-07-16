@@ -1,10 +1,10 @@
+"""GTFS schedule reading: active services, rail trips, and per-trip stop
+sequences for a service date."""
+
 import csv
 import datetime
 from dataclasses import dataclass
 from pathlib import Path
-
-# GTFS schedule reading for the rail schedule blob. Ported from the prototype's
-# build_tag.py, replacing its positional column parsing with header-named access.
 
 RAIL_ROUTE_TYPES = frozenset({100, 101, 102, 103, 105, 106, 107, 109, 116, 117})
 

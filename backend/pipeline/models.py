@@ -14,8 +14,10 @@ class BuildStatus(models.TextChoices):
 
 
 class BuildRun(models.Model):
-    # Permanent ledger of pipeline runs: what was built for which day from which
-    # GTFS feed version, and how it ended. Drives skip-if-done and operations.
+    """Permanent ledger of pipeline runs: what was built for which day from
+    which GTFS feed version, and how it ended. Drives skip-if-done and
+    operations."""
+
     command = models.CharField(max_length=32, choices=BuildCommand.choices)
     status = models.CharField(
         max_length=16, choices=BuildStatus.choices, default=BuildStatus.RUNNING

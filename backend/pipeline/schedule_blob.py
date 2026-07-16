@@ -1,13 +1,15 @@
+"""Binary schedule blob v1 (ITSB): columnar, little-endian.
+
+The rail network geometry is stored once as a shared, deduplicated edge list;
+every trip is a reference — a path of signed 1-based edge indices plus per-stop
+schedule times.
+"""
+
 import array
 import struct
 import sys
 from dataclasses import dataclass
 from datetime import date
-
-# Binary schedule blob v1 (ITSB). Columnar, little-endian; the rail network
-# geometry is stored once as a shared, deduplicated edge list, and every trip is
-# a reference: a path of signed 1-based edge indices plus per-stop schedule
-# times.
 
 MAGIC = b"ITSB"
 VERSION = 1

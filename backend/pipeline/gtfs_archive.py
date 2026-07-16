@@ -6,9 +6,10 @@ from pathlib import Path
 
 
 class GtfsArchive:
-    # Idempotent feed archive: resolves the current feed version and downloads
-    # it only when that version is not already on disk. Download and version
-    # resolution are injected so the fetch stays testable without network.
+    """Idempotent feed archive: resolves the current feed version and downloads
+    it only when that version is not already on disk. Download and version
+    resolution are injected so the fetch stays testable without network."""
+
     def __init__(
         self,
         archive_root: Path,
