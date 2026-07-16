@@ -48,3 +48,17 @@ _In Time_ expects of its runtime environment:
 - **Continuous deployment**: on green tests the new version is rolled out.
 
 Implemented in another project (`webapp_infra`).
+
+## Glossary
+
+Domain abbreviations and special terms used across the code and docs.
+
+- **GTFS** — General Transit Feed Specification: the open format of the planned
+  timetable, published for Switzerland on opentransportdata.swiss.
+- **DiDok** — the Swiss stop/station register number that uniquely identifies a
+  station. In GTFS it appears as the **BPUIC**; we use it as the stable key for
+  stations.
+- **ITSB** — "In Time Schedule Blob": the 4-byte magic and name of the binary
+  daily artifact of the planned timetable (columnar, little-endian; the rail
+  network geometry stored once as a shared edge list, each trip a reference into
+  it). Consumed by the Heartbeat panel.
