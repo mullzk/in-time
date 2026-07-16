@@ -4,12 +4,12 @@ import sys
 from dataclasses import dataclass
 from datetime import date
 
-# Binary heartbeat blob v1 (ITHB). Columnar, little-endian; the rail network
+# Binary schedule blob v1 (ITSB). Columnar, little-endian; the rail network
 # geometry is stored once as a shared, deduplicated edge list, and every trip is
 # a reference: a path of signed 1-based edge indices plus per-stop schedule
 # times.
 
-MAGIC = b"ITHB"
+MAGIC = b"ITSB"
 VERSION = 1
 FLAG_RAIL_ONLY = 1
 COORD_SCALE = 1
@@ -35,7 +35,7 @@ class Trip:
 
 
 @dataclass
-class HeartbeatDay:
+class ScheduleDay:
     service_date: date
     stations: list[tuple[float, float]]
     edges: list[list[tuple[float, float]]]
@@ -43,7 +43,7 @@ class HeartbeatDay:
 
 
 @dataclass
-class HeartbeatHeader:
+class ScheduleHeader:
     version: int
     flags: int
     service_date: int
@@ -84,7 +84,7 @@ def _offset_north(value: float) -> int:
     return round(value - LV95_ORIGIN_NORTH)
 
 
-def write_heartbeat_blob(day: HeartbeatDay) -> bytes:
+def write_schedule_blob(day: ScheduleDay) -> bytes:
     station_east = [_offset_east(east) for east, _ in day.stations]
     station_north = [_offset_north(north) for _, north in day.stations]
 
@@ -179,12 +179,12 @@ def write_heartbeat_blob(day: HeartbeatDay) -> bytes:
     return header + b"".join(sections)
 
 
-def read_header(data: bytes) -> HeartbeatHeader:
+def read_header(data: bytes) -> ScheduleHeader:
     fields = struct.unpack(_HEADER_FORMAT, data[:HEADER_SIZE])
     magic = fields[0]
     if magic != MAGIC:
-        raise ValueError(f"not an ITHB blob: {magic!r}")
-    return HeartbeatHeader(
+        raise ValueError(f"not an ITSB blob: {magic!r}")
+    return ScheduleHeader(
         version=fields[1],
         flags=fields[2],
         service_date=fields[3],
@@ -215,7 +215,7 @@ def _read_column(data: bytes, typecode: str, count: int, start: int) -> list[int
     return column.tolist()
 
 
-def read_heartbeat_blob(data: bytes) -> HeartbeatDay:
+def read_schedule_blob(data: bytes) -> ScheduleDay:
     header = read_header(data)
     east_origin = header.coord_origin_east
     north_origin = header.coord_origin_north
@@ -294,7 +294,7 @@ def read_heartbeat_blob(data: bytes) -> HeartbeatDay:
         trips.append(Trip(category=trip_category[trip_index], events=events))
 
     service_date = datetime_date_from_yyyymmdd(header.service_date)
-    return HeartbeatDay(
+    return ScheduleDay(
         service_date=service_date, stations=stations, edges=edges, trips=trips
     )
 

@@ -18,7 +18,7 @@ def make_builder(
 ) -> Callable[[datetime.date, Path], None]:
     def build_day(service_date: datetime.date, dest: Path) -> None:
         dest.mkdir(parents=True, exist_ok=True)
-        (dest / "heartbeat.ithb").write_bytes(b"ITHB")
+        (dest / "schedule.itsb").write_bytes(b"ITSB")
         (dest / "stations.json").write_text("{}")
         if recorder is not None:
             recorder.append(service_date)
@@ -48,7 +48,7 @@ def test_first_run_builds_publishes_and_reloads(tmp_path: Path) -> None:
 
     assert run.status == BuildStatus.SUCCESS
     assert data.current_target_name() == "2026-07-16"
-    assert (data.artifacts / "2026-07-16" / "heartbeat.ithb").exists()
+    assert (data.artifacts / "2026-07-16" / "schedule.itsb").exists()
     assert reloads == [1]
 
 
