@@ -120,6 +120,9 @@ def test_versioned_archive_skips_download_when_version_present(
     assert archive.ensure() == "fp2026-07-02"
     assert downloads == ["fp2026-07-02"]
     assert (tmp_path / "gtfs" / "archive" / "fp2026-07-02" / "feed_info.txt").exists()
+    assert archive.path_for("fp2026-07-02") == (
+        tmp_path / "gtfs" / "archive" / "fp2026-07-02"
+    )
 
     assert archive.ensure() == "fp2026-07-02"
     assert downloads == ["fp2026-07-02"]

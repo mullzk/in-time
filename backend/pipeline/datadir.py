@@ -22,6 +22,10 @@ class DataDir:
         return self.root / "gtfs" / "archive"
 
     @property
+    def rail_network_archive(self) -> Path:
+        return self.root / "railnet" / "archive"
+
+    @property
     def build(self) -> Path:
         return self.root / "build"
 

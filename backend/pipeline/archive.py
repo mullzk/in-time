@@ -20,9 +20,12 @@ class VersionedArchive:
         self._resolve_version = resolve_version
         self._download = download
 
+    def path_for(self, version: str) -> Path:
+        return self.archive_root / version
+
     def ensure(self) -> str:
         version = self._resolve_version()
-        destination = self.archive_root / version
+        destination = self.path_for(version)
         if destination.exists():
             return version
 
