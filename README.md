@@ -34,13 +34,23 @@ _In Time_ expects of its runtime environment:
 - **Static serving** of three paths by the proxy: the frontend assets
   (`STATIC_ROOT`), an **artifact directory** (daily binary blobs), and a **tile
   cache**.
+- **Pre-compressed artifacts.** The schedule blob is large (rail-only ≈ 4 MB,
+  growing with tram/bus) but, being columnar, compresses by ~90 %. The build
+  writes `.gz` and `.br` sidecars next to every artifact; the proxy is expected
+  to serve them via its _static_ pre-compression (gzip/brotli), so nothing is
+  recompressed per request. Sidecars sit in the per-day directory and swap
+  atomically with the blob, so they never go stale.
 - **A tile proxy with cache** (server-to-server to swisstopo) — the client talks
   **only** to our server, never to third-party hosts (for all assets, fonts,
   maps).
 - **A MariaDB database** (per app, with its own user).
 - **A scheduler** running **two commands** daily (`build_schedule` for the
   planned timetable, `build_actuals` for the measured data) and alerting on
-  failure.
+  failure. `build_schedule` builds the **current** day (Europe/Zurich), so it
+  must run **after local midnight**; it briefly needs extra disk (a new raw feed
+  is fetched next to the previous one before the old is pruned), so it should
+  run **before the nightly VM snapshot** and not overlap it, keeping the
+  snapshot consistent and free of the transient peak.
 - **An env file** with the configuration/secret values (no hostname, no
   infrastructure reference in the code repo).
 - **A persistent data directory** that survives deploys and is shared by the app
@@ -48,3 +58,17 @@ _In Time_ expects of its runtime environment:
 - **Continuous deployment**: on green tests the new version is rolled out.
 
 Implemented in another project (`webapp_infra`).
+
+## Glossary
+
+Domain abbreviations and special terms used across the code and docs.
+
+- **GTFS** — General Transit Feed Specification: the open format of the planned
+  timetable, published for Switzerland on opentransportdata.swiss.
+- **DiDok** — the Swiss stop/station register number that uniquely identifies a
+  station. In GTFS it appears as the **BPUIC**; we use it as the stable key for
+  stations.
+- **ITSB** — "In Time Schedule Blob": the 4-byte magic and name of the binary
+  daily artifact of the planned timetable (columnar, little-endian; the rail
+  network geometry stored once as a shared edge list, each trip a reference into
+  it). Consumed by the Heartbeat panel.

@@ -12,10 +12,12 @@ DEBUG = env.bool("DJANGO_DEBUG", False)
 ALLOWED_HOSTS: list[str] = env.list("DJANGO_ALLOWED_HOSTS", [])
 
 DATA_DIR = env.path("IN_TIME_DATA_DIR", BASE_DIR.parent / "data")
+SCHEDULE_RELOAD_COMMAND: list[str] = env.list("IN_TIME_RELOAD_COMMAND", [])
 
 INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.staticfiles",
+    "pipeline",
 ]
 
 MIDDLEWARE = [
