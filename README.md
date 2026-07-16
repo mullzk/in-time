@@ -46,7 +46,11 @@ _In Time_ expects of its runtime environment:
 - **A MariaDB database** (per app, with its own user).
 - **A scheduler** running **two commands** daily (`build_schedule` for the
   planned timetable, `build_actuals` for the measured data) and alerting on
-  failure.
+  failure. `build_schedule` builds the **current** day (Europe/Zurich), so it
+  must run **after local midnight**; it briefly needs extra disk (a new raw feed
+  is fetched next to the previous one before the old is pruned), so it should
+  run **before the nightly VM snapshot** and not overlap it, keeping the
+  snapshot consistent and free of the transient peak.
 - **An env file** with the configuration/secret values (no hostname, no
   infrastructure reference in the code repo).
 - **A persistent data directory** that survives deploys and is shared by the app

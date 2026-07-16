@@ -126,3 +126,26 @@ def test_versioned_archive_skips_download_when_version_present(
 
     assert archive.ensure() == "fp2026-07-02"
     assert downloads == ["fp2026-07-02"]
+
+
+def make_archive(root: Path) -> VersionedArchive:
+    return VersionedArchive(root, lambda: "v", lambda version, dest: None)
+
+
+def test_retain_only_removes_other_versions(tmp_path: Path) -> None:
+    archive = make_archive(tmp_path / "archive")
+    for version in ("20260701", "20260708", "20260715"):
+        (archive.archive_root / version).mkdir(parents=True)
+    (archive.archive_root / ".20260715.staging").mkdir()
+
+    archive.retain_only("20260715")
+
+    assert [entry.name for entry in archive.archive_root.iterdir()] == ["20260715"]
+
+
+def test_retain_only_is_a_noop_without_an_archive(tmp_path: Path) -> None:
+    archive = make_archive(tmp_path / "absent")
+
+    archive.retain_only("20260715")
+
+    assert not archive.archive_root.exists()

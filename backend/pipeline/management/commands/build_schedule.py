@@ -57,4 +57,7 @@ class Command(BaseCommand):
             build_day=build_day,
             reload_service=reload_runner(settings.SCHEDULE_RELOAD_COMMAND),
         )
+
+        gtfs.retain_only(versions["gtfs"])
+        rail_network.retain_only(versions["rail"])
         self.stdout.write(f"{service_date}: {run.status} ({run.source_version})")

@@ -8,7 +8,10 @@ from pathlib import Path
 class VersionedArchive:
     """Idempotent versioned archive: resolves the current feed version and downloads
     it only when that version is not already on disk. Download and version
-    resolution are injected so the fetch stays testable without network."""
+    resolution are injected so the fetch stays testable without network.
+
+    Only the last used version is meant to be kept on disk; `retain_only` prunes
+    the others once a build has published, so the raw feeds do not accumulate."""
 
     def __init__(
         self,
@@ -22,6 +25,17 @@ class VersionedArchive:
 
     def path_for(self, version: str) -> Path:
         return self.archive_root / version
+
+    def retain_only(self, version: str) -> None:
+        if not self.archive_root.exists():
+            return
+        for entry in self.archive_root.iterdir():
+            if entry.name == version:
+                continue
+            if entry.is_dir():
+                shutil.rmtree(entry, ignore_errors=True)
+            else:
+                entry.unlink(missing_ok=True)
 
     def ensure(self) -> str:
         version = self._resolve_version()
