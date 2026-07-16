@@ -83,6 +83,13 @@ Work is organised into packages (P0–P6) across three phases; see
 - **No hostname / real-infrastructure reference in the repo.** Everything via
   `.env` (dev) or Vault-injected env (prod). No hardcoded credentials.
 
+### Artifacts
+
+- Every **published pipeline artifact** is written with `.gz` and `.br` sidecars
+  so the reverse proxy serves it pre-compressed (gzip/brotli static), never
+  recompressing per request. Keep this when adding artifacts (e.g. per-mode
+  blobs). Rationale in the README.
+
 ### git commit messages
 
 - First line is 50 characters or less, imperative style. Then a blank line.

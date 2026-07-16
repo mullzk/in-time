@@ -1,7 +1,9 @@
+import gzip
 import json
 from datetime import date
 from pathlib import Path
 
+import brotli
 import pytest
 
 from pipeline.artifacts import (
@@ -56,6 +58,15 @@ def test_write_day_artifacts_creates_missing_dest(tmp_path: Path) -> None:
 
     assert (dest / "schedule.itsb").exists()
     assert (dest / "stations.json").exists()
+
+
+@pytest.mark.parametrize("name", ["schedule.itsb", "stations.json"])
+def test_write_day_artifacts_emits_matching_sidecars(tmp_path: Path, name: str) -> None:
+    write_day_artifacts(make_build(), tmp_path)
+
+    raw = (tmp_path / name).read_bytes()
+    assert gzip.decompress((tmp_path / f"{name}.gz").read_bytes()) == raw
+    assert brotli.decompress((tmp_path / f"{name}.br").read_bytes()) == raw
 
 
 def test_locate_gdb_finds_the_only_geodatabase(tmp_path: Path) -> None:

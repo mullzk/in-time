@@ -12,6 +12,7 @@ dependencies = [
     "shapely>=2.0",
     "networkx>=3.3",
     "pyogrio>=0.9",
+    "brotli>=1.1",
 ]
 
 [dependency-groups]
@@ -43,6 +44,10 @@ python_version = "3.13"
 strict = true
 plugins = ["mypy_django_plugin.main"]
 mypy_path = "backend"
+
+[[tool.mypy.overrides]]
+module = "brotli"
+ignore_missing_imports = true
 
 [tool.django-stubs]
 django_settings_module = "config.settings"

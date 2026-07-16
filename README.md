@@ -34,6 +34,12 @@ _In Time_ expects of its runtime environment:
 - **Static serving** of three paths by the proxy: the frontend assets
   (`STATIC_ROOT`), an **artifact directory** (daily binary blobs), and a **tile
   cache**.
+- **Pre-compressed artifacts.** The schedule blob is large (rail-only ≈ 4 MB,
+  growing with tram/bus) but, being columnar, compresses by ~90 %. The build
+  writes `.gz` and `.br` sidecars next to every artifact; the proxy is expected
+  to serve them via its _static_ pre-compression (gzip/brotli), so nothing is
+  recompressed per request. Sidecars sit in the per-day directory and swap
+  atomically with the blob, so they never go stale.
 - **A tile proxy with cache** (server-to-server to swisstopo) — the client talks
   **only** to our server, never to third-party hosts (for all assets, fonts,
   maps).

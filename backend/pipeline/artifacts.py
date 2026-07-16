@@ -2,10 +2,13 @@
 artifact directory, and provides the small glue the build command wires
 together (source version string, geodatabase lookup, service reload)."""
 
+import gzip
 import json
 import subprocess
 from collections.abc import Callable
 from pathlib import Path
+
+import brotli
 
 from pipeline.schedule_blob import write_schedule_blob
 from pipeline.schedule_day import ScheduleBuild, StationEntry
@@ -27,8 +30,16 @@ def stations_json(stations: list[StationEntry]) -> str:
 
 def write_day_artifacts(build: ScheduleBuild, dest: Path) -> None:
     dest.mkdir(parents=True, exist_ok=True)
-    (dest / SCHEDULE_BLOB_NAME).write_bytes(write_schedule_blob(build.day))
-    (dest / STATIONS_NAME).write_text(stations_json(build.stations))
+    _write_with_sidecars(dest / SCHEDULE_BLOB_NAME, write_schedule_blob(build.day))
+    _write_with_sidecars(
+        dest / STATIONS_NAME, stations_json(build.stations).encode("utf-8")
+    )
+
+
+def _write_with_sidecars(path: Path, data: bytes) -> None:
+    path.write_bytes(data)
+    path.with_name(path.name + ".gz").write_bytes(gzip.compress(data, 9))
+    path.with_name(path.name + ".br").write_bytes(brotli.compress(data, quality=11))
 
 
 def locate_gdb(archive_dir: Path) -> Path:
