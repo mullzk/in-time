@@ -62,6 +62,7 @@ class RailGraph:
     node_point: dict[str, Point]
     didok_to_node: dict[int, str]
     edge_points: dict[frozenset[str], list[Point]]
+    node_name: dict[str, str]
 
     @classmethod
     def from_segments(
@@ -69,6 +70,7 @@ class RailGraph:
         nodes: dict[str, Point],
         segments: list[Segment],
         didok_to_node: dict[int, str],
+        node_name: dict[str, str] | None = None,
     ) -> RailGraph:
         graph: nx.Graph[str] = nx.Graph()
         graph.add_nodes_from(nodes)
@@ -81,6 +83,7 @@ class RailGraph:
             node_point=nodes,
             didok_to_node=didok_to_node,
             edge_points=edge_points,
+            node_name=node_name or {},
         )
 
 

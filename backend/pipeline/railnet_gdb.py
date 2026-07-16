@@ -57,6 +57,13 @@ def load_rail_graph(gdb_path: Path) -> RailGraph:
         node_id: _node_xy(geometry)
         for node_id, geometry in zip(node_ids, nodes.geometry, strict=True)
     }
+    node_name: dict[str, str] = {
+        node_id: str(name)
+        for node_id, name in zip(
+            node_ids, nodes["Betriebspunkt_Name"].tolist(), strict=True
+        )
+        if name
+    }
 
     didok_to_node: dict[int, str] = {}
     numbers = nodes["Betriebspunkt_Nummer"].tolist()
@@ -85,4 +92,5 @@ def load_rail_graph(gdb_path: Path) -> RailGraph:
         nodes=node_point,
         segments=segment_list,
         didok_to_node=didok_to_node,
+        node_name=node_name,
     )
