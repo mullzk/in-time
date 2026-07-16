@@ -58,9 +58,15 @@ Work is organised into packages (P0–P6) across three phases; see
 
 ### Comments
 
-- **No method/docstring comments** — what a method does must be clear from its
-  name, its I/O from argument names and types.
-- Allowed: short, concise **class/module comments** (their responsibility).
+- A module's or class's **responsibility** goes in a **docstring** (not a `#`
+  comment). Keep it short; **trivial modules/classes need none**.
+- **Methods carry no docstring** unless an essential characteristic of their
+  meaning/motivation cannot be expressed in the signature (name + typed
+  arguments/return). What a method does must otherwise be clear from its name,
+  its I/O from argument names and types.
+- **No prototype/porting references** in code comments or docstrings ("ported
+  from …", tool names of throwaway prototypes) — that lineage belongs in the
+  plan, not the shipped code.
 - **Inline comments only** for a surprising mechanism the code cannot explain —
   and first weigh whether a refactor (a clearly named method or an explicitly
   named intermediate variable) describes it better. Hence extremely rare.
