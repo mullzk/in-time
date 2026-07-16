@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
+from pipeline.archive import VersionedArchive
 from pipeline.datadir import DataDir
-from pipeline.gtfs_archive import GtfsArchive
 from pipeline.models import BuildRun, BuildStatus
 from pipeline.schedule import run_build_schedule
 
@@ -103,7 +103,9 @@ def test_previous_artifact_dir_deleted_after_swap(tmp_path: Path) -> None:
     assert data.current_target_name() == "2026-07-17"
 
 
-def test_gtfs_archive_skips_download_when_version_present(tmp_path: Path) -> None:
+def test_versioned_archive_skips_download_when_version_present(
+    tmp_path: Path,
+) -> None:
     downloads: list[str] = []
 
     def resolve() -> str:
@@ -113,7 +115,7 @@ def test_gtfs_archive_skips_download_when_version_present(tmp_path: Path) -> Non
         downloads.append(version)
         (dest / "feed_info.txt").write_text(f"version={version}")
 
-    archive = GtfsArchive(tmp_path / "gtfs" / "archive", resolve, download)
+    archive = VersionedArchive(tmp_path / "gtfs" / "archive", resolve, download)
 
     assert archive.ensure() == "fp2026-07-02"
     assert downloads == ["fp2026-07-02"]

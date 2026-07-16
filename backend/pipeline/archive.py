@@ -5,8 +5,8 @@ from collections.abc import Callable
 from pathlib import Path
 
 
-class GtfsArchive:
-    """Idempotent feed archive: resolves the current feed version and downloads
+class VersionedArchive:
+    """Idempotent versioned archive: resolves the current feed version and downloads
     it only when that version is not already on disk. Download and version
     resolution are injected so the fetch stays testable without network."""
 

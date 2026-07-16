@@ -36,3 +36,13 @@ Source: GTFS feed 2026 (2.1 GB `stop_times.txt`) + rail network GDB, day
 | graph load                                       | 0.4 s                        |
 | day build (stream + route)                       | 27.4 s                       |
 | blob round-trip                                  | ok                           |
+
+## Source fetches — `fetch.py` (network-bound, indicative)
+
+Version resolution is cheap (no payload): GTFS from the redirect filename, BAV
+from the `Last-Modified` header. A second `ensure()` skips the download.
+
+| source                        | download | extracted | fetch + extract |
+| ----------------------------- | -------- | --------- | --------------- |
+| BAV rail network (`.gdb.zip`) | 3.4 MB   | 7.5 MB    | ~0.7 s          |
+| GTFS feed (permalink `.zip`)  | ~100 MB  | ~2 GB     | not benchmarked |
