@@ -79,6 +79,18 @@ Work is organised into packages (P0–P6) across three phases; see
 - **Object-oriented by default.** Classes may be omitted only for
   web-request-independent procedures (daily build jobs).
 
+### CSS
+
+- **SMACSS**, delivered as static files — **no inline `<style>`, no CSS-in-JS**.
+  Layers: **base** (reset, element defaults, design tokens as `:root` custom
+  properties), **layout** (`l-` regions), **module** (one component per file,
+  e.g. the cockpit), **state** (`is-`). Modules reference tokens, never raw
+  colours/spacing.
+- **Delivery:** plain CSS under `frontend/styles/`, collected by
+  `collectstatic`, linked via `{% static %}`. A base template carries the global
+  layers; each page links only the modules it uses. Bundler-free like the JS;
+  biome formats and lints it.
+
 ### Config & secrets
 
 - **No hostname / real-infrastructure reference in the repo.** Everything via

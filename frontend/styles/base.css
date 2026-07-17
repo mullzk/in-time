@@ -1,0 +1,33 @@
+/* SMACSS Base: element defaults, reset and design tokens. Tokens are the single
+   source of colour and spacing; modules reference them, never raw values. */
+:root {
+  --color-background: #10121a;
+  --color-surface: rgba(20, 24, 33, 0.82);
+  --color-text: #c9ccd6;
+  --color-control: #2b3140;
+  --color-control-text: #eef0f5;
+  --space-m: 12px;
+  --space-l: 24px;
+  --radius-m: 10px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-text);
+  font:
+    14px system-ui,
+    sans-serif;
+  overflow: hidden;
+}

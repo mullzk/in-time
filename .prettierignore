@@ -1,6 +1,7 @@
 .venv/
 node_modules/
 frontend/vendor/
+backend/**/templates/
 staticfiles/
 uv.lock
 package-lock.json
