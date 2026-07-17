@@ -24,6 +24,42 @@ unattended). Data sources: the GTFS planned timetable, actual (measured) data,
 and swisstopo / swissTLM3D geometry — Switzerland-wide, always the **current
 day**.
 
+## Running locally
+
+Prerequisites: [mise](https://mise.jdx.dev/) (pins Python) and
+[uv](https://docs.astral.sh/uv/) (dependencies).
+
+```bash
+cp .env.example .env          # then fill in the values
+mise exec -- uv run python backend/manage.py migrate
+mise exec -- uv run python backend/manage.py build_schedule
+mise exec -- uv run python backend/manage.py runserver
+```
+
+Then browse <http://127.0.0.1:8000>. `build_schedule` publishes the current
+day's artifacts; without it, `/api/config` returns `503` (nothing published
+yet). Run the commands from the repository root so the relative
+`IN_TIME_DATA_DIR` resolves.
+
+## HTTP surface
+
+The browser-facing app (`web`) exposes a small surface; everything else the
+client needs is served directly by the reverse proxy.
+
+- `GET /api/config` — JSON `{ serviceDate, scheduleBlobUrl, stationsUrl }`. The
+  service day is read from the `current` artifact symlink. Returns `503` when no
+  day is published yet.
+- `GET /api/stations` — the station catalog (`[{ didok, name }]`, in blob index
+  order), passed through from the published artifact.
+- `GET /herzschlag` — the Heartbeat page shell.
+
+Both `/api/*` endpoints are keyed to the published day via a weak `ETag` and
+`Cache-Control: public, no-cache`, so a client revalidates cheaply (`304`) until
+the daily symlink swap changes the day — never caching a day across the swap.
+
+The schedule blob itself is **not** served by the app: the proxy serves it from
+the artifact directory under the stable URL `/artifacts/current/schedule.itsb`.
+
 ## Expectations toward the infrastructure
 
 _In Time_ expects of its runtime environment:
