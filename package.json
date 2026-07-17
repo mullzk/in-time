@@ -4,10 +4,13 @@
   "type": "module",
   "description": "Dev-time tooling only; the frontend runtime stays bundler-free",
   "scripts": {
-    "test": "node --test 'frontend/**/*.test.js'"
+    "test": "node --test 'frontend/**/*.test.js'",
+    "vendor": "node tooling/vendor-p5.mjs",
+    "vendor:check": "node tooling/vendor-p5.mjs --check"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.3",
+    "p5": "2.3.0",
     "prettier": "^3.8"
   }
 }

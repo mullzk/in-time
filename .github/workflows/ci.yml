@@ -40,6 +40,7 @@ jobs:
       - run: uv run mypy backend
       - run: npx biome ci .
       - run: npx prettier --check '**/*.{md,yml,yaml}'
+      - run: npm run vendor:check
 
       - run: uv run pytest
       - run: npm test
