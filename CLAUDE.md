@@ -7,7 +7,8 @@ build it.
 ## Repository structure
 
 - `backend/` — the Django project (apps: `pipeline`, `travel`, `hotspots`,
-  `frontend`).
+  `web`). The browser-facing delivery app is `web`, not `frontend`, so its name
+  does not collide with the `frontend/` client tree below.
 - `frontend/` — `viz-core` + the five panels: static ES modules, **no bundler**,
   **p5 instance mode**. Node/npm is a dev-time tool only; the runtime stays
   bundler-free.

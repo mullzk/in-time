@@ -22,4 +22,4 @@ repos:
         name: prettier
         entry: npx prettier --write --ignore-unknown
         language: system
-        types_or: [markdown, yaml]
+        types_or: [markdown, yaml, html]
