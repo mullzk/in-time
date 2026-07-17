@@ -75,7 +75,7 @@ jobs:
           mise exec -- uv sync
           mise exec -- uv run python backend/manage.py check --deploy
           mise exec -- uv run python backend/manage.py migrate
-          mise exec -- uv run python backend/manage.py collectstatic --noinput
+          mise exec -- uv run python backend/manage.py collectstatic --noinput --ignore='*.test.js'
           sudo systemctl reload-or-restart "${{ vars.DEPLOY_SERVICE }}"
           REMOTE
 
