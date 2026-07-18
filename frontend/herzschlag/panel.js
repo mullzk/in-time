@@ -17,6 +17,8 @@ export class HerzschlagPanel extends Panel {
     const { camera, engine, time } = context;
     const worldPerPixel = 1 / camera.scale;
 
+    context.drawTiles(p);
+
     p.noFill();
     p.stroke(90, 100, 115);
     p.strokeWeight(1.1 * worldPerPixel);
