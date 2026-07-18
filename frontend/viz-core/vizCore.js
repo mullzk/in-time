@@ -1,6 +1,12 @@
 import p5 from '../vendor/p5.esm.min.js';
 import { CameraControls } from './cameraControls.js';
 
+// The vendored build still ships p5's friendly-error system, which re-fetches
+// and regex-scans our modules at startup and false-flags domain names like
+// `camera` (a p5 function) as redeclarations. We don't want the scan or the
+// noise in this bundler-free app.
+p5.disableFriendlyErrors = true;
+
 // Owns the single p5 instance-mode loop and drives the active panel. Panels draw
 // in world coordinates (LV95); VizCore pushes the camera transform so geometry
 // and, later, tiles stay coincident in one render loop.
