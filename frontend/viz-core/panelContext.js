@@ -12,4 +12,19 @@ export class PanelContext {
   drawTiles(p) {
     this.tileLayer.draw(p, this.camera);
   }
+
+  // The rail-only public-transport basemap: the network as static vector
+  // strokes, a shared substrate panels compose rather than redraw themselves.
+  drawBasemap(p) {
+    p.noFill();
+    p.stroke(90, 100, 115);
+    p.strokeWeight(1.1 / this.camera.scale);
+    this.engine.edges.forEach((polyline) => {
+      p.beginShape();
+      polyline.forEach(([east, north]) => {
+        p.vertex(east, north);
+      });
+      p.endShape();
+    });
+  }
 }
