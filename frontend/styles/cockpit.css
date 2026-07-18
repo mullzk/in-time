@@ -1,0 +1,35 @@
+/* SMACSS Module: the transport cockpit (play/pause, tempo, clock, scrubber). */
+.cockpit {
+  position: absolute;
+  z-index: 10;
+  bottom: var(--space-l);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: var(--space-m);
+  padding: 10px 16px;
+  border-radius: var(--radius-m);
+  background: var(--color-surface);
+  backdrop-filter: blur(6px);
+}
+
+.cockpit-play {
+  min-width: 64px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--color-control);
+  color: var(--color-control-text);
+  cursor: pointer;
+}
+
+.cockpit-clock {
+  min-width: 74px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.cockpit-scrubber {
+  width: 260px;
+}

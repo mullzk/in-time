@@ -6,7 +6,7 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!backend/**/templates"]
+    "includes": ["**", "!backend/**/templates", "!frontend/vendor"]
   },
   "formatter": {
     "enabled": true,

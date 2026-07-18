@@ -1,0 +1,15 @@
+/* SMACSS Layout: the major regions. The viz stage fills the viewport and layers
+   the p5 canvas beneath the floating cockpit (explicit stacking, not DOM order). */
+.l-viz-root {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+}
+
+.l-viz-root canvas {
+  display: block;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  touch-action: none;
+}

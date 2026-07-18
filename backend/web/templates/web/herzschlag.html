@@ -1,11 +1,16 @@
-{% load static %}<!doctype html>
-<html lang="de">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Herzschlag — In Time</title>
-  </head>
-  <body data-config-url="/api/config">
-    <script type="module" src="{% static 'herzschlag/main.js' %}"></script>
-  </body>
-</html>
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block title %}Herzschlag — In Time{% endblock %}
+
+{% block styles %}
+  <link rel="stylesheet" href="{% static 'styles/cockpit.css' %}" />
+{% endblock %}
+
+{% block content %}
+  <main id="viz-root" class="l-viz-root" data-config-url="/api/config"></main>
+{% endblock %}
+
+{% block scripts %}
+  <script type="module" src="{% static 'herzschlag/main.js' %}"></script>
+{% endblock %}
