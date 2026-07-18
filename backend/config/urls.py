@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.urls import include, path
 
-from config.views import health
+from config.views import health, tile_proxy
 
 urlpatterns = [
     path("health/", health),
@@ -22,4 +22,5 @@ if settings.DEBUG:
             serve,
             {"document_root": DataDir(settings.DATA_DIR).current_link},
         ),
+        path("tiles/<layer>/<int:z>/<int:x>/<int:y>.<ext>", tile_proxy),
     ]

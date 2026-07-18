@@ -3,6 +3,8 @@ import { Cockpit } from '../viz-core/cockpit.js';
 import { loadSchedule } from '../viz-core/loader.js';
 import { PanelContext } from '../viz-core/panelContext.js';
 import { wgs84ToLv95 } from '../viz-core/projection.js';
+import { TileLayer } from '../viz-core/tiles/tileLayer.js';
+import { RELIEF_TILE_SOURCE } from '../viz-core/tiles/tileSource.js';
 import { SECONDS_PER_DAY, TimeModel } from '../viz-core/timeModel.js';
 import { VehiclePositionEngine } from '../viz-core/vehiclePositionEngine.js';
 import { VizCore } from '../viz-core/vizCore.js';
@@ -37,6 +39,7 @@ async function bootstrap() {
     projection: wgs84ToLv95,
     time,
     engine,
+    tileLayer: new TileLayer(RELIEF_TILE_SOURCE),
   });
 
   const cockpit = new Cockpit(root, panel, time);

@@ -15,20 +15,11 @@ export class HerzschlagPanel extends Panel {
 
   drawWorld(p, context) {
     const { camera, engine, time } = context;
-    const worldPerPixel = 1 / camera.scale;
 
-    p.noFill();
-    p.stroke(90, 100, 115);
-    p.strokeWeight(1.1 * worldPerPixel);
-    engine.edges.forEach((polyline) => {
-      p.beginShape();
-      polyline.forEach(([east, north]) => {
-        p.vertex(east, north);
-      });
-      p.endShape();
-    });
+    context.drawTiles(p);
+    context.drawBasemap(p);
 
-    const diameter = 7 * worldPerPixel;
+    const diameter = 7 / camera.scale;
     p.noStroke();
     engine.activeAt(time.current).forEach((train) => {
       const [r, g, b] = CATEGORY_COLORS[train.category] ?? FALLBACK_COLOR;

@@ -40,8 +40,9 @@ Then browse <http://127.0.0.1:8000/herzschlag> for the Heartbeat panel.
 `build_schedule` publishes the current day's artifacts; without it,
 `/api/config` returns `503` (nothing published yet). Run the commands from the
 repository root so the relative `IN_TIME_DATA_DIR` resolves. In `DEBUG` the dev
-server also serves `/artifacts/` from the data directory, so the schedule blob
-loads without the reverse proxy.
+server also serves `/artifacts/` from the data directory and proxies `/tiles/`
+to swisstopo, so both the schedule blob and the map tiles load without the
+reverse proxy.
 
 ## HTTP surface
 
@@ -109,7 +110,9 @@ _In Time_ expects of its runtime environment:
   atomically with the blob, so they never go stale.
 - **A tile proxy with cache** (server-to-server to swisstopo) — the client talks
   **only** to our server, never to third-party hosts (for all assets, fonts,
-  maps).
+  maps). The client requests same-origin `/tiles/{layer}/{z}/{x}/{y}.{ext}`; the
+  proxy adds the swisstopo host, referer and cache, so the layer choice lives in
+  the path and the client stays origin-agnostic.
 - **A MariaDB database** (per app, with its own user).
 - **A scheduler** running **two commands** daily (`build_schedule` for the
   planned timetable, `build_actuals` for the measured data) and alerting on

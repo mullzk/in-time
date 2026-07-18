@@ -14,6 +14,9 @@ ALLOWED_HOSTS: list[str] = env.list("DJANGO_ALLOWED_HOSTS", [])
 DATA_DIR = env.path("IN_TIME_DATA_DIR", BASE_DIR.parent / "data")
 SCHEDULE_RELOAD_COMMAND: list[str] = env.list("IN_TIME_RELOAD_COMMAND", [])
 
+# Only used on DEBUG. In Prod, nginx makes the request and sets the Referer.
+TILE_REFERER = env.str("IN_TIME_TILE_REFERER", "")
+
 INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.staticfiles",
