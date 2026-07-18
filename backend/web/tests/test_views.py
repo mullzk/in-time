@@ -79,6 +79,18 @@ def test_api_revalidates_across_a_swap(client: Client, published: Path) -> None:
     assert after_swap.json()["serviceDate"] == "2026-07-17"
 
 
+def test_config_etag_tracks_content_not_only_the_day(
+    client: Client, published: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    etag = client.get("/api/config")["ETag"]
+
+    monkeypatch.setattr("web.views.SCHEDULE_BLOB_URL", "/artifacts/changed.itsb")
+    after_deploy = client.get("/api/config", HTTP_IF_NONE_MATCH=etag)
+
+    assert after_deploy.status_code == 200
+    assert after_deploy.json()["scheduleBlobUrl"] == "/artifacts/changed.itsb"
+
+
 def test_herzschlag_serves_the_html_shell(client: Client, published: Path) -> None:
     response = client.get("/herzschlag")
 

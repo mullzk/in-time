@@ -1,3 +1,6 @@
+import hashlib
+import json
+
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render
@@ -21,6 +24,25 @@ def _published_etag(request: HttpRequest) -> str | None:
     return f'W/"{service_date.isoformat()}"'
 
 
+def _config_body(service_date_iso: str) -> dict[str, str]:
+    return {
+        "serviceDate": service_date_iso,
+        "scheduleBlobUrl": SCHEDULE_BLOB_URL,
+        "stationsUrl": STATIONS_URL,
+    }
+
+
+# The config's URLs can change on a code deploy while the service day stays the
+# same, so a day-keyed ETag would let `no-cache` revalidation answer 304 and
+# strand clients on a stale body. Key it to the whole payload instead.
+def _config_etag(request: HttpRequest) -> str | None:
+    service_date = _published().service_date()
+    if service_date is None:
+        return None
+    body = json.dumps(_config_body(service_date.isoformat()), sort_keys=True)
+    return f'W/"{hashlib.sha256(body.encode()).hexdigest()[:16]}"'
+
+
 def _no_publication() -> HttpResponse:
     return JsonResponse({"detail": "no schedule published"}, status=503)
 
@@ -30,20 +52,12 @@ def _revalidated(response: HttpResponse) -> HttpResponse:
     return response
 
 
-@condition(etag_func=_published_etag)
+@condition(etag_func=_config_etag)
 def config(request: HttpRequest) -> HttpResponse:
     service_date = _published().service_date()
     if service_date is None:
         return _no_publication()
-    return _revalidated(
-        JsonResponse(
-            {
-                "serviceDate": service_date.isoformat(),
-                "scheduleBlobUrl": SCHEDULE_BLOB_URL,
-                "stationsUrl": STATIONS_URL,
-            }
-        )
-    )
+    return _revalidated(JsonResponse(_config_body(service_date.isoformat())))
 
 
 @condition(etag_func=_published_etag)
