@@ -6,7 +6,7 @@ from django.views.decorators.http import condition
 from pipeline.datadir import DataDir
 from web.published import PublishedSchedule
 
-SCHEDULE_BLOB_URL = "/artifacts/current/schedule.itsb"
+SCHEDULE_BLOB_URL = "/artifacts/schedule.itsb"
 STATIONS_URL = "/api/stations"
 
 

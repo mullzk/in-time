@@ -61,8 +61,8 @@ Both `/api/*` endpoints are keyed to the published day via a weak `ETag` and
 the daily symlink swap changes the day — never caching a day across the swap.
 
 The schedule blob itself is **not** served by the app in production: the proxy
-serves it from the artifact directory under the stable URL
-`/artifacts/current/schedule.itsb` (the dev server stands in for the proxy under
+serves it from the published `current` symlink under the stable URL
+`/artifacts/schedule.itsb` (the dev server stands in for the proxy under
 `DEBUG`).
 
 ## Frontend (viz-core)

@@ -33,7 +33,7 @@ def test_config_returns_the_published_day(client: Client, published: Path) -> No
     assert response.status_code == 200
     body = response.json()
     assert body["serviceDate"] == "2026-07-16"
-    assert body["scheduleBlobUrl"] == "/artifacts/current/schedule.itsb"
+    assert body["scheduleBlobUrl"] == "/artifacts/schedule.itsb"
     assert body["stationsUrl"] == "/api/stations"
     assert "no-cache" in response["Cache-Control"]
     assert response.has_header("ETag")
