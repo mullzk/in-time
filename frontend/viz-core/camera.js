@@ -48,6 +48,21 @@ export class Camera {
     );
   }
 
+  worldPerPixel() {
+    return 1 / this.scale;
+  }
+
+  visibleWorldBounds() {
+    const halfWidthMetres = this.viewportWidth / 2 / this.scale;
+    const halfHeightMetres = this.viewportHeight / 2 / this.scale;
+    return {
+      eastMin: this.centerEast - halfWidthMetres,
+      eastMax: this.centerEast + halfWidthMetres,
+      northMin: this.centerNorth - halfHeightMetres,
+      northMax: this.centerNorth + halfHeightMetres,
+    };
+  }
+
   worldToScreen(east, north) {
     return [
       this.viewportWidth / 2 + (east - this.centerEast) * this.scale,

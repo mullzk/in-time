@@ -69,6 +69,40 @@ test('scale is clamped at the maximum zoom-out (CH + 10% fits)', () => {
   assert.ok(closeTo(camera.scale, fit, 1e-9));
 });
 
+test('worldPerPixel is the inverse of the scale', () => {
+  const camera = new Camera(1300, 800);
+  assert.ok(closeTo(camera.worldPerPixel(), 1 / camera.scale, 1e-12));
+});
+
+test('visibleWorldBounds spans the viewport symmetrically around the centre', () => {
+  const camera = new Camera(1300, 800);
+  const bounds = camera.visibleWorldBounds();
+  const halfWidthMetres = 1300 / 2 / camera.scale;
+  const halfHeightMetres = 800 / 2 / camera.scale;
+  assert.ok(closeTo(bounds.eastMin, camera.centerEast - halfWidthMetres, 1e-6));
+  assert.ok(closeTo(bounds.eastMax, camera.centerEast + halfWidthMetres, 1e-6));
+  assert.ok(
+    closeTo(bounds.northMin, camera.centerNorth - halfHeightMetres, 1e-6),
+  );
+  assert.ok(
+    closeTo(bounds.northMax, camera.centerNorth + halfHeightMetres, 1e-6),
+  );
+});
+
+test('the corners of visibleWorldBounds map to the viewport corners', () => {
+  const camera = new Camera(1300, 800);
+  const bounds = camera.visibleWorldBounds();
+  const [leftX, topY] = camera.worldToScreen(bounds.eastMin, bounds.northMax);
+  const [rightX, bottomY] = camera.worldToScreen(
+    bounds.eastMax,
+    bounds.northMin,
+  );
+  assert.ok(closeTo(leftX, 0, 1e-6));
+  assert.ok(closeTo(topY, 0, 1e-6));
+  assert.ok(closeTo(rightX, 1300, 1e-6));
+  assert.ok(closeTo(bottomY, 800, 1e-6));
+});
+
 test('the centre stays inside the CH bounds when panned far', () => {
   const camera = new Camera(1300, 800);
   camera.panBy(-10_000_000, 10_000_000);
