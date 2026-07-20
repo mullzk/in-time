@@ -6,7 +6,6 @@ import { wgs84ToLv95 } from '../viz-core/projection.js';
 import { TileLayer } from '../viz-core/tiles/tileLayer.js';
 import { RELIEF_TILE_SOURCE } from '../viz-core/tiles/tileSource.js';
 import { SECONDS_PER_DAY, TimeModel } from '../viz-core/timeModel.js';
-import { VehiclePositionEngine } from '../viz-core/vehiclePositionEngine.js';
 import { VizCore } from '../viz-core/vizCore.js';
 import { HerzschlagPanel } from './panel.js';
 
@@ -26,19 +25,17 @@ async function bootstrap() {
     return;
   }
 
-  const engine = new VehiclePositionEngine(result.scheduleBuffer);
   const time = new TimeModel(
     DAY_CUT_SECONDS,
     DAY_CUT_SECONDS + SECONDS_PER_DAY,
   );
   time.seekToTime(PLAYBACK_START_SECONDS);
   const camera = new Camera(root.clientWidth, root.clientHeight);
-  const panel = new HerzschlagPanel();
+  const panel = new HerzschlagPanel(result.scheduleBuffer);
   const context = new PanelContext({
     camera,
     projection: wgs84ToLv95,
     time,
-    engine,
     tileLayer: new TileLayer(RELIEF_TILE_SOURCE),
   });
 
