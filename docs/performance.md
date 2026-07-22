@@ -40,6 +40,20 @@ Durchgangs-, 300 Verbindungsstrasse}. Local run, Apple Silicon.
 | router build (shared edges + bridge) | 3.3 s           |
 | sample leg (49.6 km straight)        | direct, 71.6 km |
 
+## Bus-stop catalog — `bus_stops.load_bus_stops`
+
+Source: GTFS feed 2026 (`stops.txt`, 103 039 rows), day 2026-07-15. One LV95
+station point per Swiss BPUIC; platforms collapsed, foreign stops dropped. Local
+run, Apple Silicon.
+
+| metric                           | value             |
+| -------------------------------- | ----------------- |
+| `stops.txt` rows                 | 103 039           |
+| Swiss BPUIC (kept)               | 26 047            |
+| foreign rows dropped (non-`85…`) | 20 590            |
+| load + reproject (WGS84 → LV95)  | 0.22 s            |
+| Zürich HB 8503000 (LV95)         | 2683190 / 1248066 |
+
 ## Schedule day build — `build_schedule_day`
 
 Source: GTFS feed 2026 (2.1 GB `stop_times.txt`) + rail network GDB, day
