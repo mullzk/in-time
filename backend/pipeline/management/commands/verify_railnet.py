@@ -4,8 +4,8 @@ from pathlib import Path
 import networkx as nx
 from django.core.management.base import BaseCommand, CommandParser
 
-from pipeline.railnet import RailRouter
-from pipeline.railnet_gdb import load_rail_graph
+from pipeline.network.rail import RailRouter
+from pipeline.network.rail_gdb import load_rail_graph
 
 
 class Command(BaseCommand):
@@ -34,7 +34,7 @@ class Command(BaseCommand):
         self.stdout.write(f"GDB:                {gdb_path}")
         self.stdout.write(f"rail graph nodes:   {graph.number_of_nodes()}")
         self.stdout.write(f"rail graph edges:   {graph.number_of_edges()}")
-        self.stdout.write(f"DiDok stations:     {len(rail_graph.didok_to_node)}")
+        self.stdout.write(f"DiDok stations:     {len(rail_graph.station_to_node)}")
         self.stdout.write(f"shared edges:       {len(router.edges)} (simplified)")
         self.stdout.write(f"shared edge points: {edge_points}")
         self.stdout.write(

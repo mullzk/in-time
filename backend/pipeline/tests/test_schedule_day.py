@@ -1,7 +1,7 @@
 import datetime
 from pathlib import Path
 
-from pipeline.railnet import RailGraph
+from pipeline.network.rail import RailGraph
 from pipeline.schedule_day import build_schedule_day
 
 THURSDAY = datetime.date(2026, 7, 16)
@@ -12,10 +12,10 @@ C = (2620000.0, 1200000.0)
 
 
 def line_rail_graph() -> RailGraph:
-    return RailGraph.from_segments(
+    return RailGraph.from_rail_segments(
         nodes={"na": A, "nb": B, "nc": C},
         segments=[("na", "nb", [A, B]), ("nb", "nc", [B, C])],
-        didok_to_node={1: "na", 2: "nb", 3: "nc"},
+        station_to_node={1: "na", 2: "nb", 3: "nc"},
         node_name={"na": "Alpha", "nb": "Beta", "nc": "Gamma"},
     )
 

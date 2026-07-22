@@ -7,7 +7,7 @@ from datetime import date
 from pathlib import Path
 
 from pipeline.gtfs import active_rail_trips, stop_sequences
-from pipeline.railnet import Point, RailGraph, RailRouter
+from pipeline.network.rail import Point, RailGraph, RailRouter
 from pipeline.schedule_blob import Event, ScheduleDay, Trip
 
 
@@ -41,14 +41,14 @@ class _StationCatalog:
 
     def index_of(self, didok: int) -> int:
         if didok not in self._index:
-            node = self._rail_graph.didok_to_node[didok]
+            node = self._rail_graph.station_to_node[didok]
             self._index[didok] = len(self.coordinates)
             self.coordinates.append(self._rail_graph.node_point[node])
             self.entries.append(StationEntry(didok, self.name_of(didok)))
         return self._index[didok]
 
     def name_of(self, didok: int) -> str:
-        node = self._rail_graph.didok_to_node.get(didok)
+        node = self._rail_graph.station_to_node.get(didok)
         if node is None:
             return str(didok)
         return self._rail_graph.node_name.get(node, str(didok))
@@ -59,7 +59,7 @@ def build_schedule_day(
 ) -> ScheduleBuild:
     categories = active_rail_trips(gtfs_dir, service_date)
     sequences = stop_sequences(gtfs_dir, set(categories))
-    routable = rail_graph.didok_to_node
+    routable = rail_graph.station_to_node
 
     kept: dict[str, list[tuple[int, int, int]]] = {}
     pairs: set[tuple[int, int]] = set()
@@ -76,7 +76,7 @@ def build_schedule_day(
             pairs.add((didok, next_didok))
 
     router = RailRouter(rail_graph)
-    routed = router.route_pairs(pairs)
+    routed = router.route(pairs)
 
     catalog = _StationCatalog(rail_graph)
     trips: list[Trip] = []
@@ -99,8 +99,8 @@ def build_schedule_day(
     method_counts = dict(Counter(leg.method for leg in routed.values()))
     straight = [
         NamedStraight(
-            catalog.name_of(fallback.from_didok),
-            catalog.name_of(fallback.to_didok),
+            catalog.name_of(fallback.from_key),
+            catalog.name_of(fallback.to_key),
             fallback.distance_metres / 1000,
         )
         for fallback in router.straight_fallbacks(routed)

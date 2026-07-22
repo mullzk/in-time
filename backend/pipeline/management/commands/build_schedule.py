@@ -13,7 +13,7 @@ from pipeline.artifacts import (
 )
 from pipeline.datadir import DataDir
 from pipeline.fetch import gtfs_archive, rail_network_archive
-from pipeline.railnet_gdb import load_rail_graph
+from pipeline.network.rail_gdb import load_rail_graph
 from pipeline.schedule import run_build_schedule
 from pipeline.schedule_day import build_schedule_day
 
