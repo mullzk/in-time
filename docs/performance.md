@@ -54,6 +54,23 @@ run, Apple Silicon.
 | load + reproject (WGS84 → LV95)  | 0.22 s            |
 | Zürich HB 8503000 (LV95)         | 2683190 / 1248066 |
 
+## Frequency filter — `frequency.scan_regular_edges`
+
+Source: GTFS feed 2026 (full year, ~15 M `stop_times` rows), feed 2026-07-15.
+Yearly scan, cached per GTFS version. An edge is regular at `≥300` operating
+days **and** `≥4` departures per day; a trip drops as soon as one edge is
+irregular. Local run, Apple Silicon.
+
+| metric                            | value                    |
+| --------------------------------- | ------------------------ |
+| trips classified (rail/tram/bus)  | 1 641 400                |
+| services with a calendar          | 62 674                   |
+| prep (routes + trips + calendar)  | 26 s                     |
+| stop_times scan                   | 30 s                     |
+| raw edges (rail / tram / bus)     | 33 230 (2616/681/29 933) |
+| regular edges (rail / tram / bus) | 24 867 (2000/594/22 273) |
+| max service bitmask               | 711 bits                 |
+
 ## Schedule day build — `build_schedule_day`
 
 Source: GTFS feed 2026 (2.1 GB `stop_times.txt`) + rail network GDB, day
