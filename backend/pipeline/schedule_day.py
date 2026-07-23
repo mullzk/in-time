@@ -114,12 +114,8 @@ class _StationCatalog:
         return self._source.name(station)
 
 
-def _kept_calls(
-    sequence: list[StopCall], placeable: Set[int]
-) -> list[tuple[int, int, int]]:
-    return [
-        (call.didok, call.arr, call.dep) for call in sequence if call.didok in placeable
-    ]
+def _kept_calls(sequence: list[StopCall], placeable: Set[int]) -> list[StopCall]:
+    return [call for call in sequence if call.didok in placeable]
 
 
 def _swiss_stations_and_mode(
@@ -152,7 +148,7 @@ def assemble_schedule_day(
     placeable: Set[int],
     regular_edges: RegularEdges | None = None,
 ) -> ScheduleBuild:
-    kept: dict[str, list[tuple[int, int, int]]] = {}
+    kept: dict[str, list[StopCall]] = {}
     pairs: set[tuple[int, int]] = set()
     for trip_id, category in trips.items():
         sequence = sequences.get(trip_id, [])
@@ -164,8 +160,8 @@ def assemble_schedule_day(
         if len(calls) < 2:
             continue
         kept[trip_id] = calls
-        for (didok, _, _), (next_didok, _, _) in zip(calls, calls[1:], strict=False):
-            pairs.add((didok, next_didok))
+        for call, next_call in zip(calls, calls[1:], strict=False):
+            pairs.add((call.didok, next_call.didok))
 
     routed = router.route(pairs)
 
@@ -173,12 +169,14 @@ def assemble_schedule_day(
     assembled: list[Trip] = []
     for trip_id, calls in kept.items():
         events: list[Event] = []
-        for position, (didok, arr, dep) in enumerate(calls):
+        for position, call in enumerate(calls):
             leg_edges: list[int] = []
             if position < len(calls) - 1:
-                leg = routed.get((didok, calls[position + 1][0]))
+                leg = routed.get((call.didok, calls[position + 1].didok))
                 leg_edges = leg.signed_path if leg is not None else []
-            events.append(Event(catalog.index_of(didok), arr, dep, leg_edges))
+            events.append(
+                Event(catalog.index_of(call.didok), call.arr, call.dep, leg_edges)
+            )
         assembled.append(Trip(category=trips[trip_id], events=events))
 
     day = ScheduleDay(
@@ -253,7 +251,8 @@ def assemble_straight_line_day(
         if len(calls) < 2:
             continue
         events = [
-            Event(catalog.index_of(didok), arr, dep, []) for didok, arr, dep in calls
+            Event(catalog.index_of(call.didok), call.arr, call.dep, [])
+            for call in calls
         ]
         assembled.append(Trip(category=category, events=events))
     day = ScheduleDay(
