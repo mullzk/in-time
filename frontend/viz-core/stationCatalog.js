@@ -41,6 +41,7 @@ function rankOf(searchKey, query) {
 export class StationCatalog {
   constructor(entries, { maxSuggestions = DEFAULT_MAX_SUGGESTIONS } = {}) {
     this.maxSuggestions = maxSuggestions;
+    this.entries = entries;
     this._indexed = entries.map((entry) => ({
       entry,
       searchKey: normalizeForSearch(entry.name),
