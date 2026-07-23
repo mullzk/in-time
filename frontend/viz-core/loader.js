@@ -10,12 +10,23 @@ export async function loadSchedule(configUrl) {
   }
 
   const config = await configResponse.json();
-  const [railBuffer, roadBuffer] = await Promise.all([
-    fetchBlob(config.scheduleBlobUrl),
-    fetchBlob(config.roadScheduleBlobUrl),
-  ]);
+  const [railBuffer, roadBuffer, bavStations, roadStations] = await Promise.all(
+    [
+      fetchBlob(config.scheduleBlobUrl),
+      fetchBlob(config.roadScheduleBlobUrl),
+      fetchJson(config.stationsUrl),
+      fetchJson(config.roadStationsUrl),
+    ],
+  );
 
-  return { published: true, config, railBuffer, roadBuffer };
+  return {
+    published: true,
+    config,
+    railBuffer,
+    roadBuffer,
+    bavStations,
+    roadStations,
+  };
 }
 
 async function fetchBlob(url) {
@@ -24,4 +35,12 @@ async function fetchBlob(url) {
     throw new Error(`schedule blob request failed: ${response.status}`);
   }
   return response.arrayBuffer();
+}
+
+async function fetchJson(url) {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`stations request failed: ${response.status}`);
+  }
+  return response.json();
 }

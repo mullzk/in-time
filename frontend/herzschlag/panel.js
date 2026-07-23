@@ -1,5 +1,7 @@
+import { readStationPoints } from '../viz-core/blobStations.js';
 import { element } from '../viz-core/dom.js';
 import { Panel } from '../viz-core/panel.js';
+import { StationCatalog } from '../viz-core/stationCatalog.js';
 import { BACKGROUNDS } from '../viz-core/tiles/tileSource.js';
 import { VehiclePositionEngine } from '../viz-core/vehiclePositionEngine.js';
 
@@ -56,12 +58,22 @@ const LAYER_LABELS = [
 ];
 
 export class HerzschlagPanel extends Panel {
-  capabilities = { transport: true, fullDayScrubber: true };
+  capabilities = {
+    transport: true,
+    fullDayScrubber: true,
+    stationSearch: true,
+  };
 
-  constructor(railBuffer, roadBuffer) {
+  constructor(railBuffer, roadBuffer, bavStations, roadStations) {
     super();
     this.railBuffer = railBuffer;
     this.roadBuffer = roadBuffer;
+    this.catalog = StationCatalog.fromPublished(
+      bavStations,
+      readStationPoints(railBuffer),
+      roadStations,
+      readStationPoints(roadBuffer),
+    );
     this.activeVehicles = [];
     this.layers = { network: true, rail: true, tram: false, bus: false };
     this.backgroundShowsRailwayLines = false;
@@ -69,6 +81,10 @@ export class HerzschlagPanel extends Panel {
     this.zoomScrubbing = false;
     this.networkOption = null;
     this.camera = null;
+  }
+
+  stationCatalog() {
+    return this.catalog;
   }
 
   init(context) {
