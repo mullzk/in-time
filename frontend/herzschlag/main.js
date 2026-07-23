@@ -1,5 +1,6 @@
 import { Camera } from '../viz-core/camera.js';
 import { Cockpit } from '../viz-core/cockpit.js';
+import { KeyboardControls } from '../viz-core/keyboardControls.js';
 import { loadSchedule } from '../viz-core/loader.js';
 import { PanelContext } from '../viz-core/panelContext.js';
 import { wgs84ToLv95 } from '../viz-core/projection.js';
@@ -42,6 +43,7 @@ async function bootstrap() {
 
   const cockpit = new Cockpit(root, panel, time);
   new Sidebar(root, panel.buildSidebarSections(context));
+  new KeyboardControls(window, { time, camera });
   new VizCore(root, panel, context, {
     onFrameRendered: () => cockpit.sync(),
   });

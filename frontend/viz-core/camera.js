@@ -21,6 +21,11 @@ export class Camera {
   constructor(viewportWidth, viewportHeight) {
     this.viewportWidth = viewportWidth;
     this.viewportHeight = viewportHeight;
+    this.fit();
+  }
+
+  // Re-centre on the country and zoom out so the whole extent fits.
+  fit() {
     this.centerEast = (CH_BOUNDS_LV95.eastMin + CH_BOUNDS_LV95.eastMax) / 2;
     this.centerNorth = (CH_BOUNDS_LV95.northMin + CH_BOUNDS_LV95.northMax) / 2;
     this.scale = this.#minScale();
