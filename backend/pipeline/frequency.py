@@ -101,6 +101,13 @@ class RegularEdges:
             if first != second
         )
 
+    def trip_has_regular_edge(self, stations: list[int], mode: int) -> bool:
+        return any(
+            self.is_regular(first, second, mode)
+            for first, second in zip(stations, stations[1:], strict=False)
+            if first != second
+        )
+
 
 def _trip_modes_and_services(gtfs_dir: Path) -> tuple[dict[str, int], dict[str, str]]:
     route_mode: dict[str, int] = {}

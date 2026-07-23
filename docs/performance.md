@@ -55,14 +55,20 @@ irregular. Local run, Apple Silicon.
 
 Two blobs per day: `schedule.itsb` (rail + tram routed over the BAV network) and
 `schedule-road.itsb` (buses drawn as straight lines between stops, no geometry).
-GTFS feed 2026 + rail network GDB, day 2026-07-16. Local run, Apple Silicon.
+GTFS feed 2026 + rail network GDB, day 2026-07-17. Local run, Apple Silicon.
 
 | metric                                | BAV (rail+tram)     | road (bus)      |
 | ------------------------------------- | ------------------- | --------------- |
-| trips                                 | 26 628              | 105 330         |
-| stations                              | 2 013               | 18 931          |
-| blob raw / gz                         | 8.15 / 1.16 MB      | 27.28 / 3.79 MB |
+| trips                                 | 27 004              | 129 056         |
+| stations                              | 2 017               | 21 400          |
+| blob raw / gz                         | 7.90 / 1.12 MB      | 31.90 / 4.50 MB |
 | routing direct/multi/recover/straight | 99.22/0.74/0/0.04 % | — (straight)    |
+
+The frequency filter is asymmetric: a rail or tram trip drops on any irregular
+edge, but a bus trip is kept as long as one edge is regular (so a frequent urban
+line whose city-centre routing varies day to day survives). That lenience adds
+the ~23 700 bus trips (+22 %) an all-edges-regular rule would have dropped
+whole.
 
 Frequency edges are cached per GTFS version (sidecar `regular_edges.bin`, 0.30
 MB): first build scans ~56 s, later builds load in ~6 ms.

@@ -3,7 +3,13 @@ touches.
 
 Rail and tram are routed over the BAV network (assemble_schedule_day); buses are
 drawn as straight lines between their stops (assemble_straight_line_day), so a
-bus leg carries no edges. build_day_builds produces both."""
+bus leg carries no edges. build_day_builds produces both.
+
+The frequency filter treats the modes differently. A rail or tram trip drops as
+soon as one of its edges is irregular. A bus trip is kept as long as it has any
+regular edge: an urban line whose city-centre routing legitimately varies day to
+day would otherwise vanish whole, and its rare segments cost nothing extra to
+show — they are the same straight lines every bus leg already is."""
 
 from collections import Counter
 from collections.abc import Set
@@ -121,6 +127,14 @@ def _is_irregular_trip(
     return not regular_edges.trip_is_regular(swiss_stations, mode)
 
 
+def _bus_trip_is_droppable(
+    sequence: list[StopCall], category: int, regular_edges: RegularEdges
+) -> bool:
+    swiss_stations = [call.didok for call in sequence if is_swiss_bpuic(call.didok)]
+    mode = frequency_mode_of_category(category)
+    return not regular_edges.trip_has_regular_edge(swiss_stations, mode)
+
+
 def assemble_schedule_day(
     service_date: date,
     trips: dict[str, int],
@@ -214,7 +228,7 @@ def assemble_straight_line_day(
     assembled: list[Trip] = []
     for trip_id, category in trips.items():
         sequence = sequences.get(trip_id, [])
-        if _is_irregular_trip(sequence, category, regular_edges):
+        if _bus_trip_is_droppable(sequence, category, regular_edges):
             continue
         calls = _kept_calls(sequence, placeable)
         if len(calls) < 2:

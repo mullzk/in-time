@@ -178,6 +178,16 @@ def test_trip_is_regular_only_when_all_edges_are(tmp_path: Path) -> None:
     assert not regular.trip_is_regular([A, B, D], FREQUENCY_MODE_RAIL)
 
 
+def test_trip_has_regular_edge_needs_only_one() -> None:
+    regular = RegularEdges(frozenset({(A, B, FREQUENCY_MODE_BUS)}))
+
+    # A-B is regular, so a trip touching it survives despite the irregular B-C.
+    assert regular.trip_has_regular_edge([A, B, C], FREQUENCY_MODE_BUS)
+    # No regular edge at all -> nothing to keep.
+    assert not regular.trip_has_regular_edge([B, C, D], FREQUENCY_MODE_BUS)
+    assert not regular.trip_has_regular_edge([A, B], FREQUENCY_MODE_RAIL)
+
+
 def test_calendar_dates_add_and_remove_change_operating_days(tmp_path: Path) -> None:
     write_feed(
         tmp_path,
