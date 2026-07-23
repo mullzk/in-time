@@ -9,9 +9,11 @@ single irregular edge drops the trip — decommissioned lines and rare seasonal
 variants vanish from the shared edge list. Foreign stops are bridged: an edge
 connects the surrounding Swiss stations."""
 
+import array
 import csv
 import datetime
-from collections.abc import Iterable
+import sys
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -84,6 +86,9 @@ class RegularEdges:
 
     def __len__(self) -> int:
         return len(self._edges)
+
+    def __iter__(self) -> Iterator[Edge]:
+        return iter(self._edges)
 
     def is_regular(self, first: int, second: int, mode: int) -> bool:
         return _edge_key(first, second, mode) in self._edges
@@ -277,3 +282,39 @@ def scan_regular_edges(
         gtfs_dir, trip_mode, trip_service, service_masks, stop_bpuic
     )
     return RegularEdges(traffic.regular(thresholds))
+
+
+def serialize_regular_edges(regular: RegularEdges) -> bytes:
+    flat = array.array("i")
+    for first, second, mode in regular:
+        flat.extend((first, second, mode))
+    if sys.byteorder == "big":
+        flat.byteswap()
+    return flat.tobytes()
+
+
+def deserialize_regular_edges(data: bytes) -> RegularEdges:
+    flat = array.array("i")
+    flat.frombytes(data)
+    if sys.byteorder == "big":
+        flat.byteswap()
+    edges = {
+        (flat[index], flat[index + 1], flat[index + 2])
+        for index in range(0, len(flat), 3)
+    }
+    return RegularEdges(frozenset(edges))
+
+
+def load_or_scan_regular_edges(
+    gtfs_dir: Path,
+    cache_path: Path,
+    thresholds: FrequencyThresholds = DEFAULT_FREQUENCY_THRESHOLDS,
+) -> RegularEdges:
+    # The scan reads the whole yearly feed (~1 min), but its result depends only
+    # on the GTFS version, so it is cached per version and only recomputed when a
+    # new feed appears and its cache is absent.
+    if cache_path.exists():
+        return deserialize_regular_edges(cache_path.read_bytes())
+    regular = scan_regular_edges(gtfs_dir, thresholds)
+    cache_path.write_bytes(serialize_regular_edges(regular))
+    return regular

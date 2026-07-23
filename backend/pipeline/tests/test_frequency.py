@@ -8,8 +8,12 @@ from pipeline.frequency import (
     FREQUENCY_MODE_RAIL,
     FREQUENCY_MODE_TRAM,
     FrequencyThresholds,
+    RegularEdges,
+    deserialize_regular_edges,
     frequency_mode_of_route_type,
+    load_or_scan_regular_edges,
     scan_regular_edges,
+    serialize_regular_edges,
 )
 
 GTFS_DIR = os.environ.get("GTFS_SCHEDULE_DIR")
@@ -206,6 +210,50 @@ def test_foreign_stops_are_bridged(tmp_path: Path) -> None:
     regular = scan_regular_edges(tmp_path, SMALL)
     assert regular.is_regular(A, B, FREQUENCY_MODE_RAIL)
     assert not regular.is_regular(A, FOREIGN, FREQUENCY_MODE_RAIL)
+
+
+def test_serialize_round_trips_the_regular_edges() -> None:
+    regular = RegularEdges(
+        frozenset(
+            {
+                (A, B, FREQUENCY_MODE_RAIL),
+                (B, C, FREQUENCY_MODE_TRAM),
+                (A, D, FREQUENCY_MODE_BUS),
+            }
+        )
+    )
+    restored = deserialize_regular_edges(serialize_regular_edges(regular))
+    assert set(restored) == set(regular)
+
+
+def test_cache_miss_scans_and_writes_the_cache(tmp_path: Path) -> None:
+    feed = tmp_path / "feed"
+    write_feed(
+        feed,
+        {
+            "stops.txt": stops_txt(A, B),
+            "trips.txt": trips_txt(
+                ("R_RAIL", "DAILY", "T1"), ("R_RAIL", "DAILY", "T2")
+            ),
+            "stop_times.txt": stop_times(("T1", [A, B]), ("T2", [A, B])),
+        },
+    )
+    cache = tmp_path / "regular_edges.bin"
+    regular = load_or_scan_regular_edges(feed, cache, SMALL)
+
+    assert cache.exists()
+    assert regular.is_regular(A, B, FREQUENCY_MODE_RAIL)
+
+
+def test_cache_hit_loads_without_scanning(tmp_path: Path) -> None:
+    cache = tmp_path / "regular_edges.bin"
+    cache.write_bytes(
+        serialize_regular_edges(RegularEdges(frozenset({(A, B, FREQUENCY_MODE_RAIL)})))
+    )
+    # A missing feed dir would make a scan raise, proving the cache is used.
+    regular = load_or_scan_regular_edges(tmp_path / "absent", cache, SMALL)
+
+    assert regular.is_regular(A, B, FREQUENCY_MODE_RAIL)
 
 
 @pytest.mark.realdata
