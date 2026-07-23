@@ -234,8 +234,9 @@ export class VehiclePositionEngine {
     return cumulative;
   }
 
-  // A leg with no edges is a straight line between its two stations (the hybrid
-  // rule buses always follow, and rail's rare straight fallback).
+  // A leg with no edges is a straight line between its two stations — the shape
+  // every bus leg takes. Rail and tram always carry routed edges, their straight
+  // fallback included.
   #straightLegLength(fromEvent, toEvent) {
     const from = this.stations[fromEvent.station];
     const to = this.stations[toEvent.station];
