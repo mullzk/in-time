@@ -1,9 +1,9 @@
-"""Assembles a service day into a ScheduleBuild: routes each trip's legs over a
-network and collects the stations it touches.
+"""Assembles a service day into a ScheduleBuild and collects the stations it
+touches.
 
-The assembly is mode-agnostic — it takes a router and a station source — so the
-same code drives rail and tram over the BAV network and bus over the road
-network. build_schedule_day wires the rail case."""
+Rail and tram are routed over the BAV network (assemble_schedule_day); buses are
+drawn as straight lines between their stops (assemble_straight_line_day), so a
+bus leg carries no edges. build_day_builds produces both."""
 
 from collections import Counter
 from collections.abc import Set
@@ -27,12 +27,7 @@ from pipeline.gtfs import (
     active_trips,
     stop_sequences,
 )
-from pipeline.network import (
-    ROAD_THRESHOLDS,
-    NetworkGraph,
-    NetworkRouter,
-    StationAnchor,
-)
+from pipeline.network import NetworkRouter
 from pipeline.network.rail import Point, RailGraph, RailRouter
 from pipeline.schedule_blob import Event, ScheduleDay, Trip
 
@@ -228,20 +223,39 @@ class DayBuilds:
     road: ScheduleBuild
 
 
-def _road_router(
-    road_graph: NetworkGraph, bus_stops: dict[int, BusStop]
-) -> NetworkRouter:
-    anchors = {
-        bpuic: StationAnchor(location=stop.location, network_node=None)
-        for bpuic, stop in bus_stops.items()
-    }
-    return NetworkRouter(road_graph, anchors, ROAD_THRESHOLDS)
+def assemble_straight_line_day(
+    service_date: date,
+    trips: dict[str, int],
+    sequences: dict[str, list[StopCall]],
+    bus_stops: dict[int, BusStop],
+    regular_edges: RegularEdges,
+) -> ScheduleBuild:
+    catalog = _StationCatalog(BusStationSource(bus_stops))
+    placeable = set(bus_stops)
+    assembled: list[Trip] = []
+    for trip_id, category in trips.items():
+        sequence = sequences.get(trip_id, [])
+        if _is_irregular_trip(sequence, category, regular_edges):
+            continue
+        calls = _kept_calls(sequence, placeable)
+        if len(calls) < 2:
+            continue
+        events = [
+            Event(catalog.index_of(didok), arr, dep, []) for didok, arr, dep in calls
+        ]
+        assembled.append(Trip(category=category, events=events))
+    day = ScheduleDay(
+        service_date=service_date,
+        stations=catalog.coordinates,
+        edges=[],
+        trips=assembled,
+    )
+    return ScheduleBuild(day, catalog.entries, {}, [])
 
 
 def build_day_builds(
     gtfs_dir: Path,
     rail_graph: RailGraph,
-    road_graph: NetworkGraph,
     bus_stops: dict[int, BusStop],
     regular_edges: RegularEdges,
     service_date: date,
@@ -253,7 +267,7 @@ def build_day_builds(
         for trip, category in trips.items()
         if category in _BAV_CATEGORIES
     }
-    road_trips = {
+    bus_trips = {
         trip: category for trip, category in trips.items() if category == CATEGORY_BUS
     }
 
@@ -266,13 +280,7 @@ def build_day_builds(
         set(rail_graph.station_to_node),
         regular_edges,
     )
-    road = assemble_schedule_day(
-        service_date,
-        road_trips,
-        sequences,
-        _road_router(road_graph, bus_stops),
-        BusStationSource(bus_stops),
-        set(bus_stops),
-        regular_edges,
+    road = assemble_straight_line_day(
+        service_date, bus_trips, sequences, bus_stops, regular_edges
     )
     return DayBuilds(bav=bav, road=road)

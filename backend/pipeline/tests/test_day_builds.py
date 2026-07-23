@@ -8,7 +8,6 @@ from pipeline.frequency import (
     FREQUENCY_MODE_TRAM,
     RegularEdges,
 )
-from pipeline.network import NetworkGraph
 from pipeline.network.rail import RailGraph
 from pipeline.schedule_blob import FLAG_BAV_ONLY, read_header, write_schedule_blob
 from pipeline.schedule_day import build_day_builds
@@ -21,7 +20,7 @@ BUS_A, BUS_B = 8500020, 8500021
 
 PA, PB = (2600000.0, 1200000.0), (2610000.0, 1200000.0)
 PT1, PT2 = (2620000.0, 1200000.0), (2621000.0, 1200000.0)
-R1, R2 = (2630000.0, 1200000.0), (2631000.0, 1200000.0)
+BUS_PA, BUS_PB = (2630000.0, 1200000.0), (2631000.0, 1200000.0)
 
 
 def bav_graph() -> RailGraph:
@@ -33,16 +32,10 @@ def bav_graph() -> RailGraph:
     )
 
 
-def road_graph() -> NetworkGraph:
-    return NetworkGraph.from_segments(
-        nodes={"r1": R1, "r2": R2}, segments=[("r1", "r2", [R1, R2])]
-    )
-
-
 def bus_stops() -> dict[int, BusStop]:
     return {
-        BUS_A: BusStop(BUS_A, (2630005.0, 1200000.0), "BusA"),
-        BUS_B: BusStop(BUS_B, (2631005.0, 1200000.0), "BusB"),
+        BUS_A: BusStop(BUS_A, BUS_PA, "BusA"),
+        BUS_B: BusStop(BUS_B, BUS_PB, "BusB"),
     }
 
 
@@ -93,28 +86,30 @@ def write_feed(directory: Path) -> None:
 def test_bav_carries_rail_and_tram_road_carries_bus(tmp_path: Path) -> None:
     write_feed(tmp_path)
     builds = build_day_builds(
-        tmp_path, bav_graph(), road_graph(), bus_stops(), regular_edges(), THURSDAY
+        tmp_path, bav_graph(), bus_stops(), regular_edges(), THURSDAY
     )
 
     assert sorted(trip.category for trip in builds.bav.day.trips) == [1, 5]
     assert [trip.category for trip in builds.road.day.trips] == [6]
 
 
-def test_bus_trip_is_routed_over_the_road_network(tmp_path: Path) -> None:
+def test_bus_build_is_geometry_free(tmp_path: Path) -> None:
     write_feed(tmp_path)
     builds = build_day_builds(
-        tmp_path, bav_graph(), road_graph(), bus_stops(), regular_edges(), THURSDAY
+        tmp_path, bav_graph(), bus_stops(), regular_edges(), THURSDAY
     )
 
+    # Bus legs are drawn straight between stations, so the blob carries no edges.
+    assert builds.road.day.edges == []
     bus_trip = builds.road.day.trips[0]
-    assert bus_trip.events[0].leg_edges  # a real routed leg, not empty
-    assert builds.road.straight_fallbacks == []
+    assert all(event.leg_edges == [] for event in bus_trip.events)
+    assert builds.road.day.stations == [BUS_PA, BUS_PB]
 
 
 def test_each_blob_round_trips_with_its_flag(tmp_path: Path) -> None:
     write_feed(tmp_path)
     builds = build_day_builds(
-        tmp_path, bav_graph(), road_graph(), bus_stops(), regular_edges(), THURSDAY
+        tmp_path, bav_graph(), bus_stops(), regular_edges(), THURSDAY
     )
 
     bav_blob = write_schedule_blob(builds.bav.day, FLAG_BAV_ONLY)
@@ -123,3 +118,4 @@ def test_each_blob_round_trips_with_its_flag(tmp_path: Path) -> None:
     assert read_header(bav_blob).flags & FLAG_BAV_ONLY
     assert not (read_header(road_blob).flags & FLAG_BAV_ONLY)
     assert read_header(road_blob).trip_count == 1
+    assert read_header(road_blob).edge_count == 0
