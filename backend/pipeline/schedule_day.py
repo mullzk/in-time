@@ -122,19 +122,24 @@ def _kept_calls(
     ]
 
 
-def _is_irregular_trip(
+def _swiss_stations_and_mode(
+    sequence: list[StopCall], category: int
+) -> tuple[list[int], int]:
+    swiss_stations = [call.didok for call in sequence if is_swiss_bpuic(call.didok)]
+    return swiss_stations, frequency_mode_of_category(category)
+
+
+def _rail_trip_is_droppable(
     sequence: list[StopCall], category: int, regular_edges: RegularEdges
 ) -> bool:
-    swiss_stations = [call.didok for call in sequence if is_swiss_bpuic(call.didok)]
-    mode = frequency_mode_of_category(category)
+    swiss_stations, mode = _swiss_stations_and_mode(sequence, category)
     return not regular_edges.trip_is_regular(swiss_stations, mode)
 
 
 def _bus_trip_is_droppable(
     sequence: list[StopCall], category: int, regular_edges: RegularEdges
 ) -> bool:
-    swiss_stations = [call.didok for call in sequence if is_swiss_bpuic(call.didok)]
-    mode = frequency_mode_of_category(category)
+    swiss_stations, mode = _swiss_stations_and_mode(sequence, category)
     return not regular_edges.trip_has_regular_edge(swiss_stations, mode)
 
 
@@ -151,7 +156,7 @@ def assemble_schedule_day(
     pairs: set[tuple[int, int]] = set()
     for trip_id, category in trips.items():
         sequence = sequences.get(trip_id, [])
-        if regular_edges is not None and _is_irregular_trip(
+        if regular_edges is not None and _rail_trip_is_droppable(
             sequence, category, regular_edges
         ):
             continue
