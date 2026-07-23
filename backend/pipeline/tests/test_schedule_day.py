@@ -3,6 +3,7 @@ from pathlib import Path
 
 from pipeline.frequency import FREQUENCY_MODE_RAIL, RegularEdges
 from pipeline.network.rail import RailGraph
+from pipeline.schedule_blob import read_schedule_blob, write_schedule_blob
 from pipeline.schedule_day import build_schedule_day
 
 THURSDAY = datetime.date(2026, 7, 16)
@@ -67,6 +68,30 @@ def test_build_schedule_day_assembles_trip(tmp_path: Path) -> None:
     assert [station.name for station in build.stations] == ["Alpha", "Beta", "Gamma"]
     assert build.method_counts["direct"] == 2
     assert build.straight_fallbacks == []
+
+
+def write_short_gtfs(directory: Path) -> None:
+    # Same line, but the trip only runs Alpha -> Beta, so the Beta-Gamma edge is
+    # never travelled.
+    write_gtfs(directory)
+    (directory / "stop_times.txt").write_text(
+        "trip_id,arrival_time,departure_time,stop_id,stop_sequence\n"
+        f"T1,08:00:00,08:00:30,{ALPHA},1\n"
+        f"T1,08:20:00,08:20:00,{BETA},2\n"
+    )
+
+
+def test_only_travelled_edges_are_emitted_and_reindexed(tmp_path: Path) -> None:
+    write_short_gtfs(tmp_path)
+    build = build_schedule_day(tmp_path, line_rail_graph(), THURSDAY)
+
+    trip = build.day.trips[0]
+    referenced = {abs(edge) for event in trip.events for edge in event.leg_edges}
+    # Every emitted edge is travelled, and the indices are a gapless 1..N.
+    assert referenced == set(range(1, len(build.day.edges) + 1))
+    # The blob round-trips with the pruned, reindexed geometry intact.
+    restored = read_schedule_blob(write_schedule_blob(build.day))
+    assert restored.edges == build.day.edges
 
 
 def test_frequency_filter_drops_trip_with_an_irregular_edge(tmp_path: Path) -> None:
