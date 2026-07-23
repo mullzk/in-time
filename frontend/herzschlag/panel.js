@@ -16,6 +16,16 @@ const CATEGORY_COLORS = [
 ];
 const FALLBACK_COLOR = [200, 200, 200];
 
+const CATEGORY_TRAM = 5;
+const CATEGORY_BUS = 6;
+
+// Rail spans categories 0-4 and is the default; only tram and bus carry a
+// dedicated layer, so the rail categories are absent from this map.
+const LAYER_BY_CATEGORY = new Map([
+  [CATEGORY_TRAM, 'tram'],
+  [CATEGORY_BUS, 'bus'],
+]);
+
 const LAYER_LABELS = [
   ['network', 'Netz'],
   ['rail', 'Bahn'],
@@ -75,13 +85,7 @@ export class HerzschlagPanel extends Panel {
   }
 
   #categoryVisible(category) {
-    if (category === 6) {
-      return this.layers.bus;
-    }
-    if (category === 5) {
-      return this.layers.tram;
-    }
-    return this.layers.rail;
+    return this.layers[LAYER_BY_CATEGORY.get(category) ?? 'rail'];
   }
 
   #backgroundControl(context) {
