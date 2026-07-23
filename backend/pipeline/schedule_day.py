@@ -1,6 +1,9 @@
 """Assembles a service day into a ScheduleBuild and collects the stations it
 touches.
 
+The build_* entry points read the GTFS source from gtfs_dir and delegate; the
+assemble_* functions are pure and work on already-loaded trips and sequences.
+
 Rail and tram are routed over the BAV network (assemble_schedule_day); buses are
 drawn as straight lines between their stops (assemble_straight_line_day), so a
 bus leg carries no edges. build_day_builds produces both.
