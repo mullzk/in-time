@@ -18,16 +18,18 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from pipeline.gtfs import (
-    BUS_ROUTE_TYPES,
     CATEGORY_BUS,
     CATEGORY_TRAM,
-    RAIL_ROUTE_TYPES,
-    TRAM_ROUTE_TYPE,
+    RAIL_CATEGORIES,
+    category_of,
 )
 
+# Frequency-filter modes: a collapsed projection of the gtfs CATEGORY_* space.
+# Tram and bus keep their category code; the rail subtypes (CATEGORY 0-4) all
+# fold onto a single rail mode, because the filter treats rail as one mode.
 FREQUENCY_MODE_RAIL = 0
-FREQUENCY_MODE_TRAM = 1
-FREQUENCY_MODE_BUS = 2
+FREQUENCY_MODE_TRAM = CATEGORY_TRAM
+FREQUENCY_MODE_BUS = CATEGORY_BUS
 
 SWISS_BPUIC_PREFIX = "85"
 REGULAR_EDGES_CACHE_NAME = "regular_edges.bin"
@@ -59,22 +61,8 @@ class FrequencyThresholds:
 DEFAULT_FREQUENCY_THRESHOLDS = FrequencyThresholds()
 
 
-def frequency_mode_of_route_type(route_type: int) -> int | None:
-    if route_type in RAIL_ROUTE_TYPES:
-        return FREQUENCY_MODE_RAIL
-    if route_type == TRAM_ROUTE_TYPE:
-        return FREQUENCY_MODE_TRAM
-    if route_type in BUS_ROUTE_TYPES:
-        return FREQUENCY_MODE_BUS
-    return None
-
-
 def frequency_mode_of_category(category: int) -> int:
-    if category == CATEGORY_TRAM:
-        return FREQUENCY_MODE_TRAM
-    if category == CATEGORY_BUS:
-        return FREQUENCY_MODE_BUS
-    return FREQUENCY_MODE_RAIL
+    return FREQUENCY_MODE_RAIL if category in RAIL_CATEGORIES else category
 
 
 def _edge_key(first: int, second: int, mode: int) -> Edge:
@@ -113,9 +101,9 @@ def _trip_modes_and_services(gtfs_dir: Path) -> tuple[dict[str, int], dict[str, 
     route_mode: dict[str, int] = {}
     with open(gtfs_dir / "routes.txt", encoding="utf-8-sig", newline="") as feed:
         for row in csv.DictReader(feed):
-            mode = frequency_mode_of_route_type(int(row["route_type"]))
-            if mode is not None:
-                route_mode[row["route_id"]] = mode
+            category = category_of(int(row["route_type"]))
+            if category is not None:
+                route_mode[row["route_id"]] = frequency_mode_of_category(category)
 
     trip_mode: dict[str, int] = {}
     trip_service: dict[str, str] = {}

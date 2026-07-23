@@ -10,11 +10,12 @@ from pipeline.frequency import (
     FrequencyThresholds,
     RegularEdges,
     deserialize_regular_edges,
-    frequency_mode_of_route_type,
+    frequency_mode_of_category,
     load_or_scan_regular_edges,
     scan_regular_edges,
     serialize_regular_edges,
 )
+from pipeline.gtfs import CATEGORY_BUS, CATEGORY_TRAM
 
 GTFS_DIR = os.environ.get("GTFS_SCHEDULE_DIR")
 
@@ -75,24 +76,21 @@ def stop_times(*trips: tuple[str, list[int]]) -> str:
 
 
 @pytest.mark.parametrize(
-    "route_type,expected",
+    "category,expected",
     [
-        (103, FREQUENCY_MODE_RAIL),
-        (117, FREQUENCY_MODE_RAIL),
-        (900, FREQUENCY_MODE_TRAM),
-        (700, FREQUENCY_MODE_BUS),
-        (702, FREQUENCY_MODE_BUS),
+        (0, FREQUENCY_MODE_RAIL),
+        (1, FREQUENCY_MODE_RAIL),
+        (2, FREQUENCY_MODE_RAIL),
+        (3, FREQUENCY_MODE_RAIL),
+        (4, FREQUENCY_MODE_RAIL),
+        (CATEGORY_TRAM, FREQUENCY_MODE_TRAM),
+        (CATEGORY_BUS, FREQUENCY_MODE_BUS),
     ],
 )
-def test_frequency_mode_of_route_type_maps_kept_modes(
-    route_type: int, expected: int
+def test_frequency_mode_of_category_collapses_rail_subtypes(
+    category: int, expected: int
 ) -> None:
-    assert frequency_mode_of_route_type(route_type) == expected
-
-
-@pytest.mark.parametrize("route_type", [705, 710, 715, 202, 401, 1000, 1300, 1500])
-def test_frequency_mode_of_route_type_excludes_other_modes(route_type: int) -> None:
-    assert frequency_mode_of_route_type(route_type) is None
+    assert frequency_mode_of_category(category) == expected
 
 
 def test_edge_is_regular_with_enough_days_and_departures(tmp_path: Path) -> None:
