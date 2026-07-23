@@ -1,10 +1,9 @@
 """Loads the swissTLM3D road network GDB into a NetworkGraph, keeping native LV95.
 
-Only drivable classified roads are kept — the VERKEHRSBEDEUTUNG hierarchy
-Hochleistungs-, Durchgangs- and Verbindungsstrasse — so footpaths, tracks and
-unclassified ways are dropped. The road layer carries no node ids, so nodes are
-synthesised at line endpoints, quantised so segments meeting at a point share a
-node."""
+Only road classes a bus can drive are kept — the OBJEKTART width and function
+classes below — so footpaths, stairs, ferries and cable links are dropped. The
+road layer carries no node ids, so nodes are synthesised at line endpoints,
+quantised so segments meeting at a point share a node."""
 
 from pathlib import Path
 
@@ -15,8 +14,14 @@ from shapely.geometry.base import BaseGeometry
 from pipeline.network import NetworkGraph, Point, Segment
 
 ROAD_LAYER = "TLM_STRASSE"
-TRAFFIC_CLASS_FIELD = "VERKEHRSBEDEUTUNG"
-DRIVABLE_TRAFFIC_CLASSES = frozenset({100, 200, 300})
+ROAD_CLASS_FIELD = "OBJEKTART"
+
+# swissTLM3D OBJEKTART codes a bus drives on: motorway and its ramps, autostrasse
+# and marked lanes, through-connections and access roads, and the 3-10 m road
+# width classes. The narrow 1-2 m Wege, stairs, ferries and cable links are left
+# out. The GDB ships no domain for this field; codes verified against
+# VERKEHRSBEDEUTUNG and street-name coverage on the real data (docs/performance).
+DRIVABLE_ROAD_CLASSES = frozenset({0, 1, 2, 4, 5, 8, 9, 10, 11, 20, 21})
 _NODE_QUANTISE_METRES = 1.0
 
 RoadSegment = tuple[int, list[Point]]
@@ -43,8 +48,8 @@ def _road_polylines(geometry: BaseGeometry) -> list[list[Point]]:
 def build_road_graph(segments: list[RoadSegment]) -> NetworkGraph:
     nodes: dict[str, Point] = {}
     graph_segments: list[Segment] = []
-    for traffic_class, polyline in segments:
-        if traffic_class not in DRIVABLE_TRAFFIC_CLASSES or len(polyline) < 2:
+    for road_class, polyline in segments:
+        if road_class not in DRIVABLE_ROAD_CLASSES or len(polyline) < 2:
             continue
         start, end = polyline[0], polyline[-1]
         start_id, end_id = _node_id(start), _node_id(end)
@@ -57,19 +62,19 @@ def build_road_graph(segments: list[RoadSegment]) -> NetworkGraph:
 
 
 def load_road_graph(gdb_path: Path) -> NetworkGraph:
-    classes = ",".join(str(code) for code in sorted(DRIVABLE_TRAFFIC_CLASSES))
+    classes = ",".join(str(code) for code in sorted(DRIVABLE_ROAD_CLASSES))
     roads = gpd.read_file(
         gdb_path,
         layer=ROAD_LAYER,
-        columns=[TRAFFIC_CLASS_FIELD],
-        where=f"{TRAFFIC_CLASS_FIELD} IN ({classes})",
+        columns=[ROAD_CLASS_FIELD],
+        where=f"{ROAD_CLASS_FIELD} IN ({classes})",
     )
     segments: list[RoadSegment] = []
-    for traffic_class, geometry in zip(
-        roads[TRAFFIC_CLASS_FIELD].tolist(), roads.geometry, strict=True
+    for road_class, geometry in zip(
+        roads[ROAD_CLASS_FIELD].tolist(), roads.geometry, strict=True
     ):
         if geometry is None:
             continue
         for polyline in _road_polylines(geometry):
-            segments.append((int(traffic_class), polyline))
+            segments.append((int(road_class), polyline))
     return build_road_graph(segments)
