@@ -22,6 +22,8 @@ export class StationEntry {
     this.name = name;
     this.east = east;
     this.north = north;
+    this.isRail = false;
+    this.isBus = false;
   }
 }
 
@@ -48,24 +50,36 @@ export class StationCatalog {
     }));
   }
 
-  // Merge the rail/tram and bus station sets by didok; a station present in both
-  // keeps its rail coordinate (the network node) and falls back to the bus stop.
+  // Merge the rail/tram and bus station sets by didok, tagging each entry with
+  // the modes it serves. A station present in both keeps its rail coordinate
+  // (the network node), since the rail set is absorbed first.
   static fromPublished(bavNames, bavPoints, roadNames, roadPoints) {
     const byDidok = new Map();
-    const absorb = (names, points) => {
+    const absorb = (names, points, mark) => {
       names.forEach((station, index) => {
         const point = points[index];
-        if (!point || byDidok.has(station.didok)) {
+        if (!point) {
           return;
         }
-        byDidok.set(
-          station.didok,
-          new StationEntry(station.didok, station.name, point[0], point[1]),
-        );
+        let entry = byDidok.get(station.didok);
+        if (entry === undefined) {
+          entry = new StationEntry(
+            station.didok,
+            station.name,
+            point[0],
+            point[1],
+          );
+          byDidok.set(station.didok, entry);
+        }
+        mark(entry);
       });
     };
-    absorb(bavNames, bavPoints);
-    absorb(roadNames, roadPoints);
+    absorb(bavNames, bavPoints, (entry) => {
+      entry.isRail = true;
+    });
+    absorb(roadNames, roadPoints, (entry) => {
+      entry.isBus = true;
+    });
     return new StationCatalog([...byDidok.values()]);
   }
 
