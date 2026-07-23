@@ -1,3 +1,4 @@
+import { element } from '../viz-core/dom.js';
 import { Panel } from '../viz-core/panel.js';
 import { BACKGROUNDS } from '../viz-core/tiles/tileSource.js';
 import { VehiclePositionEngine } from '../viz-core/vehiclePositionEngine.js';
@@ -21,14 +22,6 @@ const LAYER_LABELS = [
   ['tram', 'Tram'],
   ['bus', 'Bus'],
 ];
-
-const element = (tag, className) => {
-  const node = document.createElement(tag);
-  if (className) {
-    node.className = className;
-  }
-  return node;
-};
 
 export class HerzschlagPanel extends Panel {
   capabilities = { transport: true, fullDayScrubber: true };

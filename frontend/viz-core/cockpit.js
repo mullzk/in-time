@@ -1,3 +1,4 @@
+import { element } from './dom.js';
 import { MAX_TEMPO, MIN_TEMPO, SECONDS_PER_DAY } from './timeModel.js';
 
 const pad = (value) => String(value).padStart(2, '0');
@@ -6,14 +7,6 @@ const pad = (value) => String(value).padStart(2, '0');
 const formatClock = (seconds) => {
   const whole = Math.floor(seconds) % SECONDS_PER_DAY;
   return `${pad(Math.floor(whole / 3600))}:${pad(Math.floor((whole % 3600) / 60))}:${pad(whole % 60)}`;
-};
-
-const element = (tag, className) => {
-  const node = document.createElement(tag);
-  if (className) {
-    node.className = className;
-  }
-  return node;
 };
 
 // Floating DOM control surface: renders only the controls the panel declares

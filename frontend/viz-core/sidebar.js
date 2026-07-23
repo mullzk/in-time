@@ -1,10 +1,4 @@
-const element = (tag, className) => {
-  const node = document.createElement(tag);
-  if (className) {
-    node.className = className;
-  }
-  return node;
-};
+import { element } from './dom.js';
 
 // Panel-agnostic control surface on the left: a panel that slides in over the
 // map and hosts whatever control sections the active panel supplies. The shell
