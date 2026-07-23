@@ -15,13 +15,24 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
-from pipeline.gtfs import BUS_ROUTE_TYPES, RAIL_ROUTE_TYPES, TRAM_ROUTE_TYPE
+from pipeline.gtfs import (
+    BUS_ROUTE_TYPES,
+    CATEGORY_BUS,
+    CATEGORY_TRAM,
+    RAIL_ROUTE_TYPES,
+    TRAM_ROUTE_TYPE,
+)
 
 FREQUENCY_MODE_RAIL = 0
 FREQUENCY_MODE_TRAM = 1
 FREQUENCY_MODE_BUS = 2
 
 SWISS_BPUIC_PREFIX = "85"
+
+
+def is_swiss_bpuic(bpuic: int) -> bool:
+    return str(bpuic).startswith(SWISS_BPUIC_PREFIX)
+
 
 _WEEKDAY_COLUMNS = [
     "monday",
@@ -55,6 +66,14 @@ def frequency_mode_of_route_type(route_type: int) -> int | None:
     return None
 
 
+def frequency_mode_of_category(category: int) -> int:
+    if category == CATEGORY_TRAM:
+        return FREQUENCY_MODE_TRAM
+    if category == CATEGORY_BUS:
+        return FREQUENCY_MODE_BUS
+    return FREQUENCY_MODE_RAIL
+
+
 def _edge_key(first: int, second: int, mode: int) -> Edge:
     return (first, second, mode) if first < second else (second, first, mode)
 
@@ -73,6 +92,7 @@ class RegularEdges:
         return all(
             self.is_regular(first, second, mode)
             for first, second in zip(stations, stations[1:], strict=False)
+            if first != second
         )
 
 

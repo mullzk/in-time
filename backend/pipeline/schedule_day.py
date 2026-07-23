@@ -12,6 +12,11 @@ from datetime import date
 from pathlib import Path
 from typing import Protocol
 
+from pipeline.frequency import (
+    RegularEdges,
+    frequency_mode_of_category,
+    is_swiss_bpuic,
+)
 from pipeline.gtfs import StopCall, active_rail_trips, stop_sequences
 from pipeline.network.rail import Point, RailGraph, RailRouter
 from pipeline.network.router import NetworkRouter
@@ -86,6 +91,14 @@ def _kept_calls(
     ]
 
 
+def _is_irregular_trip(
+    sequence: list[StopCall], category: int, regular_edges: RegularEdges
+) -> bool:
+    swiss_stations = [call.didok for call in sequence if is_swiss_bpuic(call.didok)]
+    mode = frequency_mode_of_category(category)
+    return not regular_edges.trip_is_regular(swiss_stations, mode)
+
+
 def assemble_schedule_day(
     service_date: date,
     trips: dict[str, int],
@@ -93,11 +106,17 @@ def assemble_schedule_day(
     router: NetworkRouter,
     source: StationSource,
     placeable: Set[int],
+    regular_edges: RegularEdges | None = None,
 ) -> ScheduleBuild:
     kept: dict[str, list[tuple[int, int, int]]] = {}
     pairs: set[tuple[int, int]] = set()
-    for trip_id in trips:
-        calls = _kept_calls(sequences.get(trip_id, []), placeable)
+    for trip_id, category in trips.items():
+        sequence = sequences.get(trip_id, [])
+        if regular_edges is not None and _is_irregular_trip(
+            sequence, category, regular_edges
+        ):
+            continue
+        calls = _kept_calls(sequence, placeable)
         if len(calls) < 2:
             continue
         kept[trip_id] = calls
@@ -137,7 +156,10 @@ def assemble_schedule_day(
 
 
 def build_schedule_day(
-    gtfs_dir: Path, rail_graph: RailGraph, service_date: date
+    gtfs_dir: Path,
+    rail_graph: RailGraph,
+    service_date: date,
+    regular_edges: RegularEdges | None = None,
 ) -> ScheduleBuild:
     trips = active_rail_trips(gtfs_dir, service_date)
     sequences = stop_sequences(gtfs_dir, set(trips))
@@ -148,4 +170,5 @@ def build_schedule_day(
         RailRouter(rail_graph),
         RailStationSource(rail_graph),
         set(rail_graph.station_to_node),
+        regular_edges,
     )
