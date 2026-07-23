@@ -192,8 +192,8 @@ class _EdgeTraffic:
         self._departures: dict[Edge, int] = {}
 
     def add_trip(self, stations: Iterable[int], mode: int, mask: int) -> None:
-        operating_days = mask.bit_count()
-        if operating_days == 0:
+        trip_days = mask.bit_count()
+        if trip_days == 0:
             return
         seen: set[Edge] = set()
         previous: int | None = None
@@ -203,9 +203,7 @@ class _EdgeTraffic:
                 if edge not in seen:
                     seen.add(edge)
                     self._mask[edge] = self._mask.get(edge, 0) | mask
-                    self._departures[edge] = (
-                        self._departures.get(edge, 0) + operating_days
-                    )
+                    self._departures[edge] = self._departures.get(edge, 0) + trip_days
             previous = station
 
     def regular(self, thresholds: FrequencyThresholds) -> frozenset[Edge]:
@@ -217,11 +215,11 @@ class _EdgeTraffic:
 
     @staticmethod
     def _is_regular(
-        operating_days: int, departures: int, thresholds: FrequencyThresholds
+        edge_service_days: int, departures: int, thresholds: FrequencyThresholds
     ) -> bool:
         return (
-            operating_days >= thresholds.min_days
-            and departures >= operating_days * thresholds.min_departures_per_day
+            edge_service_days >= thresholds.min_days
+            and departures >= edge_service_days * thresholds.min_departures_per_day
         )
 
 
