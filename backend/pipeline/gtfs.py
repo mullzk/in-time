@@ -14,6 +14,17 @@ CATEGORY_TRAM = 5
 CATEGORY_BUS = 6
 RAIL_CATEGORIES = frozenset({0, 1, 2, 3, 4})
 
+SWISS_BPUIC_PREFIX = "85"
+
+
+def is_swiss_bpuic(bpuic: int) -> bool:
+    return str(bpuic).startswith(SWISS_BPUIC_PREFIX)
+
+
+def is_swiss_bpuic_text(value: str) -> bool:
+    return value.isdigit() and value.startswith(SWISS_BPUIC_PREFIX)
+
+
 # route_type -> product category (0 Fernverkehr, 1 IR, 2 Regio, 3 S-Bahn,
 # 4 übrige). Rail types without an explicit mapping fall into category 4.
 _CATEGORY = {101: 0, 102: 0, 103: 1, 106: 2, 100: 2, 107: 2, 109: 3, 105: 4}

@@ -22,6 +22,7 @@ from pipeline.gtfs import (
     CATEGORY_TRAM,
     RAIL_CATEGORIES,
     category_of,
+    is_swiss_bpuic_text,
 )
 
 # Frequency-filter modes: a collapsed projection of the gtfs CATEGORY_* space.
@@ -31,13 +32,7 @@ FREQUENCY_MODE_RAIL = 0
 FREQUENCY_MODE_TRAM = CATEGORY_TRAM
 FREQUENCY_MODE_BUS = CATEGORY_BUS
 
-SWISS_BPUIC_PREFIX = "85"
 REGULAR_EDGES_CACHE_NAME = "regular_edges.bin"
-
-
-def is_swiss_bpuic(bpuic: int) -> bool:
-    return str(bpuic).startswith(SWISS_BPUIC_PREFIX)
-
 
 _WEEKDAY_COLUMNS = [
     "monday",
@@ -181,7 +176,7 @@ def _swiss_stop_bpuic(gtfs_dir: Path) -> dict[str, int]:
     with open(gtfs_dir / "stops.txt", encoding="utf-8-sig", newline="") as feed:
         for row in csv.DictReader(feed):
             bpuic = (row.get("didok") or "").strip()
-            if bpuic.isdigit() and bpuic.startswith(SWISS_BPUIC_PREFIX):
+            if is_swiss_bpuic_text(bpuic):
                 mapping[row["stop_id"]] = int(bpuic)
     return mapping
 

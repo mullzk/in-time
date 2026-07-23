@@ -13,10 +13,10 @@ from pathlib import Path
 
 from pyproj import Transformer
 
+from pipeline.gtfs import is_swiss_bpuic_text
 from pipeline.network import Point
 
 STATION_LOCATION_TYPE = "1"
-SWISS_BPUIC_PREFIX = "85"
 
 _WGS84_TO_LV95 = Transformer.from_crs("EPSG:4326", "EPSG:2056", always_xy=True)
 
@@ -34,10 +34,6 @@ def _station_rank(location_type: str, platform_code: str) -> int:
     if not platform_code.strip():
         return 1
     return 2
-
-
-def _is_swiss_bpuic(value: str) -> bool:
-    return value.isdigit() and value.startswith(SWISS_BPUIC_PREFIX)
 
 
 def _reproject(raw: dict[int, tuple[float, float, str]]) -> dict[int, BusStop]:
@@ -59,7 +55,7 @@ def load_bus_stops(gtfs_dir: Path) -> dict[int, BusStop]:
     with open(gtfs_dir / "stops.txt", encoding="utf-8-sig", newline="") as feed:
         for row in csv.DictReader(feed):
             bpuic_text = (row.get("didok") or "").strip()
-            if not _is_swiss_bpuic(bpuic_text):
+            if not is_swiss_bpuic_text(bpuic_text):
                 continue
             try:
                 latitude = float(row["stop_lat"])

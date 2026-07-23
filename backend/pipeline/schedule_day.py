@@ -25,7 +25,6 @@ from pipeline.bus_stops import BusStop
 from pipeline.frequency import (
     RegularEdges,
     frequency_mode_of_category,
-    is_swiss_bpuic,
 )
 from pipeline.gtfs import (
     CATEGORY_BUS,
@@ -34,6 +33,7 @@ from pipeline.gtfs import (
     StopCall,
     active_rail_trips,
     active_trips,
+    is_swiss_bpuic,
     stop_sequences,
 )
 from pipeline.network.rail import Point, RailGraph, RailRouter
