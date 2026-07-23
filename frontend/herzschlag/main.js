@@ -31,7 +31,7 @@ async function bootstrap() {
   );
   time.seekToTime(PLAYBACK_START_SECONDS);
   const camera = new Camera(root.clientWidth, root.clientHeight);
-  const panel = new HerzschlagPanel(result.scheduleBuffer);
+  const panel = new HerzschlagPanel(result.railBuffer, result.roadBuffer);
   const context = new PanelContext({
     camera,
     projection: wgs84ToLv95,
