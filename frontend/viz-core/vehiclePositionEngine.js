@@ -3,6 +3,8 @@
 // layout of the Python writer (backend/pipeline/schedule_blob.py); the shared
 // golden fixture is the cross-language proof that both agree on the format.
 
+import { readStationPoints } from './blobStations.js';
+
 const MAGIC = 'ITSB';
 const VERSION = 1;
 
@@ -79,7 +81,7 @@ export class VehiclePositionEngine {
     const originEast = view.getUint32(HEADER.originEast, true);
     const originNorth = view.getUint32(HEADER.originNorth, true);
 
-    this.stations = this.#readStations(view, originEast, originNorth);
+    this.stations = readStationPoints(arrayBuffer);
     this.edges = this.#readEdges(view, originEast, originNorth);
     this.#buildEdgeArcLengths();
     this.trips = this.#readTrips(view);
@@ -99,20 +101,6 @@ export class VehiclePositionEngine {
     if (view.getUint16(HEADER.version, true) !== VERSION) {
       throw new Error('unsupported ITSB version');
     }
-  }
-
-  #readStations(view, originEast, originNorth) {
-    const start = view.getUint32(HEADER.offsetStations, true);
-    const east = readU32Column(view, start, this.stationCount);
-    const north = readU32Column(
-      view,
-      start + this.stationCount * 4,
-      this.stationCount,
-    );
-    return Array.from({ length: this.stationCount }, (_, index) => [
-      east[index] + originEast,
-      north[index] + originNorth,
-    ]);
   }
 
   #readEdges(view, originEast, originNorth) {
