@@ -7,7 +7,6 @@ from dataclasses import dataclass
 class RoutingThresholds:
     simplify_tolerance_metres: float = 30.0
     component_bridge_max_metres: float = 150.0
-    max_entry_metres: float = 1500.0
     entry_candidate_radius_metres: float = 400.0
     detour_factor: float = 4.0
     detour_slack_metres: float = 4000.0
