@@ -15,6 +15,9 @@ export class KeyboardControls {
     if (event.metaKey || event.ctrlKey || event.altKey) {
       return;
     }
+    if (this.#isTypingInto(event.target)) {
+      return;
+    }
     switch (event.key) {
       case ' ':
         if (!event.repeat) {
@@ -37,6 +40,15 @@ export class KeyboardControls {
         return;
     }
     event.preventDefault();
+  }
+
+  #isTypingInto(target) {
+    return (
+      target instanceof HTMLElement &&
+      (target.isContentEditable ||
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA')
+    );
   }
 
   #zoomAroundCentre(factor) {

@@ -5,6 +5,7 @@ import { loadSchedule } from '../viz-core/loader.js';
 import { PanelContext } from '../viz-core/panelContext.js';
 import { wgs84ToLv95 } from '../viz-core/projection.js';
 import { Sidebar } from '../viz-core/sidebar.js';
+import { StationSearch } from '../viz-core/stationSearch.js';
 import { TileLayer } from '../viz-core/tiles/tileLayer.js';
 import { RELIEF_TILE_SOURCE } from '../viz-core/tiles/tileSource.js';
 import { SECONDS_PER_DAY, TimeModel } from '../viz-core/timeModel.js';
@@ -33,7 +34,12 @@ async function bootstrap() {
   );
   time.seekToTime(PLAYBACK_START_SECONDS);
   const camera = new Camera(root.clientWidth, root.clientHeight);
-  const panel = new HerzschlagPanel(result.railBuffer, result.roadBuffer);
+  const panel = new HerzschlagPanel(
+    result.railBuffer,
+    result.roadBuffer,
+    result.bavStations,
+    result.roadStations,
+  );
   const context = new PanelContext({
     camera,
     projection: wgs84ToLv95,
@@ -43,6 +49,11 @@ async function bootstrap() {
 
   const cockpit = new Cockpit(root, panel, time);
   new Sidebar(root, panel.buildSidebarSections(context));
+  if (panel.capabilities.stationSearch) {
+    new StationSearch(root, panel.stationCatalog(), {
+      onSelect: (station) => context.focusStation(station.east, station.north),
+    });
+  }
   new KeyboardControls(window, { time, camera });
   new VizCore(root, panel, context, {
     onFrameRendered: () => cockpit.sync(),
