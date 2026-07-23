@@ -121,25 +121,6 @@ def _is_irregular_trip(
     return not regular_edges.trip_is_regular(swiss_stations, mode)
 
 
-def _prune_edges(trips: list[Trip], all_edges: list[list[Point]]) -> list[list[Point]]:
-    used = sorted(
-        {
-            abs(edge)
-            for trip in trips
-            for event in trip.events
-            for edge in event.leg_edges
-        }
-    )
-    renumber = {old: new for new, old in enumerate(used, start=1)}
-    for trip in trips:
-        for event in trip.events:
-            event.leg_edges = [
-                renumber[abs(edge)] if edge > 0 else -renumber[abs(edge)]
-                for edge in event.leg_edges
-            ]
-    return [all_edges[old - 1] for old in used]
-
-
 def assemble_schedule_day(
     service_date: date,
     trips: dict[str, int],
@@ -178,11 +159,10 @@ def assemble_schedule_day(
             events.append(Event(catalog.index_of(didok), arr, dep, leg_edges))
         assembled.append(Trip(category=trips[trip_id], events=events))
 
-    edges = _prune_edges(assembled, router.edges)
     day = ScheduleDay(
         service_date=service_date,
         stations=catalog.coordinates,
-        edges=edges,
+        edges=router.edges,
         trips=assembled,
     )
     method_counts = dict(Counter(leg.method for leg in routed.values()))
