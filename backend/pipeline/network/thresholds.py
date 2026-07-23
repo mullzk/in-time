@@ -18,3 +18,13 @@ class RoutingThresholds:
 
 # Immutable shared default, so it can serve as a call-free argument default.
 DEFAULT_THRESHOLDS = RoutingThresholds()
+
+# Provisional road-network overrides: the dense street graph needs tighter snap
+# and detour bounds than the sparse rail default. Calibrated at Ebene B.
+ROAD_THRESHOLDS = RoutingThresholds(
+    component_bridge_max_metres=50.0,
+    max_entry_metres=300.0,
+    entry_candidate_radius_metres=150.0,
+    detour_factor=3.0,
+    detour_slack_metres=2000.0,
+)

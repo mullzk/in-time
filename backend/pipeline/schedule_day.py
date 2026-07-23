@@ -12,15 +12,31 @@ from datetime import date
 from pathlib import Path
 from typing import Protocol
 
+from pipeline.bus_stops import BusStop
 from pipeline.frequency import (
     RegularEdges,
     frequency_mode_of_category,
     is_swiss_bpuic,
 )
-from pipeline.gtfs import StopCall, active_rail_trips, stop_sequences
+from pipeline.gtfs import (
+    CATEGORY_BUS,
+    CATEGORY_TRAM,
+    RAIL_CATEGORIES,
+    StopCall,
+    active_rail_trips,
+    active_trips,
+    stop_sequences,
+)
+from pipeline.network import (
+    ROAD_THRESHOLDS,
+    NetworkGraph,
+    NetworkRouter,
+    StationAnchor,
+)
 from pipeline.network.rail import Point, RailGraph, RailRouter
-from pipeline.network.router import NetworkRouter
 from pipeline.schedule_blob import Event, ScheduleDay, Trip
+
+_BAV_CATEGORIES = RAIL_CATEGORIES | {CATEGORY_TRAM}
 
 
 @dataclass
@@ -63,6 +79,18 @@ class RailStationSource:
         if node is None:
             return str(station)
         return self._rail_graph.node_name.get(node, str(station))
+
+
+class BusStationSource:
+    def __init__(self, bus_stops: dict[int, BusStop]) -> None:
+        self._bus_stops = bus_stops
+
+    def location(self, station: int) -> Point:
+        return self._bus_stops[station].location
+
+    def name(self, station: int) -> str:
+        stop = self._bus_stops.get(station)
+        return stop.name if stop is not None else str(station)
 
 
 class _StationCatalog:
@@ -172,3 +200,59 @@ def build_schedule_day(
         set(rail_graph.station_to_node),
         regular_edges,
     )
+
+
+@dataclass
+class DayBuilds:
+    bav: ScheduleBuild
+    road: ScheduleBuild
+
+
+def _road_router(
+    road_graph: NetworkGraph, bus_stops: dict[int, BusStop]
+) -> NetworkRouter:
+    anchors = {
+        bpuic: StationAnchor(location=stop.location, network_node=None)
+        for bpuic, stop in bus_stops.items()
+    }
+    return NetworkRouter(road_graph, anchors, ROAD_THRESHOLDS)
+
+
+def build_day_builds(
+    gtfs_dir: Path,
+    rail_graph: RailGraph,
+    road_graph: NetworkGraph,
+    bus_stops: dict[int, BusStop],
+    regular_edges: RegularEdges,
+    service_date: date,
+) -> DayBuilds:
+    trips = active_trips(gtfs_dir, service_date)
+    sequences = stop_sequences(gtfs_dir, set(trips))
+    bav_trips = {
+        trip: category
+        for trip, category in trips.items()
+        if category in _BAV_CATEGORIES
+    }
+    road_trips = {
+        trip: category for trip, category in trips.items() if category == CATEGORY_BUS
+    }
+
+    bav = assemble_schedule_day(
+        service_date,
+        bav_trips,
+        sequences,
+        RailRouter(rail_graph),
+        RailStationSource(rail_graph),
+        set(rail_graph.station_to_node),
+        regular_edges,
+    )
+    road = assemble_schedule_day(
+        service_date,
+        road_trips,
+        sequences,
+        _road_router(road_graph, bus_stops),
+        BusStationSource(bus_stops),
+        set(bus_stops),
+        regular_edges,
+    )
+    return DayBuilds(bav=bav, road=road)

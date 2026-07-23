@@ -13,7 +13,8 @@ from datetime import date
 
 MAGIC = b"ITSB"
 VERSION = 1
-FLAG_RAIL_ONLY = 1
+# bit0: the blob carries only trips on the BAV network (rail + tram).
+FLAG_BAV_ONLY = 1
 COORD_SCALE = 1
 LV95_ORIGIN_EAST = 2_480_000
 LV95_ORIGIN_NORTH = 1_070_000
@@ -86,7 +87,7 @@ def _offset_north(value: float) -> int:
     return round(value - LV95_ORIGIN_NORTH)
 
 
-def write_schedule_blob(day: ScheduleDay) -> bytes:
+def write_schedule_blob(day: ScheduleDay, flags: int = FLAG_BAV_ONLY) -> bytes:
     station_east = [_offset_east(east) for east, _ in day.stations]
     station_north = [_offset_north(north) for _, north in day.stations]
 
@@ -160,7 +161,7 @@ def write_schedule_blob(day: ScheduleDay) -> bytes:
         _HEADER_FORMAT,
         MAGIC,
         VERSION,
-        FLAG_RAIL_ONLY,
+        flags,
         int(day.service_date.strftime("%Y%m%d")),
         LV95_ORIGIN_EAST,
         LV95_ORIGIN_NORTH,
