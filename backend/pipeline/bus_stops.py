@@ -67,7 +67,9 @@ def load_bus_stops(gtfs_dir: Path) -> dict[int, BusStop]:
             except ValueError:
                 continue
             bpuic = int(bpuic_text)
-            rank = _station_rank(row["location_type"], row.get("platform_code", ""))
+            rank = _station_rank(
+                row.get("location_type", ""), row.get("platform_code", "")
+            )
             if bpuic in best_rank and best_rank[bpuic] <= rank:
                 continue
             best_rank[bpuic] = rank
