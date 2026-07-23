@@ -1,0 +1,79 @@
+/* SMACSS Module: the view sidebar — a full-height left panel that slides in over
+   the map, carrying the background and layer switches. Its open state lives as
+   `is-sidebar-open` on the container. */
+.sidebar {
+  position: absolute;
+  z-index: 10;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: var(--sidebar-width);
+  padding: calc(var(--space-l) * 2) var(--space-m) var(--space-m);
+  background: var(--color-surface-translucent);
+  backdrop-filter: blur(6px);
+  overflow-y: auto;
+  transform: translateX(-100%);
+  transition: transform var(--transition-panel);
+}
+
+.is-sidebar-open .sidebar {
+  transform: translateX(0);
+}
+
+/* The button stays put top-left while the panel slides under it, so it opens and
+   closes the sidebar from the same spot. */
+.sidebar-toggle {
+  position: absolute;
+  z-index: 11;
+  top: var(--space-m);
+  left: var(--space-m);
+  min-width: 34px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--color-control);
+  color: var(--color-control-text);
+  cursor: pointer;
+}
+
+.sidebar-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-l);
+}
+
+.sidebar-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sidebar-heading {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.7;
+}
+
+.sidebar-options {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sidebar-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+/* Narrow screens: the open panel takes the whole width, still slightly
+   transparent so the map reads behind it. */
+@media (max-width: 640px) {
+  .sidebar {
+    width: 100%;
+  }
+}

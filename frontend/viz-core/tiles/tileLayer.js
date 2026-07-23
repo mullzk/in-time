@@ -19,6 +19,16 @@ export class TileLayer {
     this.cache = new Map();
   }
 
+  // The cache is keyed by z/x/y alone, so images from the old layer must go when
+  // the source changes or they would be reused under the new background.
+  setSource(source) {
+    if (source === this.source) {
+      return;
+    }
+    this.source = source;
+    this.cache.clear();
+  }
+
   draw(p, camera) {
     const level = selectLevel(camera.worldPerPixel());
     const span = tileSpanMetres(level);

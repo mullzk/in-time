@@ -12,6 +12,12 @@
   border-radius: var(--radius-m);
   background: var(--color-surface);
   backdrop-filter: blur(6px);
+  transition: left var(--transition-panel);
+}
+
+/* Stay centred in the map area the open sidebar leaves free. */
+.is-sidebar-open .cockpit {
+  left: calc(50% + var(--sidebar-width) / 2);
 }
 
 .cockpit-play {

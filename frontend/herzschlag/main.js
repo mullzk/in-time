@@ -3,6 +3,7 @@ import { Cockpit } from '../viz-core/cockpit.js';
 import { loadSchedule } from '../viz-core/loader.js';
 import { PanelContext } from '../viz-core/panelContext.js';
 import { wgs84ToLv95 } from '../viz-core/projection.js';
+import { Sidebar } from '../viz-core/sidebar.js';
 import { TileLayer } from '../viz-core/tiles/tileLayer.js';
 import { RELIEF_TILE_SOURCE } from '../viz-core/tiles/tileSource.js';
 import { SECONDS_PER_DAY, TimeModel } from '../viz-core/timeModel.js';
@@ -40,6 +41,7 @@ async function bootstrap() {
   });
 
   const cockpit = new Cockpit(root, panel, time);
+  new Sidebar(root, panel.buildSidebarSections(context));
   new VizCore(root, panel, context, {
     onFrameRendered: () => cockpit.sync(),
   });

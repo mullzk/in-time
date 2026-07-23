@@ -1,4 +1,5 @@
 import { Panel } from '../viz-core/panel.js';
+import { BACKGROUNDS } from '../viz-core/tiles/tileSource.js';
 import { VehiclePositionEngine } from '../viz-core/vehiclePositionEngine.js';
 
 // Colours by blob category: rail 0-4 (Fernverkehr, IR, Regio/RE, S-Bahn, other),
@@ -14,6 +15,21 @@ const CATEGORY_COLORS = [
 ];
 const FALLBACK_COLOR = [200, 200, 200];
 
+const LAYER_LABELS = [
+  ['network', 'Netz'],
+  ['rail', 'Bahn'],
+  ['tram', 'Tram'],
+  ['bus', 'Bus'],
+];
+
+const element = (tag, className) => {
+  const node = document.createElement(tag);
+  if (className) {
+    node.className = className;
+  }
+  return node;
+};
+
 export class HerzschlagPanel extends Panel {
   capabilities = { transport: true, fullDayScrubber: true };
 
@@ -22,6 +38,7 @@ export class HerzschlagPanel extends Panel {
     this.railBuffer = railBuffer;
     this.roadBuffer = roadBuffer;
     this.activeVehicles = [];
+    this.layers = { network: true, rail: true, tram: true, bus: true };
   }
 
   init() {
@@ -39,16 +56,75 @@ export class HerzschlagPanel extends Panel {
 
   drawWorld(p, context) {
     context.drawTiles(p);
-    this.engines.forEach((engine) => {
-      context.drawBasemap(p, engine.edges);
-    });
+    if (this.layers.network) {
+      this.engines.forEach((engine) => {
+        context.drawBasemap(p, engine.edges);
+      });
+    }
 
     const diameter = 7 / context.camera.scale;
     p.noStroke();
     this.activeVehicles.forEach((vehicle) => {
+      if (!this.#categoryVisible(vehicle.category)) {
+        return;
+      }
       const [r, g, b] = CATEGORY_COLORS[vehicle.category] ?? FALLBACK_COLOR;
       p.fill(r, g, b);
       p.circle(vehicle.east, vehicle.north, diameter);
     });
+  }
+
+  buildSidebarSections(context) {
+    return [
+      { title: 'Hintergrund', element: this.#backgroundControl(context) },
+      { title: 'Ebenen', element: this.#layerControl() },
+    ];
+  }
+
+  #categoryVisible(category) {
+    if (category === 6) {
+      return this.layers.bus;
+    }
+    if (category === 5) {
+      return this.layers.tram;
+    }
+    return this.layers.rail;
+  }
+
+  #backgroundControl(context) {
+    const group = element('div', 'sidebar-options');
+    BACKGROUNDS.forEach((background, index) => {
+      const input = element('input');
+      input.type = 'radio';
+      input.name = 'background';
+      input.checked = index === 0;
+      input.addEventListener('change', () =>
+        context.setBackground(background.source),
+      );
+      group.appendChild(this.#option(input, background.label));
+    });
+    return group;
+  }
+
+  #layerControl() {
+    const group = element('div', 'sidebar-options');
+    LAYER_LABELS.forEach(([key, label]) => {
+      const input = element('input');
+      input.type = 'checkbox';
+      input.checked = this.layers[key];
+      input.addEventListener('change', () => {
+        this.layers[key] = input.checked;
+      });
+      group.appendChild(this.#option(input, label));
+    });
+    return group;
+  }
+
+  #option(input, label) {
+    const option = element('label', 'sidebar-option');
+    const text = element('span');
+    text.textContent = label;
+    option.append(input, text);
+    return option;
   }
 }
