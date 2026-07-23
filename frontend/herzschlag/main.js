@@ -15,7 +15,7 @@ import { HerzschlagPanel } from './panel.js';
 // almost no service), so wall-clock time stays continuous across the wrap.
 // Playback opens on the morning ramp-up.
 const DAY_CUT_SECONDS = 3 * 3600;
-const PLAYBACK_START_SECONDS = 4 * 3600;
+const PLAYBACK_START_SECONDS = 7 * 3600;
 
 const root = document.getElementById('viz-root');
 

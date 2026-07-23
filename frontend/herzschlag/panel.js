@@ -41,7 +41,7 @@ export class HerzschlagPanel extends Panel {
     this.railBuffer = railBuffer;
     this.roadBuffer = roadBuffer;
     this.activeVehicles = [];
-    this.layers = { network: true, rail: true, tram: true, bus: true };
+    this.layers = { network: true, rail: true, tram: false, bus: false };
   }
 
   init() {
