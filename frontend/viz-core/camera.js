@@ -137,4 +137,10 @@ export class Camera {
     this.centerNorth += deltaYPixels / this.scale;
     this.#clampCenter();
   }
+
+  centerOn(east, north) {
+    this.centerEast = east;
+    this.centerNorth = north;
+    this.#clampCenter();
+  }
 }

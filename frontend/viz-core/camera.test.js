@@ -145,3 +145,13 @@ test('the centre stays inside the CH bounds when panned far', () => {
   assert.ok(camera.centerNorth <= CH_BOUNDS_LV95.northMax);
   assert.ok(camera.centerNorth >= CH_BOUNDS_LV95.northMin);
 });
+
+test('centerOn moves the centre and clamps it to the CH bounds', () => {
+  const camera = new Camera(1300, 800);
+  camera.centerOn(2_600_000, 1_200_000);
+  assert.ok(closeTo(camera.centerEast, 2_600_000, 1e-6));
+  assert.ok(closeTo(camera.centerNorth, 1_200_000, 1e-6));
+  camera.centerOn(0, 0);
+  assert.ok(camera.centerEast >= CH_BOUNDS_LV95.eastMin);
+  assert.ok(camera.centerNorth >= CH_BOUNDS_LV95.northMin);
+});
