@@ -70,6 +70,15 @@
   cursor: pointer;
 }
 
+.sidebar-option:has(:disabled) {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.sidebar-zoom {
+  width: 100%;
+}
+
 /* Narrow screens: the open panel takes the whole width, still slightly
    transparent so the map reads behind it. */
 @media (max-width: 640px) {

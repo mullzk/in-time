@@ -22,17 +22,22 @@ export const PIXELKARTE_GREY_TILE_SOURCE = tileSource(
 
 // A null source means no raster: the dark canvas clear shows through as the
 // black background. The first entry is the default the panel opens with.
+// `showsRailwayLines` marks rasters that already draw the rail network (and its
+// labels) once zoomed in, so a panel can suppress its own network overlay there
+// and keep it only on the label-free overview.
 export const BACKGROUNDS = [
   { id: 'relief', label: 'Relief', source: RELIEF_TILE_SOURCE },
   {
     id: 'pixel-color',
     label: 'Pixelkarte farbig',
     source: PIXELKARTE_COLOR_TILE_SOURCE,
+    showsRailwayLines: true,
   },
   {
     id: 'pixel-grey',
     label: 'Pixelkarte grau',
     source: PIXELKARTE_GREY_TILE_SOURCE,
+    showsRailwayLines: true,
   },
   { id: 'black', label: 'Schwarz', source: null },
 ];
