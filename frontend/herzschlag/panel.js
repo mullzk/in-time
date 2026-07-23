@@ -88,7 +88,7 @@ export class HerzschlagPanel extends Panel {
     this.layers = {
       network: true,
       railStops: true,
-      busStops: true,
+      busStops: false,
       rail: true,
       tram: false,
       bus: false,
