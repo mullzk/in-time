@@ -27,7 +27,6 @@ from pipeline.gtfs import (
     active_trips,
     stop_sequences,
 )
-from pipeline.network import NetworkRouter
 from pipeline.network.rail import Point, RailGraph, RailRouter
 from pipeline.schedule_blob import Event, ScheduleDay, Trip
 
@@ -145,7 +144,7 @@ def assemble_schedule_day(
     service_date: date,
     trips: dict[str, int],
     sequences: dict[str, list[StopCall]],
-    router: NetworkRouter,
+    router: RailRouter,
     source: StationSource,
     placeable: Set[int],
     regular_edges: RegularEdges | None = None,
