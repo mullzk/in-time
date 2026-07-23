@@ -292,6 +292,9 @@ def scan_regular_edges(
     return RegularEdges(traffic.regular(thresholds))
 
 
+# The `i` item width is the platform's native int, but the sidecar never leaves
+# the host that wrote it (regenerated per host and per GTFS version), so it is
+# always read back at the same width; only byte order needs normalising.
 def serialize_regular_edges(regular: RegularEdges) -> bytes:
     flat = array.array("i")
     for first, second, mode in regular:
