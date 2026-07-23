@@ -6,10 +6,13 @@ import pytest
 from django.test import Client
 from pytest_django.fixtures import SettingsWrapper
 
-from pipeline.artifacts import STATIONS_NAME
+from pipeline.artifacts import STATIONS_NAME, STATIONS_ROAD_NAME
 from pipeline.datadir import DataDir
 
 STATIONS = json.dumps([{"didok": 8_507_000, "name": "Bern"}]).encode("utf-8")
+STATIONS_ROAD = json.dumps([{"didok": 8_500_100, "name": "Basel, Bahnhof"}]).encode(
+    "utf-8"
+)
 
 
 def _publish(root: Path, service_date: date) -> None:
@@ -17,6 +20,7 @@ def _publish(root: Path, service_date: date) -> None:
     artifact_dir = data_dir.artifact_dir(service_date)
     artifact_dir.mkdir(parents=True, exist_ok=True)
     (artifact_dir / STATIONS_NAME).write_bytes(STATIONS)
+    (artifact_dir / STATIONS_ROAD_NAME).write_bytes(STATIONS_ROAD)
     data_dir.publish(service_date)
 
 
@@ -34,7 +38,9 @@ def test_config_returns_the_published_day(client: Client, published: Path) -> No
     body = response.json()
     assert body["serviceDate"] == "2026-07-16"
     assert body["scheduleBlobUrl"] == "/artifacts/schedule.itsb"
+    assert body["roadScheduleBlobUrl"] == "/artifacts/schedule-road.itsb"
     assert body["stationsUrl"] == "/api/stations"
+    assert body["roadStationsUrl"] == "/api/stations-road"
     assert "no-cache" in response["Cache-Control"]
     assert response.has_header("ETag")
 
@@ -57,6 +63,15 @@ def test_stations_passes_the_artifact_through(client: Client, published: Path) -
     assert response["Content-Type"].startswith("application/json")
     assert response.content == STATIONS
     assert "no-cache" in response["Cache-Control"]
+
+
+def test_stations_road_passes_the_artifact_through(
+    client: Client, published: Path
+) -> None:
+    response = client.get("/api/stations-road")
+
+    assert response.status_code == 200
+    assert response.content == STATIONS_ROAD
 
 
 def test_stations_is_503_without_publication(

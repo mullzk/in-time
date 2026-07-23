@@ -1,8 +1,10 @@
 import { Camera } from '../viz-core/camera.js';
 import { Cockpit } from '../viz-core/cockpit.js';
+import { KeyboardControls } from '../viz-core/keyboardControls.js';
 import { loadSchedule } from '../viz-core/loader.js';
 import { PanelContext } from '../viz-core/panelContext.js';
 import { wgs84ToLv95 } from '../viz-core/projection.js';
+import { Sidebar } from '../viz-core/sidebar.js';
 import { TileLayer } from '../viz-core/tiles/tileLayer.js';
 import { RELIEF_TILE_SOURCE } from '../viz-core/tiles/tileSource.js';
 import { SECONDS_PER_DAY, TimeModel } from '../viz-core/timeModel.js';
@@ -14,7 +16,7 @@ import { HerzschlagPanel } from './panel.js';
 // almost no service), so wall-clock time stays continuous across the wrap.
 // Playback opens on the morning ramp-up.
 const DAY_CUT_SECONDS = 3 * 3600;
-const PLAYBACK_START_SECONDS = 4 * 3600;
+const PLAYBACK_START_SECONDS = 7 * 3600;
 
 const root = document.getElementById('viz-root');
 
@@ -31,7 +33,7 @@ async function bootstrap() {
   );
   time.seekToTime(PLAYBACK_START_SECONDS);
   const camera = new Camera(root.clientWidth, root.clientHeight);
-  const panel = new HerzschlagPanel(result.scheduleBuffer);
+  const panel = new HerzschlagPanel(result.railBuffer, result.roadBuffer);
   const context = new PanelContext({
     camera,
     projection: wgs84ToLv95,
@@ -40,6 +42,8 @@ async function bootstrap() {
   });
 
   const cockpit = new Cockpit(root, panel, time);
+  new Sidebar(root, panel.buildSidebarSections(context));
+  new KeyboardControls(window, { time, camera });
   new VizCore(root, panel, context, {
     onFrameRendered: () => cockpit.sync(),
   });

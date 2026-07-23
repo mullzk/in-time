@@ -3,7 +3,7 @@
 Order-of-magnitude reference for each pipeline feature on real data. Update on
 creation and on significant changes: input size, processing time, output size.
 
-## Rail network graph — `railnet_gdb.load_rail_graph` + `RailRouter`
+## Rail network graph — `rail_gdb.load_rail_graph` + `RailRouter`
 
 Source: `schienennetz_2056_de.gdb` (BAV Schienennetz, feed 2026). Local run,
 Apple Silicon.
@@ -20,22 +20,58 @@ Apple Silicon.
 | load time (read GDB → graph)       | 0.4 s   |
 | build time (shared edges + bridge) | 0.2 s   |
 
-## Schedule day build — `build_schedule_day`
+## Bus-stop catalog — `bus_stops.load_bus_stops`
 
-Source: GTFS feed 2026 (2.1 GB `stop_times.txt`) + rail network GDB, day
-2026-07-16. Local run, Apple Silicon.
+Source: GTFS feed 2026 (`stops.txt`, 103 039 rows), day 2026-07-15. One LV95
+station point per Swiss BPUIC; platforms collapsed, foreign stops dropped. Local
+run, Apple Silicon.
 
-| metric                                           | value                        |
-| ------------------------------------------------ | ---------------------------- |
-| input GTFS stop_times                            | 2.1 GB                       |
-| trips (rail)                                     | 15518                        |
-| stations touched                                 | 1616                         |
-| shared edges (incl. 2 straight)                  | 3518                         |
-| output blob (`schedule.itsb`)                    | 4.08 MB                      |
-| routing direct / multi-snap / recover / straight | 99.06 / 0.90 / 0.00 / 0.05 % |
-| graph load                                       | 0.4 s                        |
-| day build (stream + route)                       | 27.4 s                       |
-| blob round-trip                                  | ok                           |
+| metric                           | value             |
+| -------------------------------- | ----------------- |
+| `stops.txt` rows                 | 103 039           |
+| Swiss BPUIC (kept)               | 26 047            |
+| foreign rows dropped (non-`85…`) | 20 590            |
+| load + reproject (WGS84 → LV95)  | 0.22 s            |
+| Zürich HB 8503000 (LV95)         | 2683190 / 1248066 |
+
+## Frequency filter — `frequency.scan_regular_edges`
+
+Source: GTFS feed 2026 (full year, ~15 M `stop_times` rows), feed 2026-07-15.
+Yearly scan, cached per GTFS version. An edge is regular at `≥300` operating
+days **and** `≥4` departures per day; a trip drops as soon as one edge is
+irregular. Local run, Apple Silicon.
+
+| metric                            | value                    |
+| --------------------------------- | ------------------------ |
+| trips classified (rail/tram/bus)  | 1 641 400                |
+| services with a calendar          | 62 674                   |
+| prep (routes + trips + calendar)  | 26 s                     |
+| stop_times scan                   | 30 s                     |
+| raw edges (rail / tram / bus)     | 33 230 (2616/681/29 933) |
+| regular edges (rail / tram / bus) | 24 867 (2000/594/22 273) |
+| max service bitmask               | 711 bits                 |
+
+## Day build — `build_day_builds` + `write_day_artifacts`
+
+Two blobs per day: `schedule.itsb` (rail + tram routed over the BAV network) and
+`schedule-road.itsb` (buses drawn as straight lines between stops, no geometry).
+GTFS feed 2026 + rail network GDB, day 2026-07-17. Local run, Apple Silicon.
+
+| metric                                | BAV (rail+tram)     | road (bus)      |
+| ------------------------------------- | ------------------- | --------------- |
+| trips                                 | 27 004              | 129 056         |
+| stations                              | 2 017               | 21 400          |
+| blob raw / gz                         | 7.90 / 1.12 MB      | 31.90 / 4.50 MB |
+| routing direct/multi/recover/straight | 99.22/0.74/0/0.04 % | — (straight)    |
+
+The frequency filter is asymmetric: a rail or tram trip drops on any irregular
+edge, but a bus trip is kept as long as one edge is regular (so a frequent urban
+line whose city-centre routing varies day to day survives). That lenience adds
+the ~23 700 bus trips (+22 %) an all-edges-regular rule would have dropped
+whole.
+
+Frequency edges are cached per GTFS version (sidecar `regular_edges.bin`, 0.30
+MB): first build scans ~56 s, later builds load in ~6 ms.
 
 ## Source fetches — `fetch.py` (network-bound, indicative)
 

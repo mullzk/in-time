@@ -4,7 +4,7 @@ from pathlib import Path
 
 from django.core.management.base import BaseCommand, CommandParser
 
-from pipeline.railnet_gdb import load_rail_graph
+from pipeline.network.rail_gdb import load_rail_graph
 from pipeline.schedule_blob import read_schedule_blob, write_schedule_blob
 from pipeline.schedule_day import ScheduleBuild, build_schedule_day
 

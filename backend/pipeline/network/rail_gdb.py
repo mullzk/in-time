@@ -8,7 +8,7 @@ from shapely.geometry import LineString, MultiLineString
 from shapely.geometry import Point as ShapelyPoint
 from shapely.geometry.base import BaseGeometry
 
-from pipeline.railnet import Point, RailGraph
+from pipeline.network.rail import Point, RailGraph
 
 
 def _line_coords(line: LineString) -> list[Point]:
@@ -65,12 +65,12 @@ def load_rail_graph(gdb_path: Path) -> RailGraph:
         if name
     }
 
-    didok_to_node: dict[int, str] = {}
+    station_to_node: dict[int, str] = {}
     numbers = nodes["Betriebspunkt_Nummer"].tolist()
     for node_id, number in zip(node_ids, numbers, strict=True):
         didok = _to_didok(number)
-        if didok is not None and didok not in didok_to_node:
-            didok_to_node[didok] = node_id
+        if didok is not None and didok not in station_to_node:
+            station_to_node[didok] = node_id
 
     starts = [str(value) for value in segments["rAnfangsknoten"].tolist()]
     ends = [str(value) for value in segments["rEndknoten"].tolist()]
@@ -88,9 +88,9 @@ def load_rail_graph(gdb_path: Path) -> RailGraph:
         edge_points[key] = points
         segment_list.append((start, end, points))
 
-    return RailGraph.from_segments(
+    return RailGraph.from_rail_segments(
         nodes=node_point,
         segments=segment_list,
-        didok_to_node=didok_to_node,
+        station_to_node=station_to_node,
         node_name=node_name,
     )

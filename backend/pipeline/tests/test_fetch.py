@@ -41,6 +41,20 @@ def test_extract_zip_from_url_reads_a_local_zip(tmp_path: Path) -> None:
     assert (dest / "nested" / "stops.txt").exists()
 
 
+def test_extract_zip_normalises_windows_separators(tmp_path: Path) -> None:
+    # The swissTLM3D archive stores paths with backslashes; they must become a
+    # real nested directory, not a flat file named "DIR.gdb\inner".
+    zip_path = tmp_path / "gdb.zip"
+    with zipfile.ZipFile(zip_path, "w") as archive:
+        archive.writestr("SUB.gdb\\a0001.gdbtable", "content")
+
+    dest = tmp_path / "out"
+    extract_zip_from_url(zip_path.as_uri(), dest)
+
+    assert (dest / "SUB.gdb" / "a0001.gdbtable").read_text() == "content"
+    assert (dest / "SUB.gdb").is_dir()
+
+
 @pytest.mark.realdata
 @pytest.mark.skipif(not RUN_NETWORK, reason="set RUN_NETWORK_FETCH to hit live hosts")
 def test_live_versions_resolve() -> None:

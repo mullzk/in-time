@@ -1,7 +1,7 @@
 import datetime
 
 from pipeline.schedule_blob import (
-    FLAG_RAIL_ONLY,
+    FLAG_BAV_ONLY,
     HEADER_SIZE,
     LV95_ORIGIN_EAST,
     LV95_ORIGIN_NORTH,
@@ -60,7 +60,7 @@ def test_header_invariants() -> None:
 
     assert blob[:4] == MAGIC
     assert header.version == VERSION
-    assert header.flags & FLAG_RAIL_ONLY
+    assert header.flags & FLAG_BAV_ONLY
     assert header.service_date == 20260716
     assert header.station_count == 3
     assert header.edge_count == 2

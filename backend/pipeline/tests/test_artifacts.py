@@ -13,19 +13,26 @@ from pipeline.artifacts import (
     stations_json,
     write_day_artifacts,
 )
-from pipeline.schedule_blob import ScheduleDay, read_header
-from pipeline.schedule_day import ScheduleBuild, StationEntry
+from pipeline.schedule_blob import FLAG_BAV_ONLY, ScheduleDay, read_header
+from pipeline.schedule_day import DayBuilds, ScheduleBuild, StationEntry
 
 
-def make_build() -> ScheduleBuild:
+def make_build(stations: list[StationEntry]) -> ScheduleBuild:
     day = ScheduleDay(
         service_date=date(2026, 7, 16),
-        stations=[(2_600_000.0, 1_200_000.0), (2_601_000.0, 1_201_000.0)],
+        stations=[(2_600_000.0, 1_200_000.0)] * len(stations),
         edges=[],
         trips=[],
     )
-    stations = [StationEntry(8_507_000, "Bern"), StationEntry(8_501_120, "Lausanne")]
     return ScheduleBuild(day, stations, method_counts={}, straight_fallbacks=[])
+
+
+def make_builds() -> DayBuilds:
+    bav = make_build(
+        [StationEntry(8_507_000, "Bern"), StationEntry(8_501_120, "Lausanne")]
+    )
+    road = make_build([StationEntry(8_500_100, "Basel, Bahnhof")])
+    return DayBuilds(bav=bav, road=road)
 
 
 def test_composite_version_joins_both_sources() -> None:
@@ -35,7 +42,7 @@ def test_composite_version_joins_both_sources() -> None:
 
 
 def test_stations_json_is_indexed_by_position() -> None:
-    entries = json.loads(stations_json(make_build().stations))
+    entries = json.loads(stations_json(make_builds().bav.stations))
 
     assert entries == [
         {"didok": 8_507_000, "name": "Bern"},
@@ -43,26 +50,39 @@ def test_stations_json_is_indexed_by_position() -> None:
     ]
 
 
-def test_write_day_artifacts_writes_blob_and_stations(tmp_path: Path) -> None:
-    write_day_artifacts(make_build(), tmp_path)
+def test_write_day_artifacts_writes_both_blobs_and_stations(tmp_path: Path) -> None:
+    write_day_artifacts(make_builds(), tmp_path)
 
-    blob = (tmp_path / "schedule.itsb").read_bytes()
-    assert read_header(blob).station_count == 2
-    stations = json.loads((tmp_path / "stations.json").read_text())
-    assert [entry["name"] for entry in stations] == ["Bern", "Lausanne"]
+    bav = read_header((tmp_path / "schedule.itsb").read_bytes())
+    road = read_header((tmp_path / "schedule-road.itsb").read_bytes())
+    assert bav.station_count == 2
+    assert road.station_count == 1
+    # The BAV blob is flagged BAV-only; the road blob is not.
+    assert bav.flags & FLAG_BAV_ONLY
+    assert not (road.flags & FLAG_BAV_ONLY)
+
+    bav_stations = json.loads((tmp_path / "stations.json").read_text())
+    road_stations = json.loads((tmp_path / "stations-road.json").read_text())
+    assert [entry["name"] for entry in bav_stations] == ["Bern", "Lausanne"]
+    assert [entry["name"] for entry in road_stations] == ["Basel, Bahnhof"]
 
 
 def test_write_day_artifacts_creates_missing_dest(tmp_path: Path) -> None:
     dest = tmp_path / "2026-07-16"
-    write_day_artifacts(make_build(), dest)
+    write_day_artifacts(make_builds(), dest)
 
     assert (dest / "schedule.itsb").exists()
+    assert (dest / "schedule-road.itsb").exists()
     assert (dest / "stations.json").exists()
+    assert (dest / "stations-road.json").exists()
 
 
-@pytest.mark.parametrize("name", ["schedule.itsb", "stations.json"])
+@pytest.mark.parametrize(
+    "name",
+    ["schedule.itsb", "schedule-road.itsb", "stations.json", "stations-road.json"],
+)
 def test_write_day_artifacts_emits_matching_sidecars(tmp_path: Path, name: str) -> None:
-    write_day_artifacts(make_build(), tmp_path)
+    write_day_artifacts(make_builds(), tmp_path)
 
     raw = (tmp_path / name).read_bytes()
     assert gzip.decompress((tmp_path / f"{name}.gz").read_bytes()) == raw

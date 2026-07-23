@@ -103,6 +103,40 @@ test('the corners of visibleWorldBounds map to the viewport corners', () => {
   assert.ok(closeTo(bottomY, 800, 1e-6));
 });
 
+test('zoomFraction is 0 at the fit and 1 at maximum zoom-in', () => {
+  const camera = new Camera(1300, 800);
+  assert.ok(closeTo(camera.zoomFraction(), 0, 1e-9));
+  for (let step = 0; step < 40; step += 1) {
+    camera.zoomAt(650, 400, 2);
+  }
+  assert.ok(closeTo(camera.zoomFraction(), 1, 1e-9));
+});
+
+test('setZoomFraction round-trips through zoomFraction', () => {
+  const camera = new Camera(1300, 800);
+  [0, 0.25, 0.5, 0.75, 1].forEach((fraction) => {
+    camera.setZoomFraction(fraction);
+    assert.ok(closeTo(camera.zoomFraction(), fraction, 1e-9));
+  });
+});
+
+test('setZoomFraction is logarithmic: half the fraction is the geometric mean scale', () => {
+  const camera = new Camera(1300, 800);
+  camera.setZoomFraction(0);
+  const outScale = camera.scale;
+  camera.setZoomFraction(1);
+  const inScale = camera.scale;
+  camera.setZoomFraction(0.5);
+  assert.ok(closeTo(camera.scale, Math.sqrt(outScale * inScale), 1e-9));
+});
+
+test('fullyZoomedOut holds at the fit and breaks after one zoom-in step', () => {
+  const camera = new Camera(1300, 800);
+  assert.ok(camera.fullyZoomedOut());
+  camera.zoomAt(650, 400, 1.1);
+  assert.ok(!camera.fullyZoomedOut());
+});
+
 test('the centre stays inside the CH bounds when panned far', () => {
   const camera = new Camera(1300, 800);
   camera.panBy(-10_000_000, 10_000_000);

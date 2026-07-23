@@ -10,7 +10,9 @@ from pipeline.datadir import DataDir
 from web.published import PublishedSchedule
 
 SCHEDULE_BLOB_URL = "/artifacts/schedule.itsb"
+ROAD_SCHEDULE_BLOB_URL = "/artifacts/schedule-road.itsb"
 STATIONS_URL = "/api/stations"
+ROAD_STATIONS_URL = "/api/stations-road"
 
 
 def _published() -> PublishedSchedule:
@@ -28,7 +30,9 @@ def _config_body(service_date_iso: str) -> dict[str, str]:
     return {
         "serviceDate": service_date_iso,
         "scheduleBlobUrl": SCHEDULE_BLOB_URL,
+        "roadScheduleBlobUrl": ROAD_SCHEDULE_BLOB_URL,
         "stationsUrl": STATIONS_URL,
+        "roadStationsUrl": ROAD_STATIONS_URL,
     }
 
 
@@ -63,6 +67,14 @@ def config(request: HttpRequest) -> HttpResponse:
 @condition(etag_func=_published_etag)
 def stations(request: HttpRequest) -> HttpResponse:
     payload = _published().stations_bytes()
+    if payload is None:
+        return _no_publication()
+    return _revalidated(HttpResponse(payload, content_type="application/json"))
+
+
+@condition(etag_func=_published_etag)
+def stations_road(request: HttpRequest) -> HttpResponse:
+    payload = _published().stations_road_bytes()
     if payload is None:
         return _no_publication()
     return _revalidated(HttpResponse(payload, content_type="application/json"))

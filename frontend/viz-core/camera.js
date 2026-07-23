@@ -5,11 +5,15 @@ export const CH_BOUNDS_LV95 = {
   northMax: 1_296_000,
 };
 
-// Maximum zoom-in: 1300 px span roughly 3 km.
-export const SCALE_MAX_PIXELS_PER_METRE = 1300 / 3000;
+// Maximum zoom-in: 150 px span 1 km (~6.7 m/px).
+export const SCALE_MAX_PIXELS_PER_METRE = 150 / 1000;
 
 // Maximum zoom-out leaves a 10% margin around the national extent.
 const FIT_MARGIN = 1.1;
+
+// A hair above the minimum scale so float drift at the fully-zoomed-out stop
+// still counts as zoomed out, but a single zoom-in step no longer does.
+const FULLY_ZOOMED_OUT_TOLERANCE = 1.01;
 
 const clamp = (value, low, high) => Math.min(Math.max(value, low), high);
 
@@ -17,6 +21,11 @@ export class Camera {
   constructor(viewportWidth, viewportHeight) {
     this.viewportWidth = viewportWidth;
     this.viewportHeight = viewportHeight;
+    this.fit();
+  }
+
+  // Re-centre on the country and zoom out so the whole extent fits.
+  fit() {
     this.centerEast = (CH_BOUNDS_LV95.eastMin + CH_BOUNDS_LV95.eastMax) / 2;
     this.centerNorth = (CH_BOUNDS_LV95.northMin + CH_BOUNDS_LV95.northMax) / 2;
     this.scale = this.#minScale();
@@ -50,6 +59,28 @@ export class Camera {
 
   worldPerPixel() {
     return 1 / this.scale;
+  }
+
+  // 0 at the fully zoomed-out fit, 1 at the maximum zoom-in, logarithmic in
+  // between so equal fractions are equal zoom ratios — the basis for the
+  // sidebar's fixed zoom steps.
+  zoomFraction() {
+    const minScale = this.#minScale();
+    return (
+      Math.log(this.scale / minScale) /
+      Math.log(SCALE_MAX_PIXELS_PER_METRE / minScale)
+    );
+  }
+
+  setZoomFraction(fraction) {
+    const minScale = this.#minScale();
+    const span = SCALE_MAX_PIXELS_PER_METRE / minScale;
+    this.scale = this.#clampScale(minScale * span ** clamp(fraction, 0, 1));
+    this.#clampCenter();
+  }
+
+  fullyZoomedOut() {
+    return this.scale <= this.#minScale() * FULLY_ZOOMED_OUT_TOLERANCE;
   }
 
   visibleWorldBounds() {

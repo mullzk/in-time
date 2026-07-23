@@ -221,13 +221,26 @@ export class VehiclePositionEngine {
       if (index === events.length - 1) {
         return;
       }
-      const legDistance = event.legEdges.reduce(
-        (sum, signedEdge) => sum + this.edgeLengths[Math.abs(signedEdge) - 1],
-        0,
-      );
+      const legDistance =
+        event.legEdges.length === 0
+          ? this.#straightLegLength(event, events[index + 1])
+          : event.legEdges.reduce(
+              (sum, signedEdge) =>
+                sum + this.edgeLengths[Math.abs(signedEdge) - 1],
+              0,
+            );
       cumulative.push(cumulative[index] + legDistance);
     });
     return cumulative;
+  }
+
+  // A leg with no edges is a straight line between its two stations — the shape
+  // every bus leg takes. Rail and tram always carry routed edges, their straight
+  // fallback included.
+  #straightLegLength(fromEvent, toEvent) {
+    const from = this.stations[fromEvent.station];
+    const to = this.stations[toEvent.station];
+    return Math.hypot(to[0] - from[0], to[1] - from[1]);
   }
 
   #deriveOperatingWindow() {
@@ -279,10 +292,22 @@ export class VehiclePositionEngine {
     ) {
       leg += 1;
     }
-    return this.#pointOnLeg(
-      events[leg].legEdges,
-      distance - legCumulative[leg],
-    );
+    const distanceIntoLeg = distance - legCumulative[leg];
+    if (events[leg].legEdges.length === 0) {
+      return this.#pointOnStraightLeg(
+        events[leg],
+        events[leg + 1],
+        distanceIntoLeg,
+      );
+    }
+    return this.#pointOnLeg(events[leg].legEdges, distanceIntoLeg);
+  }
+
+  #pointOnStraightLeg(fromEvent, toEvent, distanceIntoLeg) {
+    const from = this.stations[fromEvent.station];
+    const to = this.stations[toEvent.station];
+    const length = this.#straightLegLength(fromEvent, toEvent);
+    return lerp(from, to, length === 0 ? 0 : distanceIntoLeg / length);
   }
 
   #tripDistanceAt(trip, t) {

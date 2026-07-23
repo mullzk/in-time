@@ -1,4 +1,4 @@
-"""GTFS schedule reading: active services, rail trips, and per-trip stop
+"""GTFS schedule reading: active services, categorised trips, and per-trip stop
 sequences for a service date."""
 
 import csv
@@ -7,6 +7,23 @@ from dataclasses import dataclass
 from pathlib import Path
 
 RAIL_ROUTE_TYPES = frozenset({100, 101, 102, 103, 105, 106, 107, 109, 116, 117})
+TRAM_ROUTE_TYPE = 900
+BUS_ROUTE_TYPES = frozenset({700, 702})
+
+CATEGORY_TRAM = 5
+CATEGORY_BUS = 6
+RAIL_CATEGORIES = frozenset({0, 1, 2, 3, 4})
+
+SWISS_BPUIC_PREFIX = "85"
+
+
+def is_swiss_bpuic(bpuic: int) -> bool:
+    return str(bpuic).startswith(SWISS_BPUIC_PREFIX)
+
+
+def is_swiss_bpuic_text(value: str) -> bool:
+    return value.isdigit() and value.startswith(SWISS_BPUIC_PREFIX)
+
 
 # route_type -> product category (0 Fernverkehr, 1 IR, 2 Regio, 3 S-Bahn,
 # 4 übrige). Rail types without an explicit mapping fall into category 4.
@@ -31,9 +48,13 @@ class StopCall:
 
 
 def category_of(route_type: int) -> int | None:
-    if route_type not in RAIL_ROUTE_TYPES:
-        return None
-    return _CATEGORY.get(route_type, 4)
+    if route_type in RAIL_ROUTE_TYPES:
+        return _CATEGORY.get(route_type, 4)
+    if route_type == TRAM_ROUTE_TYPE:
+        return CATEGORY_TRAM
+    if route_type in BUS_ROUTE_TYPES:
+        return CATEGORY_BUS
+    return None
 
 
 def seconds_since_midnight(clock: str) -> int:
@@ -67,7 +88,7 @@ def active_services(gtfs_dir: Path, service_date: datetime.date) -> set[str]:
     return (regular | added) - removed
 
 
-def rail_routes(gtfs_dir: Path) -> dict[str, int]:
+def routes_by_category(gtfs_dir: Path) -> dict[str, int]:
     routes: dict[str, int] = {}
     with open(gtfs_dir / "routes.txt", encoding="utf-8-sig", newline="") as feed:
         for row in csv.DictReader(feed):
@@ -77,15 +98,23 @@ def rail_routes(gtfs_dir: Path) -> dict[str, int]:
     return routes
 
 
-def active_rail_trips(gtfs_dir: Path, service_date: datetime.date) -> dict[str, int]:
+def active_trips(gtfs_dir: Path, service_date: datetime.date) -> dict[str, int]:
     services = active_services(gtfs_dir, service_date)
-    routes = rail_routes(gtfs_dir)
+    routes = routes_by_category(gtfs_dir)
     trips: dict[str, int] = {}
     with open(gtfs_dir / "trips.txt", encoding="utf-8-sig", newline="") as feed:
         for row in csv.DictReader(feed):
             if row["route_id"] in routes and row["service_id"] in services:
                 trips[row["trip_id"]] = routes[row["route_id"]]
     return trips
+
+
+def active_rail_trips(gtfs_dir: Path, service_date: datetime.date) -> dict[str, int]:
+    return {
+        trip_id: category
+        for trip_id, category in active_trips(gtfs_dir, service_date).items()
+        if category in RAIL_CATEGORIES
+    }
 
 
 def _stop_didok_map(gtfs_dir: Path) -> dict[str, int]:
