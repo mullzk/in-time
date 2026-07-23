@@ -15,14 +15,11 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
-from pipeline.gtfs import RAIL_ROUTE_TYPES
+from pipeline.gtfs import BUS_ROUTE_TYPES, RAIL_ROUTE_TYPES, TRAM_ROUTE_TYPE
 
 FREQUENCY_MODE_RAIL = 0
 FREQUENCY_MODE_TRAM = 1
 FREQUENCY_MODE_BUS = 2
-
-_TRAM_ROUTE_TYPE = 900
-_BUS_ROUTE_TYPES = frozenset({700, 702})
 
 SWISS_BPUIC_PREFIX = "85"
 
@@ -51,9 +48,9 @@ DEFAULT_FREQUENCY_THRESHOLDS = FrequencyThresholds()
 def frequency_mode_of_route_type(route_type: int) -> int | None:
     if route_type in RAIL_ROUTE_TYPES:
         return FREQUENCY_MODE_RAIL
-    if route_type == _TRAM_ROUTE_TYPE:
+    if route_type == TRAM_ROUTE_TYPE:
         return FREQUENCY_MODE_TRAM
-    if route_type in _BUS_ROUTE_TYPES:
+    if route_type in BUS_ROUTE_TYPES:
         return FREQUENCY_MODE_BUS
     return None
 
