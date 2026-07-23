@@ -199,6 +199,16 @@ def assemble_schedule_day(
     return ScheduleBuild(day, catalog.entries, method_counts, straight)
 
 
+def _rail_inputs(
+    rail_graph: RailGraph,
+) -> tuple[RailRouter, RailStationSource, set[int]]:
+    return (
+        RailRouter(rail_graph),
+        RailStationSource(rail_graph),
+        set(rail_graph.station_to_node),
+    )
+
+
 def build_schedule_day(
     gtfs_dir: Path,
     rail_graph: RailGraph,
@@ -207,13 +217,14 @@ def build_schedule_day(
 ) -> ScheduleBuild:
     trips = active_rail_trips(gtfs_dir, service_date)
     sequences = stop_sequences(gtfs_dir, set(trips))
+    router, source, placeable = _rail_inputs(rail_graph)
     return assemble_schedule_day(
         service_date,
         trips,
         sequences,
-        RailRouter(rail_graph),
-        RailStationSource(rail_graph),
-        set(rail_graph.station_to_node),
+        router,
+        source,
+        placeable,
         regular_edges,
     )
 
@@ -272,13 +283,14 @@ def build_day_builds(
         trip: category for trip, category in trips.items() if category == CATEGORY_BUS
     }
 
+    router, source, placeable = _rail_inputs(rail_graph)
     bav = assemble_schedule_day(
         service_date,
         bav_trips,
         sequences,
-        RailRouter(rail_graph),
-        RailStationSource(rail_graph),
-        set(rail_graph.station_to_node),
+        router,
+        source,
+        placeable,
         regular_edges,
     )
     road = assemble_straight_line_day(
