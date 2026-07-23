@@ -6,7 +6,10 @@
   --color-surface-translucent: rgba(20, 24, 33, 0.58);
   --color-text: #c9ccd6;
   --color-control: #2b3140;
+  --color-control-hover: #3a4255;
   --color-control-text: #eef0f5;
+  --color-border: rgba(201, 204, 214, 0.16);
+  --space-s: 6px;
   --space-m: 12px;
   --space-l: 24px;
   --radius-m: 10px;
