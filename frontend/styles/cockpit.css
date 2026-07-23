@@ -12,12 +12,14 @@
   border-radius: var(--radius-m);
   background: var(--color-surface);
   backdrop-filter: blur(6px);
+  max-width: calc(100vw - 2 * var(--space-l));
   transition: left var(--transition-panel);
 }
 
-/* Stay centred in the map area the open sidebar leaves free. */
+/* Stay centred in, and fit within, the map area the open sidebar leaves free. */
 .is-sidebar-open .cockpit {
   left: calc(50% + var(--sidebar-width) / 2);
+  max-width: calc(100vw - var(--sidebar-width) - 2 * var(--space-l));
 }
 
 .cockpit-play {
@@ -36,6 +38,14 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* The sliders keep their desktop size but may shrink below it (min-width: 0
+   overrides the range control's intrinsic floor) so the cockpit fits a narrow
+   viewport instead of overflowing its edges. */
+.cockpit-tempo {
+  min-width: 0;
+}
+
 .cockpit-scrubber {
   width: 260px;
+  min-width: 0;
 }
