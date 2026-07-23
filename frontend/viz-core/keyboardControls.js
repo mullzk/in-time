@@ -1,13 +1,14 @@
 const ZOOM_KEY_FACTOR = 1.4;
 
-// Document-level keyboard shortcuts for playback and camera. Bound to a target
+// Document-level keyboard shortcuts for playback and camera, plus panel-supplied
+// bindings (key -> handler) for panel-specific toggles. Bound to a target
 // (window) so they work regardless of focus; modifier combinations are left to
-// the browser. Reserved for later, once those layers exist: n (network),
-// h (stops), l (labels).
+// the browser. Reserved for later: n (network toggle), l (labels layer).
 export class KeyboardControls {
-  constructor(target, { time, camera }) {
+  constructor(target, { time, camera, bindings = {} }) {
     this.time = time;
     this.camera = camera;
+    this.bindings = bindings;
     target.addEventListener('keydown', (event) => this.#onKeyDown(event));
   }
 
@@ -16,6 +17,12 @@ export class KeyboardControls {
       return;
     }
     if (this.#isTypingInto(event.target)) {
+      return;
+    }
+    const binding = this.bindings[event.key];
+    if (binding) {
+      binding();
+      event.preventDefault();
       return;
     }
     switch (event.key) {

@@ -1,0 +1,19 @@
+/* SMACSS Module: the station popover — a small label anchored above the tapped
+   node. Positioned by the script; it never intercepts pointer events. */
+.station-popover {
+  position: absolute;
+  z-index: 10;
+  transform: translate(-50%, calc(-100% - 8px));
+  padding: 6px 10px;
+  border-radius: var(--radius-m);
+  background: var(--color-surface);
+  backdrop-filter: blur(6px);
+  color: var(--color-text);
+  white-space: nowrap;
+  pointer-events: none;
+  display: none;
+}
+
+.station-popover.is-visible {
+  display: block;
+}

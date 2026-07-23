@@ -2,6 +2,10 @@ import { readStationPoints } from '../viz-core/blobStations.js';
 import { element } from '../viz-core/dom.js';
 import { Panel } from '../viz-core/panel.js';
 import { StationCatalog } from '../viz-core/stationCatalog.js';
+import {
+  nearestStation,
+  nodeDiameterPixels,
+} from '../viz-core/stationNodes.js';
 import { BACKGROUNDS } from '../viz-core/tiles/tileSource.js';
 import { VehiclePositionEngine } from '../viz-core/vehiclePositionEngine.js';
 
@@ -50,8 +54,14 @@ const DIAMETER_FACTOR_BY_CATEGORY = new Map([
 const diameterFactor = (category) =>
   DIAMETER_FACTOR_BY_CATEGORY.get(category) ?? 1.5;
 
+const STATION_NODE_COLOR = [210, 216, 228];
+// A generous tap target so small nodes stay hittable on touch.
+const STATION_HIT_RADIUS_PIXELS = 12;
+
 const LAYER_LABELS = [
   ['network', 'Netz'],
+  ['railStops', 'Bahn/Tram-Haltestellen'],
+  ['busStops', 'Bus-Haltestellen'],
   ['rail', 'Bahn'],
   ['tram', 'Tram'],
   ['bus', 'Bus'],
@@ -75,11 +85,20 @@ export class HerzschlagPanel extends Panel {
       readStationPoints(roadBuffer),
     );
     this.activeVehicles = [];
-    this.layers = { network: true, rail: true, tram: false, bus: false };
+    this.layers = {
+      network: true,
+      railStops: true,
+      busStops: true,
+      rail: true,
+      tram: false,
+      bus: false,
+    };
     this.backgroundShowsRailwayLines = false;
     this.zoomSlider = null;
     this.zoomScrubbing = false;
     this.networkOption = null;
+    this.railStopsOption = null;
+    this.busStopsOption = null;
     this.camera = null;
   }
 
@@ -104,6 +123,7 @@ export class HerzschlagPanel extends Panel {
       );
     this.#syncZoomSlider();
     this.#syncNetworkOption();
+    this.#syncStopsOptions();
   }
 
   drawWorld(p, context) {
@@ -113,6 +133,7 @@ export class HerzschlagPanel extends Panel {
         context.drawBasemap(p, engine.edges);
       });
     }
+    this.#drawStationNodes(p, context);
 
     const worldPerPixel = context.camera.worldPerPixel();
     p.noStroke();
@@ -155,6 +176,69 @@ export class HerzschlagPanel extends Panel {
     if (this.networkOption) {
       this.networkOption.disabled = !this.#networkVisible();
     }
+  }
+
+  #syncStopsOptions() {
+    if (this.railStopsOption) {
+      this.railStopsOption.checked = this.layers.railStops;
+    }
+    if (this.busStopsOption) {
+      this.busStopsOption.checked = this.layers.busStops;
+    }
+  }
+
+  #stationShown(station) {
+    return (
+      (station.isRail && this.layers.railStops) ||
+      (station.isBus && this.layers.busStops)
+    );
+  }
+
+  #drawStationNodes(p, context) {
+    const diameterPixels = nodeDiameterPixels(context.camera.zoomFraction());
+    if (diameterPixels === 0) {
+      return;
+    }
+    const diameter = diameterPixels * context.camera.worldPerPixel();
+    const bounds = context.camera.visibleWorldBounds();
+    p.noStroke();
+    p.fill(STATION_NODE_COLOR[0], STATION_NODE_COLOR[1], STATION_NODE_COLOR[2]);
+    this.catalog.entries.forEach((station) => {
+      if (
+        this.#stationShown(station) &&
+        station.east >= bounds.eastMin &&
+        station.east <= bounds.eastMax &&
+        station.north >= bounds.northMin &&
+        station.north <= bounds.northMax
+      ) {
+        p.circle(station.east, station.north, diameter);
+      }
+    });
+  }
+
+  stationAt(screenX, screenY) {
+    if (
+      this.camera === null ||
+      nodeDiameterPixels(this.camera.zoomFraction()) === 0
+    ) {
+      return null;
+    }
+    const shown = this.catalog.entries.filter((station) =>
+      this.#stationShown(station),
+    );
+    return nearestStation(
+      shown,
+      this.camera,
+      screenX,
+      screenY,
+      STATION_HIT_RADIUS_PIXELS,
+    );
+  }
+
+  toggleStops() {
+    const anyShown = this.layers.railStops || this.layers.busStops;
+    this.layers.railStops = !anyShown;
+    this.layers.busStops = !anyShown;
   }
 
   #backgroundControl(context) {
@@ -215,6 +299,12 @@ export class HerzschlagPanel extends Panel {
       });
       if (key === 'network') {
         this.networkOption = input;
+      }
+      if (key === 'railStops') {
+        this.railStopsOption = input;
+      }
+      if (key === 'busStops') {
+        this.busStopsOption = input;
       }
       group.appendChild(this.#option(input, label));
     });

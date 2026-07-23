@@ -5,6 +5,8 @@ import { loadSchedule } from '../viz-core/loader.js';
 import { PanelContext } from '../viz-core/panelContext.js';
 import { wgs84ToLv95 } from '../viz-core/projection.js';
 import { Sidebar } from '../viz-core/sidebar.js';
+import { StationInteraction } from '../viz-core/stationInteraction.js';
+import { StationPopover } from '../viz-core/stationPopover.js';
 import { StationSearch } from '../viz-core/stationSearch.js';
 import { TileLayer } from '../viz-core/tiles/tileLayer.js';
 import { RELIEF_TILE_SOURCE } from '../viz-core/tiles/tileSource.js';
@@ -54,9 +56,23 @@ async function bootstrap() {
       onSelect: (station) => context.focusStation(station.east, station.north),
     });
   }
-  new KeyboardControls(window, { time, camera });
+  new KeyboardControls(window, {
+    time,
+    camera,
+    bindings: { h: () => panel.toggleStops() },
+  });
   new VizCore(root, panel, context, {
     onFrameRendered: () => cockpit.sync(),
+    onCanvasReady: (canvasElement) => {
+      const popover = new StationPopover(root);
+      new StationInteraction(canvasElement, {
+        pick: (x, y) => panel.stationAt(x, y),
+        onSelect: (station, x, y) => popover.showAt(x, y, station.name),
+        onActivate: (station) =>
+          context.focusStation(station.east, station.north),
+        onMiss: () => popover.hide(),
+      });
+    },
   });
   time.play();
 }
