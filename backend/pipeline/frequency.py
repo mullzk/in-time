@@ -30,6 +30,7 @@ FREQUENCY_MODE_TRAM = 1
 FREQUENCY_MODE_BUS = 2
 
 SWISS_BPUIC_PREFIX = "85"
+REGULAR_EDGES_CACHE_NAME = "regular_edges.bin"
 
 
 def is_swiss_bpuic(bpuic: int) -> bool:

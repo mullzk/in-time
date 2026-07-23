@@ -51,22 +51,21 @@ irregular. Local run, Apple Silicon.
 | regular edges (rail / tram / bus) | 24 867 (2000/594/22 273) |
 | max service bitmask               | 711 bits                 |
 
-## Schedule day build — `build_schedule_day`
+## Day build — `build_day_builds` + `write_day_artifacts`
 
-Source: GTFS feed 2026 (2.1 GB `stop_times.txt`) + rail network GDB, day
-2026-07-16. Local run, Apple Silicon.
+Two blobs per day: `schedule.itsb` (rail + tram routed over the BAV network) and
+`schedule-road.itsb` (buses drawn as straight lines between stops, no geometry).
+GTFS feed 2026 + rail network GDB, day 2026-07-16. Local run, Apple Silicon.
 
-| metric                                           | value                        |
-| ------------------------------------------------ | ---------------------------- |
-| input GTFS stop_times                            | 2.1 GB                       |
-| trips (rail)                                     | 15518                        |
-| stations touched                                 | 1616                         |
-| shared edges (incl. 2 straight)                  | 3518                         |
-| output blob (`schedule.itsb`)                    | 4.08 MB                      |
-| routing direct / multi-snap / recover / straight | 99.06 / 0.90 / 0.00 / 0.05 % |
-| graph load                                       | 0.4 s                        |
-| day build (stream + route)                       | 27.4 s                       |
-| blob round-trip                                  | ok                           |
+| metric                                | BAV (rail+tram)     | road (bus)      |
+| ------------------------------------- | ------------------- | --------------- |
+| trips                                 | 26 628              | 105 330         |
+| stations                              | 2 013               | 18 931          |
+| blob raw / gz                         | 8.15 / 1.16 MB      | 27.28 / 3.79 MB |
+| routing direct/multi/recover/straight | 99.22/0.74/0/0.04 % | — (straight)    |
+
+Frequency edges are cached per GTFS version (sidecar `regular_edges.bin`, 0.30
+MB): first build scans ~56 s, later builds load in ~6 ms.
 
 ## Source fetches — `fetch.py` (network-bound, indicative)
 

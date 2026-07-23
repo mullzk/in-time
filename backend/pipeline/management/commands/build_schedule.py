@@ -11,11 +11,13 @@ from pipeline.artifacts import (
     reload_runner,
     write_day_artifacts,
 )
+from pipeline.bus_stops import load_bus_stops
 from pipeline.datadir import DataDir
 from pipeline.fetch import gtfs_archive, rail_network_archive
+from pipeline.frequency import REGULAR_EDGES_CACHE_NAME, load_or_scan_regular_edges
 from pipeline.network.rail_gdb import load_rail_graph
 from pipeline.schedule import run_build_schedule
-from pipeline.schedule_day import build_schedule_day
+from pipeline.schedule_day import build_day_builds
 
 
 class Command(BaseCommand):
@@ -47,8 +49,15 @@ class Command(BaseCommand):
         def build_day(day: datetime.date, dest: Path) -> None:
             gdb = locate_gdb(rail_network.path_for(versions["rail"]))
             rail_graph = load_rail_graph(gdb)
-            build = build_schedule_day(gtfs.path_for(versions["gtfs"]), rail_graph, day)
-            write_day_artifacts(build, dest)
+            gtfs_dir = gtfs.path_for(versions["gtfs"])
+            bus_stops = load_bus_stops(gtfs_dir)
+            regular_edges = load_or_scan_regular_edges(
+                gtfs_dir, gtfs_dir / REGULAR_EDGES_CACHE_NAME
+            )
+            builds = build_day_builds(
+                gtfs_dir, rail_graph, bus_stops, regular_edges, day
+            )
+            write_day_artifacts(builds, dest)
 
         run = run_build_schedule(
             data_dir,
