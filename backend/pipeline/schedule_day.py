@@ -1,13 +1,20 @@
-"""Assembles a service day into a ScheduleDay: routes each trip's legs over the
-rail network and collects the stations it touches."""
+"""Assembles a service day into a ScheduleBuild: routes each trip's legs over a
+network and collects the stations it touches.
+
+The assembly is mode-agnostic — it takes a router and a station source — so the
+same code drives rail and tram over the BAV network and bus over the road
+network. build_schedule_day wires the rail case."""
 
 from collections import Counter
+from collections.abc import Set
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
+from typing import Protocol
 
-from pipeline.gtfs import active_rail_trips, stop_sequences
+from pipeline.gtfs import StopCall, active_rail_trips, stop_sequences
 from pipeline.network.rail import Point, RailGraph, RailRouter
+from pipeline.network.router import NetworkRouter
 from pipeline.schedule_blob import Event, ScheduleDay, Trip
 
 
@@ -32,54 +39,75 @@ class ScheduleBuild:
     straight_fallbacks: list[NamedStraight]
 
 
-class _StationCatalog:
+class StationSource(Protocol):
+    def location(self, station: int) -> Point: ...
+
+    def name(self, station: int) -> str: ...
+
+
+class RailStationSource:
     def __init__(self, rail_graph: RailGraph) -> None:
         self._rail_graph = rail_graph
+
+    def location(self, station: int) -> Point:
+        node = self._rail_graph.station_to_node[station]
+        return self._rail_graph.node_point[node]
+
+    def name(self, station: int) -> str:
+        node = self._rail_graph.station_to_node.get(station)
+        if node is None:
+            return str(station)
+        return self._rail_graph.node_name.get(node, str(station))
+
+
+class _StationCatalog:
+    def __init__(self, source: StationSource) -> None:
+        self._source = source
         self._index: dict[int, int] = {}
         self.coordinates: list[Point] = []
         self.entries: list[StationEntry] = []
 
-    def index_of(self, didok: int) -> int:
-        if didok not in self._index:
-            node = self._rail_graph.station_to_node[didok]
-            self._index[didok] = len(self.coordinates)
-            self.coordinates.append(self._rail_graph.node_point[node])
-            self.entries.append(StationEntry(didok, self.name_of(didok)))
-        return self._index[didok]
+    def index_of(self, station: int) -> int:
+        if station not in self._index:
+            self._index[station] = len(self.coordinates)
+            self.coordinates.append(self._source.location(station))
+            self.entries.append(StationEntry(station, self._source.name(station)))
+        return self._index[station]
 
-    def name_of(self, didok: int) -> str:
-        node = self._rail_graph.station_to_node.get(didok)
-        if node is None:
-            return str(didok)
-        return self._rail_graph.node_name.get(node, str(didok))
+    def name_of(self, station: int) -> str:
+        return self._source.name(station)
 
 
-def build_schedule_day(
-    gtfs_dir: Path, rail_graph: RailGraph, service_date: date
+def _kept_calls(
+    sequence: list[StopCall], placeable: Set[int]
+) -> list[tuple[int, int, int]]:
+    return [
+        (call.didok, call.arr, call.dep) for call in sequence if call.didok in placeable
+    ]
+
+
+def assemble_schedule_day(
+    service_date: date,
+    trips: dict[str, int],
+    sequences: dict[str, list[StopCall]],
+    router: NetworkRouter,
+    source: StationSource,
+    placeable: Set[int],
 ) -> ScheduleBuild:
-    categories = active_rail_trips(gtfs_dir, service_date)
-    sequences = stop_sequences(gtfs_dir, set(categories))
-    routable = rail_graph.station_to_node
-
     kept: dict[str, list[tuple[int, int, int]]] = {}
     pairs: set[tuple[int, int]] = set()
-    for trip_id in categories:
-        calls = [
-            (call.didok, call.arr, call.dep)
-            for call in sequences.get(trip_id, [])
-            if call.didok in routable
-        ]
+    for trip_id in trips:
+        calls = _kept_calls(sequences.get(trip_id, []), placeable)
         if len(calls) < 2:
             continue
         kept[trip_id] = calls
         for (didok, _, _), (next_didok, _, _) in zip(calls, calls[1:], strict=False):
             pairs.add((didok, next_didok))
 
-    router = RailRouter(rail_graph)
     routed = router.route(pairs)
 
-    catalog = _StationCatalog(rail_graph)
-    trips: list[Trip] = []
+    catalog = _StationCatalog(source)
+    assembled: list[Trip] = []
     for trip_id, calls in kept.items():
         events: list[Event] = []
         for position, (didok, arr, dep) in enumerate(calls):
@@ -88,13 +116,13 @@ def build_schedule_day(
                 leg = routed.get((didok, calls[position + 1][0]))
                 leg_edges = leg.signed_path if leg is not None else []
             events.append(Event(catalog.index_of(didok), arr, dep, leg_edges))
-        trips.append(Trip(category=categories[trip_id], events=events))
+        assembled.append(Trip(category=trips[trip_id], events=events))
 
     day = ScheduleDay(
         service_date=service_date,
         stations=catalog.coordinates,
         edges=router.edges,
-        trips=trips,
+        trips=assembled,
     )
     method_counts = dict(Counter(leg.method for leg in routed.values()))
     straight = [
@@ -106,3 +134,18 @@ def build_schedule_day(
         for fallback in router.straight_fallbacks(routed)
     ]
     return ScheduleBuild(day, catalog.entries, method_counts, straight)
+
+
+def build_schedule_day(
+    gtfs_dir: Path, rail_graph: RailGraph, service_date: date
+) -> ScheduleBuild:
+    trips = active_rail_trips(gtfs_dir, service_date)
+    sequences = stop_sequences(gtfs_dir, set(trips))
+    return assemble_schedule_day(
+        service_date,
+        trips,
+        sequences,
+        RailRouter(rail_graph),
+        RailStationSource(rail_graph),
+        set(rail_graph.station_to_node),
+    )
