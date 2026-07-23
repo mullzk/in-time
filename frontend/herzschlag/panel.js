@@ -26,6 +26,24 @@ const LAYER_BY_CATEGORY = new Map([
   [CATEGORY_BUS, 'bus'],
 ]);
 
+// Stacking order where points overlap: buses at the bottom, trams above,
+// trains on top, so the far more numerous buses never hide the trains.
+const DRAW_PRIORITY_BY_CATEGORY = new Map([
+  [CATEGORY_BUS, 0],
+  [CATEGORY_TRAM, 1],
+]);
+const drawPriority = (category) => DRAW_PRIORITY_BY_CATEGORY.get(category) ?? 2;
+
+// Trains read poorly against the colour pixel map, so draw them larger and the
+// far more numerous trams and buses smaller.
+const BASE_DIAMETER_PIXELS = 7;
+const DIAMETER_FACTOR_BY_CATEGORY = new Map([
+  [CATEGORY_TRAM, 0.75],
+  [CATEGORY_BUS, 0.75],
+]);
+const diameterFactor = (category) =>
+  DIAMETER_FACTOR_BY_CATEGORY.get(category) ?? 1.5;
+
 const LAYER_LABELS = [
   ['network', 'Netz'],
   ['rail', 'Bahn'],
@@ -52,9 +70,12 @@ export class HerzschlagPanel extends Panel {
   }
 
   update(currentTimeSeconds, _deltaSeconds) {
-    this.activeVehicles = this.engines.flatMap((engine) =>
-      engine.activeAt(currentTimeSeconds),
-    );
+    this.activeVehicles = this.engines
+      .flatMap((engine) => engine.activeAt(currentTimeSeconds))
+      .sort(
+        (first, second) =>
+          drawPriority(first.category) - drawPriority(second.category),
+      );
   }
 
   drawWorld(p, context) {
@@ -65,7 +86,7 @@ export class HerzschlagPanel extends Panel {
       });
     }
 
-    const diameter = 7 / context.camera.scale;
+    const worldPerPixel = context.camera.worldPerPixel();
     p.noStroke();
     this.activeVehicles.forEach((vehicle) => {
       if (!this.#categoryVisible(vehicle.category)) {
@@ -73,6 +94,8 @@ export class HerzschlagPanel extends Panel {
       }
       const [r, g, b] = CATEGORY_COLORS[vehicle.category] ?? FALLBACK_COLOR;
       p.fill(r, g, b);
+      const diameter =
+        BASE_DIAMETER_PIXELS * diameterFactor(vehicle.category) * worldPerPixel;
       p.circle(vehicle.east, vehicle.north, diameter);
     });
   }
