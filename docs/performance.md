@@ -20,24 +20,6 @@ Apple Silicon.
 | load time (read GDB → graph)       | 0.4 s   |
 | build time (shared edges + bridge) | 0.2 s   |
 
-## Road network graph — `road_gdb.load_road_graph` + `NetworkRouter`
-
-Source: `SWISSTLM3D_CHLV95LN02.gdb`, layer `TLM_STRASSE` (swissTLM3D 2025-03).
-Only drivable classes are kept: `OBJEKTART` ∈ {0,1,2,4,5,8,9,10,11,20,21}
-(motorway + ramps, autostrasse, connections/access, 3–10 m roads); 1–2 m
-footpaths, stairs, ferries and cable links are dropped. Bus stops then sit close
-to a drivable node (97.5 % ≤ 100 m; median 15 m). Local run, Apple Silicon.
-
-| metric                            | value     |
-| --------------------------------- | --------- |
-| download (`.gdb.zip`)             | 2.79 GB   |
-| extracted GDB size                | 5.2 GB    |
-| `TLM_STRASSE` features (all)      | 2 077 573 |
-| features after class filter       | 1 017 561 |
-| road graph nodes                  | 920 672   |
-| road graph edges                  | 1 013 951 |
-| load time (read + filter → graph) | 20.6 s    |
-
 ## Bus-stop catalog — `bus_stops.load_bus_stops`
 
 Source: GTFS feed 2026 (`stops.txt`, 103 039 rows), day 2026-07-15. One LV95

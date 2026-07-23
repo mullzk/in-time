@@ -1,12 +1,9 @@
-"""Fetches the public GTFS, BAV rail-network and swissTLM3D road-network sources
-into a VersionedArchive.
+"""Fetches the public GTFS and BAV rail-network sources into a VersionedArchive.
 
-All are public open-data endpoints, so their URLs are code defaults; the version
+Both are public open-data endpoints, so their URLs are code defaults; the version
 is resolved cheaply (without downloading the payload) before deciding whether a
-download is needed. The road network is listed via a STAC collection, the others
-by a direct asset URL."""
+download is needed."""
 
-import json
 import re
 import shutil
 import tempfile
@@ -14,7 +11,6 @@ import urllib.request
 import zipfile
 from email.utils import parsedate_to_datetime
 from pathlib import Path
-from typing import Any
 
 from pipeline.archive import VersionedArchive
 
@@ -25,16 +21,10 @@ RAIL_NETWORK_URL = (
     "https://data.geo.admin.ch/ch.bav.schienennetz/schienennetz/"
     "schienennetz_2056_de.gdb.zip"
 )
-ROAD_NETWORK_STAC_URL = (
-    "https://data.geo.admin.ch/api/stac/v0.9/collections/"
-    "ch.swisstopo.swisstlm3d/items?limit=100"
-)
-ROAD_NETWORK_ASSET_BASE = "https://data.geo.admin.ch/ch.swisstopo.swisstlm3d"
 
 _TIMEOUT_SECONDS = 120
 _USER_AGENT = "in-time-pipeline"
 _GTFS_VERSION = re.compile(r"gtfs_fp\d+_(\d{8})")
-_ROAD_NETWORK_ASSET = re.compile(r"swisstlm3d_(\d{4}-\d{2})_2056_5728\.gdb\.zip")
 
 
 def _request(url: str, method: str = "GET") -> urllib.request.Request:
@@ -116,41 +106,4 @@ def rail_network_archive(
         archive_root,
         resolve_version=lambda: resolve_rail_network_version(url),
         download=lambda _version, dest: extract_zip_from_url(url, dest),
-    )
-
-
-def road_network_asset_url(version: str) -> str:
-    return (
-        f"{ROAD_NETWORK_ASSET_BASE}/swisstlm3d_{version}/"
-        f"swisstlm3d_{version}_2056_5728.gdb.zip"
-    )
-
-
-def latest_road_network_version(stac_items: dict[str, Any]) -> str:
-    versions: list[str] = []
-    for feature in stac_items.get("features", []):
-        for asset_key in feature.get("assets", {}):
-            match = _ROAD_NETWORK_ASSET.search(asset_key)
-            if match is not None:
-                versions.append(match.group(1))
-    if not versions:
-        raise ValueError("no swissTLM3D 2056 GDB asset in the STAC items")
-    return max(versions)
-
-
-def resolve_road_network_version(url: str = ROAD_NETWORK_STAC_URL) -> str:
-    with urllib.request.urlopen(_request(url), timeout=_TIMEOUT_SECONDS) as response:
-        payload = json.load(response)
-    return latest_road_network_version(payload)
-
-
-def road_network_archive(
-    archive_root: Path, url: str = ROAD_NETWORK_STAC_URL
-) -> VersionedArchive:
-    return VersionedArchive(
-        archive_root,
-        resolve_version=lambda: resolve_road_network_version(url),
-        download=lambda version, dest: extract_zip_from_url(
-            road_network_asset_url(version), dest
-        ),
     )
