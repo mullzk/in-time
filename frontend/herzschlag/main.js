@@ -1,6 +1,7 @@
 import { Attribution } from '../viz-core/attribution.js';
 import { Camera } from '../viz-core/camera.js';
 import { Cockpit } from '../viz-core/cockpit.js';
+import { InfoModal } from '../viz-core/infoModal.js';
 import { KeyboardControls } from '../viz-core/keyboardControls.js';
 import { loadSchedule } from '../viz-core/loader.js';
 import { PanelContext } from '../viz-core/panelContext.js';
@@ -13,6 +14,7 @@ import { TileLayer } from '../viz-core/tiles/tileLayer.js';
 import { RELIEF_TILE_SOURCE } from '../viz-core/tiles/tileSource.js';
 import { SECONDS_PER_DAY, TimeModel } from '../viz-core/timeModel.js';
 import { VizCore } from '../viz-core/vizCore.js';
+import { buildInfoContent } from './infoContent.js';
 import { HerzschlagPanel } from './panel.js';
 
 // A service day's trips span more than 24 h (trains running past midnight). We
@@ -60,6 +62,10 @@ async function bootstrap() {
     }),
   );
   const popover = new StationPopover(root);
+  const infoModal = new InfoModal(
+    root,
+    buildInfoContent({ stationSearch: panel.capabilities.stationSearch }),
+  );
 
   // A search pick reveals the station: switch its stops layer on, centre on it,
   // and name it with a popover anchored to where it lands.
@@ -73,6 +79,7 @@ async function bootstrap() {
   const bindings = {
     h: () => panel.toggleStops(),
     s: () => sidebar.toggle(),
+    i: () => infoModal.toggle(),
   };
   if (panel.capabilities.stationSearch) {
     const stationSearch = new StationSearch(root, panel.stationCatalog(), {
