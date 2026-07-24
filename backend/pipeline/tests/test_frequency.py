@@ -264,6 +264,30 @@ def test_cache_hit_loads_without_scanning(tmp_path: Path) -> None:
     assert regular.is_regular(A, B, FREQUENCY_MODE_RAIL)
 
 
+def test_stale_cache_is_rescanned_and_rewritten(tmp_path: Path) -> None:
+    feed = tmp_path / "feed"
+    write_feed(
+        feed,
+        {
+            "stops.txt": stops_txt(A, B),
+            "trips.txt": trips_txt(
+                ("R_RAIL", "DAILY", "T1"), ("R_RAIL", "DAILY", "T2")
+            ),
+            "stop_times.txt": stop_times(("T1", [A, B]), ("T2", [A, B])),
+        },
+    )
+    cache = tmp_path / "regular_edges.bin"
+    cache.write_bytes(b"OLD\x00" + b"\x00" * 12)  # a pre-header, unrecognized cache
+
+    regular = load_or_scan_regular_edges(feed, cache, SMALL)
+
+    assert regular.is_regular(A, B, FREQUENCY_MODE_RAIL)
+    # It was rewritten in the current format, so a second call serves it from the
+    # cache alone -- an absent feed would make a rescan raise.
+    reused = load_or_scan_regular_edges(tmp_path / "absent", cache, SMALL)
+    assert set(reused) == set(regular)
+
+
 @pytest.mark.realdata
 @pytest.mark.skipif(not GTFS_DIR, reason="set GTFS_SCHEDULE_DIR to a GTFS feed")
 def test_real_regular_edges_are_plausible() -> None:

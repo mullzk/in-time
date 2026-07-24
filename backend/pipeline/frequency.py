@@ -12,6 +12,7 @@ connects the surrounding Swiss stations."""
 import array
 import csv
 import datetime
+import struct
 import sys
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
@@ -33,6 +34,17 @@ FREQUENCY_MODE_TRAM = CATEGORY_TRAM
 FREQUENCY_MODE_BUS = CATEGORY_BUS
 
 REGULAR_EDGES_CACHE_NAME = "regular_edges.bin"
+
+# The sidecar is cached per GTFS version, but its contents also depend on how a
+# scanned edge is encoded — most subtly the frequency-mode numbering above. A
+# cache written under an older meaning would be silently misread (tram and bus
+# edges filed under retired mode codes, dropping every tram and bus). The header
+# pins that meaning: bump _CACHE_VERSION whenever the encoded meaning of an edge
+# changes; any cache lacking the current magic and version is treated as stale
+# and rescanned rather than trusted.
+_CACHE_MAGIC = b"ITRE"
+_CACHE_VERSION = 1
+_CACHE_HEADER = struct.Struct("<4sI")
 
 _WEEKDAY_COLUMNS = [
     "monday",
@@ -282,12 +294,17 @@ def serialize_regular_edges(regular: RegularEdges) -> bytes:
         flat.extend((first, second, mode))
     if sys.byteorder == "big":
         flat.byteswap()
-    return flat.tobytes()
+    return _CACHE_HEADER.pack(_CACHE_MAGIC, _CACHE_VERSION) + flat.tobytes()
 
 
 def deserialize_regular_edges(data: bytes) -> RegularEdges:
+    if len(data) < _CACHE_HEADER.size:
+        raise ValueError("truncated regular-edges cache")
+    magic, version = _CACHE_HEADER.unpack_from(data)
+    if magic != _CACHE_MAGIC or version != _CACHE_VERSION:
+        raise ValueError("stale or unrecognized regular-edges cache")
     flat = array.array("i")
-    flat.frombytes(data)
+    flat.frombytes(data[_CACHE_HEADER.size :])
     if sys.byteorder == "big":
         flat.byteswap()
     edges = {
@@ -306,7 +323,10 @@ def load_or_scan_regular_edges(
     # on the GTFS version, so it is cached per version and only recomputed when a
     # new feed appears and its cache is absent.
     if cache_path.exists():
-        return deserialize_regular_edges(cache_path.read_bytes())
+        try:
+            return deserialize_regular_edges(cache_path.read_bytes())
+        except ValueError:
+            pass  # stale or unrecognized cache -> rescan and overwrite it below
     regular = scan_regular_edges(gtfs_dir, thresholds)
     cache_path.write_bytes(serialize_regular_edges(regular))
     return regular
