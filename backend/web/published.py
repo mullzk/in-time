@@ -4,7 +4,7 @@ filesystem logic and testable without HTTP."""
 
 from datetime import date
 
-from pipeline.artifacts import STATIONS_NAME, STATIONS_ROAD_NAME
+from pipeline.artifacts import STATIONS_RAIL_NAME, STATIONS_ROAD_NAME
 from pipeline.datadir import DataDir
 
 
@@ -18,8 +18,8 @@ class PublishedSchedule:
             return None
         return date.fromisoformat(target)
 
-    def stations_bytes(self) -> bytes | None:
-        return self._read(STATIONS_NAME)
+    def stations_rail_bytes(self) -> bytes | None:
+        return self._read(STATIONS_RAIL_NAME)
 
     def stations_road_bytes(self) -> bytes | None:
         return self._read(STATIONS_ROAD_NAME)

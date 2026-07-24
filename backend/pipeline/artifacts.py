@@ -10,12 +10,12 @@ from pathlib import Path
 
 import brotli
 
-from pipeline.schedule_blob import NetworkType, write_schedule_blob
+from pipeline.schedule_blob import NetworkType, create_schedule_blob
 from pipeline.schedule_day import DayBuilds, ScheduleBuild, StationEntry
 
-SCHEDULE_BLOB_NAME = "schedule.itsb"
+SCHEDULE_RAIL_BLOB_NAME = "schedule-rail.itsb"
 SCHEDULE_ROAD_BLOB_NAME = "schedule-road.itsb"
-STATIONS_NAME = "stations.json"
+STATIONS_RAIL_NAME = "stations-rail.json"
 STATIONS_ROAD_NAME = "stations-road.json"
 
 
@@ -32,7 +32,9 @@ def stations_json(stations: list[StationEntry]) -> str:
 
 def write_day_artifacts(builds: DayBuilds, dest: Path) -> None:
     dest.mkdir(parents=True, exist_ok=True)
-    _write_build(dest, builds.rail, SCHEDULE_BLOB_NAME, STATIONS_NAME, NetworkType.RAIL)
+    _write_build(
+        dest, builds.rail, SCHEDULE_RAIL_BLOB_NAME, STATIONS_RAIL_NAME, NetworkType.RAIL
+    )
     _write_build(
         dest, builds.road, SCHEDULE_ROAD_BLOB_NAME, STATIONS_ROAD_NAME, NetworkType.BUS
     )
@@ -45,7 +47,9 @@ def _write_build(
     stations_name: str,
     network_type: NetworkType,
 ) -> None:
-    _write_with_sidecars(dest / blob_name, write_schedule_blob(build.day, network_type))
+    _write_with_sidecars(
+        dest / blob_name, create_schedule_blob(build.day, network_type)
+    )
     _write_with_sidecars(
         dest / stations_name, stations_json(build.stations).encode("utf-8")
     )

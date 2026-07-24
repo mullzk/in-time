@@ -7,7 +7,7 @@ from django.core.management.base import BaseCommand, CommandParser
 from django.utils import timezone
 
 from pipeline.artifacts import (
-    SCHEDULE_BLOB_NAME,
+    SCHEDULE_RAIL_BLOB_NAME,
     SCHEDULE_ROAD_BLOB_NAME,
     composite_version,
     locate_gdb,
@@ -81,7 +81,7 @@ class Command(BaseCommand):
                         builds=builds,
                         inputs_seconds=inputs_seconds,
                         build_seconds=build_seconds,
-                        rail_blob_bytes=(dest / SCHEDULE_BLOB_NAME).stat().st_size,
+                        rail_blob_bytes=(dest / SCHEDULE_RAIL_BLOB_NAME).stat().st_size,
                         road_blob_bytes=(dest / SCHEDULE_ROAD_BLOB_NAME).stat().st_size,
                     )
                 )

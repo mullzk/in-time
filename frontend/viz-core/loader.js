@@ -12,9 +12,9 @@ export async function loadSchedule(configUrl) {
   const config = await configResponse.json();
   const [railBuffer, roadBuffer, railStations, roadStations] =
     await Promise.all([
-      fetchBlob(config.scheduleBlobUrl),
+      fetchBlob(config.railScheduleBlobUrl),
       fetchBlob(config.roadScheduleBlobUrl),
-      fetchJson(config.stationsUrl),
+      fetchJson(config.railStationsUrl),
       fetchJson(config.roadStationsUrl),
     ]);
 

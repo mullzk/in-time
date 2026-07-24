@@ -91,7 +91,7 @@ def _offset_north(value: float) -> int:
     return round(value - LV95_ORIGIN_NORTH)
 
 
-def write_schedule_blob(day: ScheduleDay, network_type: NetworkType) -> bytes:
+def create_schedule_blob(day: ScheduleDay, network_type: NetworkType) -> bytes:
     station_east = [_offset_east(east) for east, _ in day.stations]
     station_north = [_offset_north(north) for _, north in day.stations]
 

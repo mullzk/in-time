@@ -1,7 +1,8 @@
 """Deterministic golden schedule blobs shared by the Python writer guard and the
 JavaScript VehiclePositionEngine tests — the cross-language format proof.
 
-`golden-day.itsb` covers the routed (rail) branch: geometry and times are chosen
+`golden-rail-day.itsb` covers the routed (rail) branch: geometry and times are
+chosen
 so the reader's interpolation lands on round coordinates — a straight edge
 traversed in reverse (leg 0) and a symmetric three-point bend traversed forward
 (leg 1), each leg spanning 600 seconds. `golden-bus-day.itsb` covers the
@@ -17,17 +18,17 @@ from pipeline.schedule_blob import (
     NetworkType,
     ScheduleDay,
     Trip,
-    write_schedule_blob,
+    create_schedule_blob,
 )
 
 _FIXTURES_DIR = (
     Path(__file__).resolve().parents[3] / "frontend" / "viz-core" / "fixtures"
 )
-GOLDEN_BLOB_PATH = _FIXTURES_DIR / "golden-day.itsb"
+GOLDEN_RAIL_BLOB_PATH = _FIXTURES_DIR / "golden-rail-day.itsb"
 GOLDEN_BUS_BLOB_PATH = _FIXTURES_DIR / "golden-bus-day.itsb"
 
 
-def build_golden_day() -> ScheduleDay:
+def build_golden_rail_day() -> ScheduleDay:
     stations = [
         (2_600_000.0, 1_200_000.0),  # S0
         (2_610_000.0, 1_200_000.0),  # S1
@@ -92,11 +93,11 @@ def build_golden_bus_day() -> ScheduleDay:
 
 def write_golden_blobs() -> None:
     _FIXTURES_DIR.mkdir(parents=True, exist_ok=True)
-    GOLDEN_BLOB_PATH.write_bytes(
-        write_schedule_blob(build_golden_day(), NetworkType.RAIL)
+    GOLDEN_RAIL_BLOB_PATH.write_bytes(
+        create_schedule_blob(build_golden_rail_day(), NetworkType.RAIL)
     )
     GOLDEN_BUS_BLOB_PATH.write_bytes(
-        write_schedule_blob(build_golden_bus_day(), NetworkType.BUS)
+        create_schedule_blob(build_golden_bus_day(), NetworkType.BUS)
     )
 
 

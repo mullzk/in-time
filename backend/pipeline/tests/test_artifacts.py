@@ -53,7 +53,7 @@ def test_stations_json_is_indexed_by_position() -> None:
 def test_write_day_artifacts_writes_both_blobs_and_stations(tmp_path: Path) -> None:
     write_day_artifacts(make_builds(), tmp_path)
 
-    rail = read_header((tmp_path / "schedule.itsb").read_bytes())
+    rail = read_header((tmp_path / "schedule-rail.itsb").read_bytes())
     road = read_header((tmp_path / "schedule-road.itsb").read_bytes())
     assert rail.station_count == 2
     assert road.station_count == 1
@@ -61,7 +61,7 @@ def test_write_day_artifacts_writes_both_blobs_and_stations(tmp_path: Path) -> N
     assert rail.network_type == NetworkType.RAIL
     assert road.network_type == NetworkType.BUS
 
-    rail_stations = json.loads((tmp_path / "stations.json").read_text())
+    rail_stations = json.loads((tmp_path / "stations-rail.json").read_text())
     road_stations = json.loads((tmp_path / "stations-road.json").read_text())
     assert [entry["name"] for entry in rail_stations] == ["Bern", "Lausanne"]
     assert [entry["name"] for entry in road_stations] == ["Basel, Bahnhof"]
@@ -71,15 +71,20 @@ def test_write_day_artifacts_creates_missing_dest(tmp_path: Path) -> None:
     dest = tmp_path / "2026-07-16"
     write_day_artifacts(make_builds(), dest)
 
-    assert (dest / "schedule.itsb").exists()
+    assert (dest / "schedule-rail.itsb").exists()
     assert (dest / "schedule-road.itsb").exists()
-    assert (dest / "stations.json").exists()
+    assert (dest / "stations-rail.json").exists()
     assert (dest / "stations-road.json").exists()
 
 
 @pytest.mark.parametrize(
     "name",
-    ["schedule.itsb", "schedule-road.itsb", "stations.json", "stations-road.json"],
+    [
+        "schedule-rail.itsb",
+        "schedule-road.itsb",
+        "stations-rail.json",
+        "stations-road.json",
+    ],
 )
 def test_write_day_artifacts_emits_matching_sidecars(tmp_path: Path, name: str) -> None:
     write_day_artifacts(make_builds(), tmp_path)

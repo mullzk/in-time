@@ -9,7 +9,7 @@ from pipeline.frequency import (
     RegularEdges,
 )
 from pipeline.network.rail import RailGraph
-from pipeline.schedule_blob import NetworkType, read_header, write_schedule_blob
+from pipeline.schedule_blob import NetworkType, create_schedule_blob, read_header
 from pipeline.schedule_day import build_schedule_day
 
 THURSDAY = datetime.date(2026, 7, 16)
@@ -200,8 +200,8 @@ def test_each_blob_round_trips_with_its_network_type(tmp_path: Path) -> None:
         tmp_path, rail_graph(), bus_stops(), regular_edges(), THURSDAY
     )
 
-    rail_blob = write_schedule_blob(builds.rail.day, NetworkType.RAIL)
-    road_blob = write_schedule_blob(builds.road.day, NetworkType.BUS)
+    rail_blob = create_schedule_blob(builds.rail.day, NetworkType.RAIL)
+    road_blob = create_schedule_blob(builds.road.day, NetworkType.BUS)
 
     assert read_header(rail_blob).network_type == NetworkType.RAIL
     assert read_header(road_blob).network_type == NetworkType.BUS
