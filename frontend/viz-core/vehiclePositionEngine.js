@@ -10,7 +10,7 @@ const VERSION = 1;
 
 const HEADER = {
   version: 4,
-  flags: 6,
+  networkType: 6,
   serviceDate: 8,
   originEast: 12,
   originNorth: 16,

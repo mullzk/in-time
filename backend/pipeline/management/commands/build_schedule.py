@@ -81,7 +81,7 @@ class Command(BaseCommand):
                         builds=builds,
                         inputs_seconds=inputs_seconds,
                         build_seconds=build_seconds,
-                        bav_blob_bytes=(dest / SCHEDULE_BLOB_NAME).stat().st_size,
+                        rail_blob_bytes=(dest / SCHEDULE_BLOB_NAME).stat().st_size,
                         road_blob_bytes=(dest / SCHEDULE_ROAD_BLOB_NAME).stat().st_size,
                     )
                 )

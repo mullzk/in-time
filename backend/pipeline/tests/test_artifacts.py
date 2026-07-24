@@ -13,7 +13,7 @@ from pipeline.artifacts import (
     stations_json,
     write_day_artifacts,
 )
-from pipeline.schedule_blob import FLAG_BAV_ONLY, ScheduleDay, read_header
+from pipeline.schedule_blob import NetworkType, ScheduleDay, read_header
 from pipeline.schedule_day import DayBuilds, ScheduleBuild, StationEntry
 
 
@@ -28,11 +28,11 @@ def make_build(stations: list[StationEntry]) -> ScheduleBuild:
 
 
 def make_builds() -> DayBuilds:
-    bav = make_build(
+    rail = make_build(
         [StationEntry(8_507_000, "Bern"), StationEntry(8_501_120, "Lausanne")]
     )
     road = make_build([StationEntry(8_500_100, "Basel, Bahnhof")])
-    return DayBuilds(bav=bav, road=road)
+    return DayBuilds(rail=rail, road=road)
 
 
 def test_composite_version_joins_both_sources() -> None:
@@ -42,7 +42,7 @@ def test_composite_version_joins_both_sources() -> None:
 
 
 def test_stations_json_is_indexed_by_position() -> None:
-    entries = json.loads(stations_json(make_builds().bav.stations))
+    entries = json.loads(stations_json(make_builds().rail.stations))
 
     assert entries == [
         {"didok": 8_507_000, "name": "Bern"},
@@ -53,17 +53,17 @@ def test_stations_json_is_indexed_by_position() -> None:
 def test_write_day_artifacts_writes_both_blobs_and_stations(tmp_path: Path) -> None:
     write_day_artifacts(make_builds(), tmp_path)
 
-    bav = read_header((tmp_path / "schedule.itsb").read_bytes())
+    rail = read_header((tmp_path / "schedule.itsb").read_bytes())
     road = read_header((tmp_path / "schedule-road.itsb").read_bytes())
-    assert bav.station_count == 2
+    assert rail.station_count == 2
     assert road.station_count == 1
-    # The BAV blob is flagged BAV-only; the road blob is not.
-    assert bav.flags & FLAG_BAV_ONLY
-    assert not (road.flags & FLAG_BAV_ONLY)
+    # The rail blob is tagged rail; the road blob bus.
+    assert rail.network_type == NetworkType.RAIL
+    assert road.network_type == NetworkType.BUS
 
-    bav_stations = json.loads((tmp_path / "stations.json").read_text())
+    rail_stations = json.loads((tmp_path / "stations.json").read_text())
     road_stations = json.loads((tmp_path / "stations-road.json").read_text())
-    assert [entry["name"] for entry in bav_stations] == ["Bern", "Lausanne"]
+    assert [entry["name"] for entry in rail_stations] == ["Bern", "Lausanne"]
     assert [entry["name"] for entry in road_stations] == ["Basel, Bahnhof"]
 
 

@@ -53,7 +53,7 @@ export class StationCatalog {
   // Merge the rail/tram and bus station sets by didok, tagging each entry with
   // the modes it serves. A station present in both keeps its rail coordinate
   // (the network node), since the rail set is absorbed first.
-  static fromPublished(bavNames, bavPoints, roadNames, roadPoints) {
+  static fromPublished(railNames, railPoints, roadNames, roadPoints) {
     const byDidok = new Map();
     const absorb = (names, points, mark) => {
       names.forEach((station, index) => {
@@ -74,7 +74,7 @@ export class StationCatalog {
         mark(entry);
       });
     };
-    absorb(bavNames, bavPoints, (entry) => {
+    absorb(railNames, railPoints, (entry) => {
       entry.isRail = true;
     });
     absorb(roadNames, roadPoints, (entry) => {

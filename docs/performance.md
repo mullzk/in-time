@@ -57,7 +57,7 @@ Two blobs per day: `schedule.itsb` (rail + tram routed over the BAV network) and
 `schedule-road.itsb` (buses drawn as straight lines between stops, no geometry).
 GTFS feed 2026 + rail network GDB, day 2026-07-17. Local run, Apple Silicon.
 
-| metric                                | BAV (rail+tram)     | road (bus)      |
+| metric                                | rail (rail+tram)    | road (bus)      |
 | ------------------------------------- | ------------------- | --------------- |
 | trips                                 | 27 004              | 129 056         |
 | stations                              | 2 017               | 21 400          |

@@ -22,7 +22,7 @@ def make_build(
 
 
 def make_diagnostics() -> DayDiagnostics:
-    bav = make_build(
+    rail = make_build(
         trips=300,
         stations=120,
         edges=90,
@@ -35,10 +35,10 @@ def make_diagnostics() -> DayDiagnostics:
     road = make_build(50, 40, 0, {}, [])
     return DayDiagnostics(
         service_date=datetime.date(2026, 7, 16),
-        builds=DayBuilds(bav=bav, road=road),
+        builds=DayBuilds(rail=rail, road=road),
         inputs_seconds=3.2,
         build_seconds=8.7,
-        bav_blob_bytes=2_500_000,
+        rail_blob_bytes=2_500_000,
         road_blob_bytes=800_000,
     )
 
@@ -46,17 +46,17 @@ def make_diagnostics() -> DayDiagnostics:
 def test_lines_report_trip_and_station_counts_for_both_modes() -> None:
     lines = make_diagnostics().lines()
 
-    assert "bav trips:          300" in lines
+    assert "rail trips:         300" in lines
     assert "road trips:         50" in lines
-    assert "bav stations:       120" in lines
+    assert "rail stations:      120" in lines
     assert "road stations:      40" in lines
-    assert "bav edges:          90" in lines
+    assert "rail edges:         90" in lines
 
 
 def test_lines_break_down_routing_methods_with_shares() -> None:
     lines = make_diagnostics().lines()
 
-    assert "routing methods (bav):" in lines
+    assert "routing methods (rail):" in lines
     assert "  direct          700 (70.00%)" in lines
     assert "  multi_snap      200 (20.00%)" in lines
     assert "  recover           0 (0.00%)" in lines
@@ -72,14 +72,14 @@ def test_lines_list_straight_fallbacks_by_distance() -> None:
 
 
 def test_routing_shares_are_zero_without_any_legs() -> None:
-    bav = make_build(0, 0, 0, {}, [])
+    rail = make_build(0, 0, 0, {}, [])
     road = make_build(0, 0, 0, {}, [])
     diagnostics = DayDiagnostics(
         service_date=datetime.date(2026, 7, 16),
-        builds=DayBuilds(bav=bav, road=road),
+        builds=DayBuilds(rail=rail, road=road),
         inputs_seconds=0.0,
         build_seconds=0.0,
-        bav_blob_bytes=0,
+        rail_blob_bytes=0,
         road_blob_bytes=0,
     )
 

@@ -10,17 +10,21 @@ import struct
 import sys
 from dataclasses import dataclass
 from datetime import date
+from enum import IntEnum
 
 MAGIC = b"ITSB"
 VERSION = 1
-# bit0: the blob carries only trips on the BAV network (rail + tram).
-FLAG_BAV_ONLY = 1
 COORD_SCALE = 1
 LV95_ORIGIN_EAST = 2_480_000
 LV95_ORIGIN_NORTH = 1_070_000
 
 _HEADER_FORMAT = "<4sHHIIIHHIIIIIIIIIIII4I"
 HEADER_SIZE = struct.calcsize(_HEADER_FORMAT)
+
+
+class NetworkType(IntEnum):
+    RAIL = 1  # rail and tram, routed over the rail network
+    BUS = 2  # buses, drawn as straight lines between their stops
 
 
 @dataclass
@@ -48,7 +52,7 @@ class ScheduleDay:
 @dataclass
 class ScheduleHeader:
     version: int
-    flags: int
+    network_type: int
     service_date: int
     coord_origin_east: int
     coord_origin_north: int
@@ -87,7 +91,7 @@ def _offset_north(value: float) -> int:
     return round(value - LV95_ORIGIN_NORTH)
 
 
-def write_schedule_blob(day: ScheduleDay, flags: int = FLAG_BAV_ONLY) -> bytes:
+def write_schedule_blob(day: ScheduleDay, network_type: NetworkType) -> bytes:
     station_east = [_offset_east(east) for east, _ in day.stations]
     station_north = [_offset_north(north) for _, north in day.stations]
 
@@ -161,7 +165,7 @@ def write_schedule_blob(day: ScheduleDay, flags: int = FLAG_BAV_ONLY) -> bytes:
         _HEADER_FORMAT,
         MAGIC,
         VERSION,
-        flags,
+        network_type,
         int(day.service_date.strftime("%Y%m%d")),
         LV95_ORIGIN_EAST,
         LV95_ORIGIN_NORTH,
@@ -189,7 +193,7 @@ def read_header(data: bytes) -> ScheduleHeader:
         raise ValueError(f"not an ITSB blob: {magic!r}")
     return ScheduleHeader(
         version=fields[1],
-        flags=fields[2],
+        network_type=fields[2],
         service_date=fields[3],
         coord_origin_east=fields[4],
         coord_origin_north=fields[5],

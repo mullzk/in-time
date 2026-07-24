@@ -9,7 +9,7 @@ from pipeline.frequency import (
     RegularEdges,
 )
 from pipeline.network.rail import RailGraph
-from pipeline.schedule_blob import FLAG_BAV_ONLY, read_header, write_schedule_blob
+from pipeline.schedule_blob import NetworkType, read_header, write_schedule_blob
 from pipeline.schedule_day import build_schedule_day
 
 THURSDAY = datetime.date(2026, 7, 16)
@@ -23,7 +23,7 @@ PT1, PT2 = (2620000.0, 1200000.0), (2621000.0, 1200000.0)
 BUS_PA, BUS_PB = (2630000.0, 1200000.0), (2631000.0, 1200000.0)
 
 
-def bav_graph() -> RailGraph:
+def rail_graph() -> RailGraph:
     return RailGraph.from_rail_segments(
         nodes={"na": PA, "nb": PB, "nt1": PT1, "nt2": PT2},
         segments=[("na", "nb", [PA, PB]), ("nt1", "nt2", [PT1, PT2])],
@@ -83,20 +83,20 @@ def write_feed(directory: Path) -> None:
     )
 
 
-def test_bav_carries_rail_and_tram_road_carries_bus(tmp_path: Path) -> None:
+def test_rail_build_carries_rail_and_tram_road_carries_bus(tmp_path: Path) -> None:
     write_feed(tmp_path)
     builds = build_schedule_day(
-        tmp_path, bav_graph(), bus_stops(), regular_edges(), THURSDAY
+        tmp_path, rail_graph(), bus_stops(), regular_edges(), THURSDAY
     )
 
-    assert sorted(trip.category for trip in builds.bav.day.trips) == [1, 5]
+    assert sorted(trip.category for trip in builds.rail.day.trips) == [1, 5]
     assert [trip.category for trip in builds.road.day.trips] == [6]
 
 
 def test_bus_build_is_geometry_free(tmp_path: Path) -> None:
     write_feed(tmp_path)
     builds = build_schedule_day(
-        tmp_path, bav_graph(), bus_stops(), regular_edges(), THURSDAY
+        tmp_path, rail_graph(), bus_stops(), regular_edges(), THURSDAY
     )
 
     # Bus legs are drawn straight between stations, so the blob carries no edges.
@@ -180,7 +180,7 @@ def test_bus_survives_an_irregular_edge_but_rail_does_not(tmp_path: Path) -> Non
     # The bus keeps all three stops though its B-C edge is irregular.
     assert [len(trip.events) for trip in builds.road.day.trips] == [3]
     # The rail trip still drops whole on the same kind of irregular edge.
-    assert builds.bav.day.trips == []
+    assert builds.rail.day.trips == []
 
 
 def test_bus_with_no_regular_edge_is_dropped(tmp_path: Path) -> None:
@@ -194,16 +194,16 @@ def test_bus_with_no_regular_edge_is_dropped(tmp_path: Path) -> None:
     assert builds.road.day.trips == []
 
 
-def test_each_blob_round_trips_with_its_flag(tmp_path: Path) -> None:
+def test_each_blob_round_trips_with_its_network_type(tmp_path: Path) -> None:
     write_feed(tmp_path)
     builds = build_schedule_day(
-        tmp_path, bav_graph(), bus_stops(), regular_edges(), THURSDAY
+        tmp_path, rail_graph(), bus_stops(), regular_edges(), THURSDAY
     )
 
-    bav_blob = write_schedule_blob(builds.bav.day, FLAG_BAV_ONLY)
-    road_blob = write_schedule_blob(builds.road.day, 0)
+    rail_blob = write_schedule_blob(builds.rail.day, NetworkType.RAIL)
+    road_blob = write_schedule_blob(builds.road.day, NetworkType.BUS)
 
-    assert read_header(bav_blob).flags & FLAG_BAV_ONLY
-    assert not (read_header(road_blob).flags & FLAG_BAV_ONLY)
+    assert read_header(rail_blob).network_type == NetworkType.RAIL
+    assert read_header(road_blob).network_type == NetworkType.BUS
     assert read_header(road_blob).trip_count == 1
     assert read_header(road_blob).edge_count == 0

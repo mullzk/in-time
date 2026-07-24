@@ -74,12 +74,12 @@ export class HerzschlagPanel extends Panel {
     stationSearch: true,
   };
 
-  constructor(railBuffer, roadBuffer, bavStations, roadStations) {
+  constructor(railBuffer, roadBuffer, railStations, roadStations) {
     super();
     this.railBuffer = railBuffer;
     this.roadBuffer = roadBuffer;
     this.catalog = StationCatalog.fromPublished(
-      bavStations,
+      railStations,
       readStationPoints(railBuffer),
       roadStations,
       readStationPoints(roadBuffer),

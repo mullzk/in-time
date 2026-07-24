@@ -1,4 +1,4 @@
-// Reads the two schedule blobs referenced by /api/config: the routed BAV blob
+// Reads the two schedule blobs referenced by /api/config: the routed rail blob
 // (rail + tram) and the straight-line road blob (buses).
 export async function loadSchedule(configUrl) {
   const configResponse = await fetch(configUrl);
@@ -10,21 +10,20 @@ export async function loadSchedule(configUrl) {
   }
 
   const config = await configResponse.json();
-  const [railBuffer, roadBuffer, bavStations, roadStations] = await Promise.all(
-    [
+  const [railBuffer, roadBuffer, railStations, roadStations] =
+    await Promise.all([
       fetchBlob(config.scheduleBlobUrl),
       fetchBlob(config.roadScheduleBlobUrl),
       fetchJson(config.stationsUrl),
       fetchJson(config.roadStationsUrl),
-    ],
-  );
+    ]);
 
   return {
     published: true,
     config,
     railBuffer,
     roadBuffer,
-    bavStations,
+    railStations,
     roadStations,
   };
 }

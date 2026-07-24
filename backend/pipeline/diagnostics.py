@@ -16,20 +16,20 @@ class DayDiagnostics:
     builds: DayBuilds
     inputs_seconds: float
     build_seconds: float
-    bav_blob_bytes: int
+    rail_blob_bytes: int
     road_blob_bytes: int
 
     def lines(self) -> list[str]:
-        bav = self.builds.bav
+        rail = self.builds.rail
         road = self.builds.road
         report = [
             f"date:               {self.service_date}",
-            f"bav trips:          {len(bav.day.trips)}",
+            f"rail trips:         {len(rail.day.trips)}",
             f"road trips:         {len(road.day.trips)}",
-            f"bav stations:       {len(bav.day.stations)}",
+            f"rail stations:      {len(rail.day.stations)}",
             f"road stations:      {len(road.day.stations)}",
-            f"bav edges:          {len(bav.day.edges)}",
-            f"bav blob size:      {self.bav_blob_bytes / 1e6:.2f} MB",
+            f"rail edges:         {len(rail.day.edges)}",
+            f"rail blob size:     {self.rail_blob_bytes / 1e6:.2f} MB",
             f"road blob size:     {self.road_blob_bytes / 1e6:.2f} MB",
             f"inputs load:        {self.inputs_seconds:.1f}s",
             f"day build:          {self.build_seconds:.1f}s",
@@ -39,9 +39,9 @@ class DayDiagnostics:
         return report
 
     def _routing_method_lines(self) -> list[str]:
-        counts = self.builds.bav.method_counts
+        counts = self.builds.rail.method_counts
         total = sum(counts.values())
-        lines = ["routing methods (bav):"]
+        lines = ["routing methods (rail):"]
         lines.extend(
             f"  {method:<11} {counts.get(method, 0):>7} "
             f"({100 * counts.get(method, 0) / total if total else 0.0:.2f}%)"
@@ -50,7 +50,7 @@ class DayDiagnostics:
         return lines
 
     def _straight_fallback_lines(self) -> list[str]:
-        fallbacks = self.builds.bav.straight_fallbacks
+        fallbacks = self.builds.rail.straight_fallbacks
         lines = [f"straight-line fallbacks: {len(fallbacks)} (by distance)"]
         lines.extend(
             f"  {fallback.from_name} -> {fallback.to_name} "

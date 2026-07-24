@@ -39,7 +39,7 @@ async function bootstrap() {
   const panel = new HerzschlagPanel(
     result.railBuffer,
     result.roadBuffer,
-    result.bavStations,
+    result.railStations,
     result.roadStations,
   );
   const context = new PanelContext({

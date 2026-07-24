@@ -39,7 +39,7 @@ from pipeline.gtfs import (
 from pipeline.network.rail import Point, RailGraph, RailRouter
 from pipeline.schedule_blob import Event, ScheduleDay, Trip
 
-_BAV_CATEGORIES = RAIL_CATEGORIES | {CATEGORY_TRAM}
+_RAILBOUND_CATEGORIES = RAIL_CATEGORIES | {CATEGORY_TRAM}
 
 
 @dataclass
@@ -229,7 +229,7 @@ def build_rail_schedule_day(
 
 @dataclass
 class DayBuilds:
-    bav: ScheduleBuild
+    rail: ScheduleBuild
     road: ScheduleBuild
 
 
@@ -273,19 +273,19 @@ def build_schedule_day(
 ) -> DayBuilds:
     trips = active_trips(gtfs_dir, service_date)
     sequences = stop_sequences(gtfs_dir, set(trips))
-    bav_trips = {
+    rail_trips = {
         trip: category
         for trip, category in trips.items()
-        if category in _BAV_CATEGORIES
+        if category in _RAILBOUND_CATEGORIES
     }
     bus_trips = {
         trip: category for trip, category in trips.items() if category == CATEGORY_BUS
     }
 
     router, source, placeable = _rail_inputs(rail_graph)
-    bav = assemble_schedule_day(
+    rail = assemble_schedule_day(
         service_date,
-        bav_trips,
+        rail_trips,
         sequences,
         router,
         source,
@@ -295,4 +295,4 @@ def build_schedule_day(
     road = assemble_straight_line_day(
         service_date, bus_trips, sequences, bus_stops, regular_edges
     )
-    return DayBuilds(bav=bav, road=road)
+    return DayBuilds(rail=rail, road=road)
