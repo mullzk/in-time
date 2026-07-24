@@ -93,6 +93,59 @@ def test_rail_build_carries_rail_and_tram_road_carries_bus(tmp_path: Path) -> No
     assert [trip.category for trip in builds.road.day.trips] == [6]
 
 
+def test_stations_carry_the_mode_that_serves_them(tmp_path: Path) -> None:
+    write_feed(tmp_path)
+    builds = build_schedule_day(
+        tmp_path, rail_graph(), bus_stops(), regular_edges(), THURSDAY
+    )
+
+    rail_modes = {station.didok: station.modes for station in builds.rail.stations}
+    assert rail_modes[RAIL_A] == {"rail"}
+    assert rail_modes[TRAM_A] == {"tram"}
+    road_modes = {station.didok: station.modes for station in builds.road.stations}
+    assert road_modes[BUS_A] == {"bus"}
+
+
+def test_station_served_by_two_modes_accumulates_both(tmp_path: Path) -> None:
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    (tmp_path / "calendar.txt").write_text(
+        "service_id,monday,tuesday,wednesday,thursday,friday,saturday,sunday,"
+        "start_date,end_date\nWD,1,1,1,1,1,0,0,20260101,20261231\n"
+    )
+    (tmp_path / "routes.txt").write_text(
+        "route_id,agency_id,route_short_name,route_long_name,route_desc,route_type\n"
+        "R_IR,,IR,,,103\nR_TRAM,,T,,,900\n"
+    )
+    # A rail and a tram trip both run over the same pair of stations.
+    (tmp_path / "trips.txt").write_text(
+        "route_id,service_id,trip_id\nR_IR,WD,T_RAIL\nR_TRAM,WD,T_TRAM\n"
+    )
+    (tmp_path / "stops.txt").write_text(
+        "stop_id,stop_name,stop_lat,stop_lon,didok\n"
+        f"{RAIL_A},S{RAIL_A},46.9,7.4,{RAIL_A}\n"
+        f"{RAIL_B},S{RAIL_B},46.9,7.4,{RAIL_B}\n"
+    )
+    (tmp_path / "stop_times.txt").write_text(
+        "trip_id,arrival_time,departure_time,stop_id,stop_sequence\n"
+        f"T_RAIL,08:00:00,08:00:30,{RAIL_A},1\n"
+        f"T_RAIL,08:20:00,08:20:00,{RAIL_B},2\n"
+        f"T_TRAM,09:00:00,09:00:30,{RAIL_A},1\n"
+        f"T_TRAM,09:05:00,09:05:00,{RAIL_B},2\n"
+    )
+    regular = RegularEdges(
+        frozenset(
+            {
+                (RAIL_A, RAIL_B, FREQUENCY_MODE_RAIL),
+                (RAIL_A, RAIL_B, FREQUENCY_MODE_TRAM),
+            }
+        )
+    )
+    builds = build_schedule_day(tmp_path, rail_graph(), bus_stops(), regular, THURSDAY)
+
+    modes = {station.didok: station.modes for station in builds.rail.stations}
+    assert modes[RAIL_A] == {"rail", "tram"}
+
+
 def test_bus_build_is_geometry_free(tmp_path: Path) -> None:
     write_feed(tmp_path)
     builds = build_schedule_day(

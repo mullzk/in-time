@@ -29,9 +29,12 @@ def make_build(stations: list[StationEntry]) -> ScheduleBuild:
 
 def make_builds() -> DayBuilds:
     rail = make_build(
-        [StationEntry(8_507_000, "Bern"), StationEntry(8_501_120, "Lausanne")]
+        [
+            StationEntry(8_507_000, "Bern", {"rail"}),
+            StationEntry(8_501_120, "Lausanne", {"tram", "rail"}),
+        ]
     )
-    road = make_build([StationEntry(8_500_100, "Basel, Bahnhof")])
+    road = make_build([StationEntry(8_500_100, "Basel, Bahnhof", {"bus"})])
     return DayBuilds(rail=rail, road=road)
 
 
@@ -41,12 +44,14 @@ def test_composite_version_joins_both_sources() -> None:
     )
 
 
-def test_stations_json_is_indexed_by_position() -> None:
+def test_stations_json_is_indexed_by_position_with_ordered_modes() -> None:
     entries = json.loads(stations_json(make_builds().rail.stations))
 
+    # Modes are emitted in the canonical rail, tram, bus order regardless of the
+    # set's iteration order.
     assert entries == [
-        {"didok": 8_507_000, "name": "Bern"},
-        {"didok": 8_501_120, "name": "Lausanne"},
+        {"didok": 8_507_000, "name": "Bern", "modes": ["rail"]},
+        {"didok": 8_501_120, "name": "Lausanne", "modes": ["rail", "tram"]},
     ]
 
 

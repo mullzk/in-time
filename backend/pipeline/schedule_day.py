@@ -16,7 +16,7 @@ show — they are the same straight lines every bus leg already is."""
 
 from collections import Counter
 from collections.abc import Set
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
 from typing import Protocol
@@ -41,11 +41,29 @@ from pipeline.schedule_blob import Event, ScheduleDay, Trip
 
 _RAILBOUND_CATEGORIES = RAIL_CATEGORIES | {CATEGORY_TRAM}
 
+STATION_MODE_RAIL = "rail"
+STATION_MODE_TRAM = "tram"
+STATION_MODE_BUS = "bus"
+STATION_MODE_ORDER = (STATION_MODE_RAIL, STATION_MODE_TRAM, STATION_MODE_BUS)
+
+
+def station_mode_of_category(category: int) -> str:
+    if category == CATEGORY_TRAM:
+        return STATION_MODE_TRAM
+    if category == CATEGORY_BUS:
+        return STATION_MODE_BUS
+    return STATION_MODE_RAIL
+
+
+def ordered_station_modes(modes: Set[str]) -> list[str]:
+    return [mode for mode in STATION_MODE_ORDER if mode in modes]
+
 
 @dataclass
 class StationEntry:
     didok: int
     name: str
+    modes: set[str] = field(default_factory=set)
 
 
 @dataclass
@@ -103,11 +121,12 @@ class _StationCatalog:
         self.coordinates: list[Point] = []
         self.entries: list[StationEntry] = []
 
-    def index_of(self, station: int) -> int:
+    def index_of(self, station: int, category: int) -> int:
         if station not in self._index:
             self._index[station] = len(self.coordinates)
             self.coordinates.append(self._source.location(station))
             self.entries.append(StationEntry(station, self._source.name(station)))
+        self.entries[self._index[station]].modes.add(station_mode_of_category(category))
         return self._index[station]
 
     def name_of(self, station: int) -> str:
@@ -168,6 +187,7 @@ def assemble_schedule_day(
     catalog = _StationCatalog(source)
     assembled: list[Trip] = []
     for trip_id, calls in kept.items():
+        category = trips[trip_id]
         events: list[Event] = []
         for position, call in enumerate(calls):
             leg_edges: list[int] = []
@@ -175,9 +195,14 @@ def assemble_schedule_day(
                 leg = routed.get((call.didok, calls[position + 1].didok))
                 leg_edges = leg.signed_path if leg is not None else []
             events.append(
-                Event(catalog.index_of(call.didok), call.arr, call.dep, leg_edges)
+                Event(
+                    catalog.index_of(call.didok, category),
+                    call.arr,
+                    call.dep,
+                    leg_edges,
+                )
             )
-        assembled.append(Trip(category=trips[trip_id], events=events))
+        assembled.append(Trip(category=category, events=events))
 
     day = ScheduleDay(
         service_date=service_date,
@@ -251,7 +276,7 @@ def assemble_straight_line_day(
         if len(calls) < 2:
             continue
         events = [
-            Event(catalog.index_of(call.didok), call.arr, call.dep, [])
+            Event(catalog.index_of(call.didok, category), call.arr, call.dep, [])
             for call in calls
         ]
         assembled.append(Trip(category=category, events=events))

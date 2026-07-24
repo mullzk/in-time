@@ -11,7 +11,12 @@ from pathlib import Path
 import brotli
 
 from pipeline.schedule_blob import NetworkType, create_schedule_blob
-from pipeline.schedule_day import DayBuilds, ScheduleBuild, StationEntry
+from pipeline.schedule_day import (
+    DayBuilds,
+    ScheduleBuild,
+    StationEntry,
+    ordered_station_modes,
+)
 
 SCHEDULE_RAIL_BLOB_NAME = "schedule-rail.itsb"
 SCHEDULE_ROAD_BLOB_NAME = "schedule-road.itsb"
@@ -25,7 +30,14 @@ def composite_version(gtfs_version: str, rail_network_version: str) -> str:
 
 def stations_json(stations: list[StationEntry]) -> str:
     return json.dumps(
-        [{"didok": station.didok, "name": station.name} for station in stations],
+        [
+            {
+                "didok": station.didok,
+                "name": station.name,
+                "modes": ordered_station_modes(station.modes),
+            }
+            for station in stations
+        ],
         ensure_ascii=False,
     )
 
