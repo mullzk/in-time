@@ -4,6 +4,7 @@ import { Panel } from '../viz-core/panel.js';
 import { StationCatalog } from '../viz-core/stationCatalog.js';
 import {
   dominantStationMode,
+  fallbackModeForStops,
   nearestStation,
   nodeDiameterPixels,
   stationIsShown,
@@ -111,8 +112,7 @@ export class HerzschlagPanel extends Panel {
     this.zoomSlider = null;
     this.zoomScrubbing = false;
     this.previousZoomFraction = null;
-    this.networkOption = null;
-    this.stopsOption = null;
+    this.layerOptions = {};
     this.camera = null;
   }
 
@@ -189,21 +189,38 @@ export class HerzschlagPanel extends Panel {
         STOPS_ZOOM_THRESHOLD,
       );
       if (toggled !== null) {
-        this.layers.stops = toggled;
+        this.#setStops(toggled);
       }
     }
     this.previousZoomFraction = fraction;
   }
 
-  // Network and stops both flip on their own (background choice, zoom crossing),
-  // so their checkboxes track the layer state rather than the other way round.
+  activateStops() {
+    this.#setStops(true);
+  }
+
+  #setStops(on) {
+    this.layers.stops = on;
+    if (on) {
+      this.#ensureVisibleMode();
+    }
+  }
+
+  // Stops with every vehicle layer off would draw nothing, so switching them on
+  // pulls the trains in too.
+  #ensureVisibleMode() {
+    const fallback = fallbackModeForStops(this.layers);
+    if (fallback) {
+      this.layers[fallback] = true;
+    }
+  }
+
+  // Layers flip on their own too (background choice, zoom crossing, a search
+  // selection), so their checkboxes track the layer state, not the other way.
   #syncLayerOptions() {
-    if (this.networkOption) {
-      this.networkOption.checked = this.layers.network;
-    }
-    if (this.stopsOption) {
-      this.stopsOption.checked = this.layers.stops;
-    }
+    Object.entries(this.layerOptions).forEach(([key, input]) => {
+      input.checked = this.layers[key];
+    });
   }
 
   #stationShown(station) {
@@ -260,7 +277,7 @@ export class HerzschlagPanel extends Panel {
   }
 
   toggleStops() {
-    this.layers.stops = !this.layers.stops;
+    this.#setStops(!this.layers.stops);
   }
 
   #backgroundControl(context) {
@@ -321,14 +338,13 @@ export class HerzschlagPanel extends Panel {
       input.type = 'checkbox';
       input.checked = this.layers[key];
       input.addEventListener('change', () => {
-        this.layers[key] = input.checked;
+        if (key === 'stops') {
+          this.#setStops(input.checked);
+        } else {
+          this.layers[key] = input.checked;
+        }
       });
-      if (key === 'network') {
-        this.networkOption = input;
-      }
-      if (key === 'stops') {
-        this.stopsOption = input;
-      }
+      this.layerOptions[key] = input;
       group.appendChild(this.#option(input, label));
     });
     return group;

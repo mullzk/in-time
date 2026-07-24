@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import { Camera } from './camera.js';
 import {
   dominantStationMode,
+  fallbackModeForStops,
   nearestStation,
   nodeDiameterPixels,
   stationIsShown,
@@ -35,6 +36,21 @@ test('dominantStationMode ranks rail over tram over bus', () => {
   assert.equal(dominantStationMode(['bus', 'tram']), 'tram');
   assert.equal(dominantStationMode(['bus']), 'bus');
   assert.equal(dominantStationMode([]), null);
+});
+
+test('fallbackModeForStops adds rail only when every mode is off', () => {
+  assert.equal(
+    fallbackModeForStops({ rail: false, tram: false, bus: false }),
+    'rail',
+  );
+  assert.equal(
+    fallbackModeForStops({ rail: false, tram: true, bus: false }),
+    null,
+  );
+  assert.equal(
+    fallbackModeForStops({ rail: true, tram: false, bus: false }),
+    null,
+  );
 });
 
 test('stopsToggleOnZoomCross toggles only when the threshold is crossed', () => {

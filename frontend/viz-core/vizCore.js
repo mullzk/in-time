@@ -15,13 +15,14 @@ export class VizCore {
     container,
     panel,
     context,
-    { onFrameRendered, onCanvasReady } = {},
+    { onFrameRendered, onCanvasReady, onZoomGesture } = {},
   ) {
     this.container = container;
     this.panel = panel;
     this.context = context;
     this.onFrameRendered = onFrameRendered;
     this.onCanvasReady = onCanvasReady;
+    this.onZoomGesture = onZoomGesture;
     this.instance = new p5((p) => this.#sketch(p), container);
   }
 
@@ -39,7 +40,9 @@ export class VizCore {
       this.container.clientHeight,
     );
     this.context.camera.setViewport(p.width, p.height);
-    this.controls = new CameraControls(canvas.elt, this.context.camera);
+    this.controls = new CameraControls(canvas.elt, this.context.camera, {
+      onZoomGesture: this.onZoomGesture,
+    });
     this.panel.init?.(this.context);
     this.onCanvasReady?.(canvas.elt);
   }

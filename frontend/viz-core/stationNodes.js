@@ -18,6 +18,12 @@ export function stationIsShown(modes, stopsShown, layers) {
   return stopsShown && modes.some((mode) => layers[mode]);
 }
 
+// Turning the stops layer on while every vehicle layer is off would show
+// nothing, so fall back to rail to reveal at least the train stops.
+export function fallbackModeForStops(layers) {
+  return !layers.rail && !layers.tram && !layers.bus ? 'rail' : null;
+}
+
 // Where a station serves several modes its outline follows the most structural
 // one: rail over tram over bus.
 const STATION_MODE_PRIORITY = ['rail', 'tram', 'bus'];

@@ -51,21 +51,34 @@ async function bootstrap() {
 
   const cockpit = new Cockpit(root, panel, time);
   const sidebar = new Sidebar(root, panel.buildSidebarSections(context));
+  const popover = new StationPopover(root);
+
+  // A search pick reveals the station: switch its stops layer on, centre on it,
+  // and name it with a popover anchored to where it lands.
+  const revealSearchedStation = (station) => {
+    panel.activateStops();
+    context.focusStation(station.east, station.north);
+    const [x, y] = camera.worldToScreen(station.east, station.north);
+    popover.showAt(x, y, station.name);
+  };
+
   const bindings = {
     h: () => panel.toggleStops(),
     s: () => sidebar.toggle(),
   };
   if (panel.capabilities.stationSearch) {
     const stationSearch = new StationSearch(root, panel.stationCatalog(), {
-      onSelect: (station) => context.focusStation(station.east, station.north),
+      onSelect: revealSearchedStation,
     });
     bindings.g = () => stationSearch.focus();
   }
   new KeyboardControls(window, { time, camera, bindings });
   new VizCore(root, panel, context, {
     onFrameRendered: () => cockpit.sync(),
+    // Wheel and pinch zoom shift the centre, so the popover would drift off its
+    // station; the keyboard and sidebar keep it centred and leave it be.
+    onZoomGesture: () => popover.hide(),
     onCanvasReady: (canvasElement) => {
-      const popover = new StationPopover(root);
       new StationInteraction(canvasElement, {
         pick: (x, y) => panel.stationAt(x, y),
         onSelect: (station, x, y) => popover.showAt(x, y, station.name),
