@@ -10,7 +10,7 @@ from pipeline.frequency import (
 )
 from pipeline.network.rail import RailGraph
 from pipeline.schedule_blob import FLAG_BAV_ONLY, read_header, write_schedule_blob
-from pipeline.schedule_day import build_day_builds
+from pipeline.schedule_day import build_schedule_day
 
 THURSDAY = datetime.date(2026, 7, 16)
 
@@ -85,7 +85,7 @@ def write_feed(directory: Path) -> None:
 
 def test_bav_carries_rail_and_tram_road_carries_bus(tmp_path: Path) -> None:
     write_feed(tmp_path)
-    builds = build_day_builds(
+    builds = build_schedule_day(
         tmp_path, bav_graph(), bus_stops(), regular_edges(), THURSDAY
     )
 
@@ -95,7 +95,7 @@ def test_bav_carries_rail_and_tram_road_carries_bus(tmp_path: Path) -> None:
 
 def test_bus_build_is_geometry_free(tmp_path: Path) -> None:
     write_feed(tmp_path)
-    builds = build_day_builds(
+    builds = build_schedule_day(
         tmp_path, bav_graph(), bus_stops(), regular_edges(), THURSDAY
     )
 
@@ -173,7 +173,7 @@ def write_three_stop_feed(directory: Path) -> None:
 
 def test_bus_survives_an_irregular_edge_but_rail_does_not(tmp_path: Path) -> None:
     write_three_stop_feed(tmp_path)
-    builds = build_day_builds(
+    builds = build_schedule_day(
         tmp_path, mixed_graph(), mixed_bus_stops(), mixed_regular_edges(), THURSDAY
     )
 
@@ -186,7 +186,7 @@ def test_bus_survives_an_irregular_edge_but_rail_does_not(tmp_path: Path) -> Non
 def test_bus_with_no_regular_edge_is_dropped(tmp_path: Path) -> None:
     write_three_stop_feed(tmp_path)
     rail_only = RegularEdges(frozenset({(RAIL_A, RAIL_B, FREQUENCY_MODE_RAIL)}))
-    builds = build_day_builds(
+    builds = build_schedule_day(
         tmp_path, mixed_graph(), mixed_bus_stops(), rail_only, THURSDAY
     )
 
@@ -196,7 +196,7 @@ def test_bus_with_no_regular_edge_is_dropped(tmp_path: Path) -> None:
 
 def test_each_blob_round_trips_with_its_flag(tmp_path: Path) -> None:
     write_feed(tmp_path)
-    builds = build_day_builds(
+    builds = build_schedule_day(
         tmp_path, bav_graph(), bus_stops(), regular_edges(), THURSDAY
     )
 

@@ -8,11 +8,11 @@ from pipeline.datadir import DataDir
 from pipeline.models import BuildCommand, BuildRun, BuildStatus
 
 
-def run_build_schedule(
+def run_schedule_build(
     data_dir: DataDir,
     service_date: date,
     fetch_gtfs: Callable[[], str],
-    build_day: Callable[[date, Path], None],
+    build_day_artifacts: Callable[[date, Path], None],
     reload_service: Callable[[], None],
 ) -> BuildRun:
     version = fetch_gtfs()
@@ -34,7 +34,7 @@ def run_build_schedule(
     )
     try:
         artifact_dir = data_dir.artifact_dir(service_date)
-        build_day(service_date, artifact_dir)
+        build_day_artifacts(service_date, artifact_dir)
         data_dir.publish(service_date)
         reload_service()
     except Exception as error:

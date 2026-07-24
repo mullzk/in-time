@@ -6,7 +6,7 @@ assemble_* functions are pure and work on already-loaded trips and sequences.
 
 Rail and tram are routed over the BAV network (assemble_schedule_day); buses are
 drawn as straight lines between their stops (assemble_straight_line_day), so a
-bus leg carries no edges. build_day_builds produces both.
+bus leg carries no edges. build_schedule_day produces both.
 
 The frequency filter treats the modes differently. A rail or tram trip drops as
 soon as one of its edges is irregular. A bus trip is kept as long as it has any
@@ -207,7 +207,7 @@ def _rail_inputs(
     )
 
 
-def build_schedule_day(
+def build_rail_schedule_day(
     gtfs_dir: Path,
     rail_graph: RailGraph,
     service_date: date,
@@ -264,7 +264,7 @@ def assemble_straight_line_day(
     return ScheduleBuild(day, catalog.entries, {}, [])
 
 
-def build_day_builds(
+def build_schedule_day(
     gtfs_dir: Path,
     rail_graph: RailGraph,
     bus_stops: dict[int, BusStop],

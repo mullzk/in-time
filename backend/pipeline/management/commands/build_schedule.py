@@ -20,8 +20,8 @@ from pipeline.diagnostics import DayDiagnostics
 from pipeline.fetch import gtfs_archive, rail_network_archive
 from pipeline.frequency import REGULAR_EDGES_CACHE_NAME, load_or_scan_regular_edges
 from pipeline.network.rail_gdb import load_rail_graph
-from pipeline.schedule import run_build_schedule
-from pipeline.schedule_day import build_day_builds
+from pipeline.schedule_day import build_schedule_day
+from pipeline.schedule_run import run_schedule_build
 
 
 class Command(BaseCommand):
@@ -56,7 +56,7 @@ class Command(BaseCommand):
             versions["rail"] = rail_network.ensure()
             return composite_version(versions["gtfs"], versions["rail"])
 
-        def build_day(day: datetime.date, dest: Path) -> None:
+        def build_day_artifacts(day: datetime.date, dest: Path) -> None:
             gdb = locate_gdb(rail_network.path_for(versions["rail"]))
             started = time.monotonic()
             rail_graph = load_rail_graph(gdb)
@@ -68,7 +68,7 @@ class Command(BaseCommand):
             inputs_seconds = time.monotonic() - started
 
             started = time.monotonic()
-            builds = build_day_builds(
+            builds = build_schedule_day(
                 gtfs_dir, rail_graph, bus_stops, regular_edges, day
             )
             build_seconds = time.monotonic() - started
@@ -86,11 +86,11 @@ class Command(BaseCommand):
                     )
                 )
 
-        run = run_build_schedule(
+        run = run_schedule_build(
             data_dir,
             service_date,
             fetch_gtfs=fetch_sources,
-            build_day=build_day,
+            build_day_artifacts=build_day_artifacts,
             reload_service=reload_runner(settings.SCHEDULE_RELOAD_COMMAND),
         )
 

@@ -51,7 +51,7 @@ irregular. Local run, Apple Silicon.
 | regular edges (rail / tram / bus) | 24 867 (2000/594/22 273) |
 | max service bitmask               | 711 bits                 |
 
-## Day build — `build_day_builds` + `write_day_artifacts`
+## Day build — `build_schedule_day` + `write_day_artifacts`
 
 Two blobs per day: `schedule.itsb` (rail + tram routed over the BAV network) and
 `schedule-road.itsb` (buses drawn as straight lines between stops, no geometry).

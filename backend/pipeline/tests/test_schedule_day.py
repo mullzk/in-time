@@ -3,7 +3,7 @@ from pathlib import Path
 
 from pipeline.frequency import FREQUENCY_MODE_RAIL, RegularEdges
 from pipeline.network.rail import RailGraph
-from pipeline.schedule_day import build_schedule_day
+from pipeline.schedule_day import build_rail_schedule_day
 
 THURSDAY = datetime.date(2026, 7, 16)
 
@@ -48,9 +48,9 @@ def write_gtfs(directory: Path) -> None:
     )
 
 
-def test_build_schedule_day_assembles_trip(tmp_path: Path) -> None:
+def test_build_rail_schedule_day_assembles_trip(tmp_path: Path) -> None:
     write_gtfs(tmp_path)
-    build = build_schedule_day(tmp_path, line_rail_graph(), THURSDAY)
+    build = build_rail_schedule_day(tmp_path, line_rail_graph(), THURSDAY)
 
     assert build.day.service_date == THURSDAY
     assert len(build.day.trips) == 1
@@ -73,7 +73,7 @@ def test_frequency_filter_drops_trip_with_an_irregular_edge(tmp_path: Path) -> N
     write_gtfs(tmp_path)
     # Alpha-Beta is regular but Beta-Gamma is not, so the trip is dropped whole.
     regular = RegularEdges(frozenset({(ALPHA, BETA, FREQUENCY_MODE_RAIL)}))
-    build = build_schedule_day(tmp_path, line_rail_graph(), THURSDAY, regular)
+    build = build_rail_schedule_day(tmp_path, line_rail_graph(), THURSDAY, regular)
 
     assert build.day.trips == []
 
@@ -88,6 +88,6 @@ def test_frequency_filter_keeps_a_fully_regular_trip(tmp_path: Path) -> None:
             }
         )
     )
-    build = build_schedule_day(tmp_path, line_rail_graph(), THURSDAY, regular)
+    build = build_rail_schedule_day(tmp_path, line_rail_graph(), THURSDAY, regular)
 
     assert len(build.day.trips) == 1
