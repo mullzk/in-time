@@ -95,19 +95,19 @@ test('fromPublished merges by didok, preferring the rail coordinate', () => {
   assert.equal(busdorf[0].didok, 9);
 });
 
-test('fromPublished tags stations as rail, bus, or both', () => {
+test('fromPublished unions the modes of a didok across both sets', () => {
   const catalog = StationCatalog.fromPublished(
     [
-      { didok: 1, name: 'Bahnhof' },
-      { didok: 2, name: 'Umsteige' },
+      { didok: 1, name: 'Bahnhof', modes: ['rail'] },
+      { didok: 2, name: 'Umsteige', modes: ['tram'] },
     ],
     [
       [1, 1],
       [2, 2],
     ],
     [
-      { didok: 2, name: 'Umsteige' },
-      { didok: 3, name: 'Bushalt' },
+      { didok: 2, name: 'Umsteige', modes: ['bus'] },
+      { didok: 3, name: 'Bushalt', modes: ['bus'] },
     ],
     [
       [2, 2],
@@ -115,16 +115,7 @@ test('fromPublished tags stations as rail, bus, or both', () => {
     ],
   );
   const only = (name) => catalog.matching(name)[0];
-  assert.deepEqual(
-    [only('bahnhof').isRail, only('bahnhof').isBus],
-    [true, false],
-  );
-  assert.deepEqual(
-    [only('umsteige').isRail, only('umsteige').isBus],
-    [true, true],
-  );
-  assert.deepEqual(
-    [only('bushalt').isRail, only('bushalt').isBus],
-    [false, true],
-  );
+  assert.deepEqual(only('bahnhof').modes, ['rail']);
+  assert.deepEqual([...only('umsteige').modes].sort(), ['bus', 'tram']);
+  assert.deepEqual(only('bushalt').modes, ['bus']);
 });

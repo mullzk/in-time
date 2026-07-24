@@ -17,13 +17,20 @@ export function normalizeForSearch(text) {
 }
 
 export class StationEntry {
-  constructor(didok, name, east, north) {
+  constructor(didok, name, east, north, modes = []) {
     this.didok = didok;
     this.name = name;
     this.east = east;
     this.north = north;
-    this.isRail = false;
-    this.isBus = false;
+    this.modes = [...modes];
+  }
+
+  addModes(modes) {
+    modes.forEach((mode) => {
+      if (!this.modes.includes(mode)) {
+        this.modes.push(mode);
+      }
+    });
   }
 }
 
@@ -50,36 +57,36 @@ export class StationCatalog {
     }));
   }
 
-  // Merge the rail/tram and bus station sets by didok, tagging each entry with
-  // the modes it serves. A station present in both keeps its rail coordinate
-  // (the network node), since the rail set is absorbed first.
-  static fromPublished(railNames, railPoints, roadNames, roadPoints) {
+  // Merge the rail/tram and bus station sets by didok, unioning the modes each
+  // side reports. A station present in both keeps its rail coordinate (the
+  // network node), since the rail set is absorbed first.
+  static fromPublished(railStations, railPoints, roadStations, roadPoints) {
     const byDidok = new Map();
-    const absorb = (names, points, mark) => {
-      names.forEach((station, index) => {
+    const absorb = (stations, points) => {
+      stations.forEach((station, index) => {
         const point = points[index];
         if (!point) {
           return;
         }
-        let entry = byDidok.get(station.didok);
-        if (entry === undefined) {
-          entry = new StationEntry(
+        const existing = byDidok.get(station.didok);
+        if (existing === undefined) {
+          byDidok.set(
             station.didok,
-            station.name,
-            point[0],
-            point[1],
+            new StationEntry(
+              station.didok,
+              station.name,
+              point[0],
+              point[1],
+              station.modes ?? [],
+            ),
           );
-          byDidok.set(station.didok, entry);
+        } else {
+          existing.addModes(station.modes ?? []);
         }
-        mark(entry);
       });
     };
-    absorb(railNames, railPoints, (entry) => {
-      entry.isRail = true;
-    });
-    absorb(roadNames, roadPoints, (entry) => {
-      entry.isBus = true;
-    });
+    absorb(railStations, railPoints);
+    absorb(roadStations, roadPoints);
     return new StationCatalog([...byDidok.values()]);
   }
 

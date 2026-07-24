@@ -1,15 +1,17 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { Camera } from './camera.js';
-import { nearestStation, nodeDiameterPixels } from './stationNodes.js';
+import {
+  dominantStationMode,
+  nearestStation,
+  nodeDiameterPixels,
+  stationIsShown,
+  stopsToggleOnZoomCross,
+} from './stationNodes.js';
 
-test('nodeDiameterPixels hides nodes below the half zoom', () => {
-  assert.equal(nodeDiameterPixels(0), 0);
-  assert.equal(nodeDiameterPixels(0.49), 0);
-});
-
-test('nodeDiameterPixels is 3px from the half zoom to the second-largest step', () => {
-  assert.equal(nodeDiameterPixels(0.5), 3);
+test('nodeDiameterPixels is 3px below the second-largest zoom step', () => {
+  assert.equal(nodeDiameterPixels(0), 3);
+  assert.equal(nodeDiameterPixels(0.49), 3);
   assert.equal(nodeDiameterPixels(0.7), 3);
   assert.equal(nodeDiameterPixels(5 / 6 - 1e-9), 3);
 });
@@ -17,6 +19,31 @@ test('nodeDiameterPixels is 3px from the half zoom to the second-largest step', 
 test('nodeDiameterPixels is 5px from the second-largest step', () => {
   assert.equal(nodeDiameterPixels(5 / 6), 5);
   assert.equal(nodeDiameterPixels(1), 5);
+});
+
+test('stationIsShown needs the stops layer and a visible mode', () => {
+  const layers = { rail: true, tram: false, bus: false };
+  assert.equal(stationIsShown(['rail'], true, layers), true);
+  assert.equal(stationIsShown(['rail'], false, layers), false);
+  assert.equal(stationIsShown(['tram'], true, layers), false);
+  // One visible mode is enough for a multi-mode station.
+  assert.equal(stationIsShown(['tram', 'rail'], true, layers), true);
+});
+
+test('dominantStationMode ranks rail over tram over bus', () => {
+  assert.equal(dominantStationMode(['bus', 'tram', 'rail']), 'rail');
+  assert.equal(dominantStationMode(['bus', 'tram']), 'tram');
+  assert.equal(dominantStationMode(['bus']), 'bus');
+  assert.equal(dominantStationMode([]), null);
+});
+
+test('stopsToggleOnZoomCross toggles only when the threshold is crossed', () => {
+  assert.equal(stopsToggleOnZoomCross(0.4, 0.6, 0.5), true);
+  assert.equal(stopsToggleOnZoomCross(0.4, 0.5, 0.5), true);
+  assert.equal(stopsToggleOnZoomCross(0.6, 0.4, 0.5), false);
+  assert.equal(stopsToggleOnZoomCross(0.6, 0.7, 0.5), null);
+  assert.equal(stopsToggleOnZoomCross(0.3, 0.4, 0.5), null);
+  assert.equal(stopsToggleOnZoomCross(0.5, 0.5, 0.5), null);
 });
 
 const stationAt = (east, north) => ({ east, north, name: `${east}/${north}` });

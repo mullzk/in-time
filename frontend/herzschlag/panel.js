@@ -3,8 +3,11 @@ import { element } from '../viz-core/dom.js';
 import { Panel } from '../viz-core/panel.js';
 import { StationCatalog } from '../viz-core/stationCatalog.js';
 import {
+  dominantStationMode,
   nearestStation,
   nodeDiameterPixels,
+  stationIsShown,
+  stopsToggleOnZoomCross,
 } from '../viz-core/stationNodes.js';
 import { BACKGROUNDS } from '../viz-core/tiles/tileSource.js';
 import { VehiclePositionEngine } from '../viz-core/vehiclePositionEngine.js';
@@ -54,14 +57,26 @@ const DIAMETER_FACTOR_BY_CATEGORY = new Map([
 const diameterFactor = (category) =>
   DIAMETER_FACTOR_BY_CATEGORY.get(category) ?? 1.5;
 
-const STATION_NODE_COLOR = [210, 216, 228];
+const STATION_NODE_FILL = [255, 255, 255];
+// Over a raster background a white node needs an outline; its colour marks the
+// station's mode, using the same hues the tram and bus vehicles carry (rail
+// keeps a plain black outline). On the black background nodes read on their own.
+const STATION_STROKE_BY_MODE = new Map([
+  ['rail', [0, 0, 0]],
+  ['tram', CATEGORY_COLORS[CATEGORY_TRAM]],
+  ['bus', CATEGORY_COLORS[CATEGORY_BUS]],
+]);
+const STATION_STROKE_WIDTH_PIXELS = 1;
 // A generous tap target so small nodes stay hittable on touch.
 const STATION_HIT_RADIUS_PIXELS = 12;
 
+// Zoom fraction at and above which the stops layer switches itself on; below it,
+// switches off. A manual toggle persists until the next crossing.
+const STOPS_ZOOM_THRESHOLD = 0.5;
+
 const LAYER_LABELS = [
   ['network', 'Netz'],
-  ['railStops', 'Bahn/Tram-Haltestellen'],
-  ['busStops', 'Bus-Haltestellen'],
+  ['stops', 'Haltestellen'],
   ['rail', 'Bahn'],
   ['tram', 'Tram'],
   ['bus', 'Bus'],
@@ -87,18 +102,17 @@ export class HerzschlagPanel extends Panel {
     this.activeVehicles = [];
     this.layers = {
       network: true,
-      railStops: true,
-      busStops: false,
+      stops: false,
       rail: true,
       tram: false,
       bus: false,
     };
-    this.backgroundShowsRailwayLines = false;
+    this.background = BACKGROUNDS[0];
     this.zoomSlider = null;
     this.zoomScrubbing = false;
+    this.previousZoomFraction = null;
     this.networkOption = null;
-    this.railStopsOption = null;
-    this.busStopsOption = null;
+    this.stopsOption = null;
     this.camera = null;
   }
 
@@ -121,14 +135,14 @@ export class HerzschlagPanel extends Panel {
         (first, second) =>
           drawPriority(first.category) - drawPriority(second.category),
       );
+    this.#syncStopsOnZoomCross();
     this.#syncZoomSlider();
-    this.#syncNetworkOption();
-    this.#syncStopsOptions();
+    this.#syncLayerOptions();
   }
 
   drawWorld(p, context) {
     context.drawTiles(p);
-    if (this.layers.network && this.#networkVisible()) {
+    if (this.layers.network) {
       this.engines.forEach((engine) => {
         context.drawBasemap(p, engine.edges);
       });
@@ -161,48 +175,55 @@ export class HerzschlagPanel extends Panel {
     return this.layers[LAYER_BY_CATEGORY.get(category) ?? 'rail'];
   }
 
-  // The pixel maps draw the rail network themselves once zoomed in, so the
-  // overlay would only double it; keep it there only on the label-free overview.
-  #networkVisible() {
-    return (
-      !this.backgroundShowsRailwayLines ||
-      (this.camera?.fullyZoomedOut() ?? false)
-    );
+  // Zooming past the threshold switches the stops layer for the user; a manual
+  // toggle then persists until the next crossing.
+  #syncStopsOnZoomCross() {
+    if (!this.camera) {
+      return;
+    }
+    const fraction = this.camera.zoomFraction();
+    if (this.previousZoomFraction !== null) {
+      const toggled = stopsToggleOnZoomCross(
+        this.previousZoomFraction,
+        fraction,
+        STOPS_ZOOM_THRESHOLD,
+      );
+      if (toggled !== null) {
+        this.layers.stops = toggled;
+      }
+    }
+    this.previousZoomFraction = fraction;
   }
 
-  // Grey out the network switch while the zoom/background force the overlay off,
-  // so the checkbox never claims to control something that has no effect.
-  #syncNetworkOption() {
+  // Network and stops both flip on their own (background choice, zoom crossing),
+  // so their checkboxes track the layer state rather than the other way round.
+  #syncLayerOptions() {
     if (this.networkOption) {
-      this.networkOption.disabled = !this.#networkVisible();
+      this.networkOption.checked = this.layers.network;
     }
-  }
-
-  #syncStopsOptions() {
-    if (this.railStopsOption) {
-      this.railStopsOption.checked = this.layers.railStops;
-    }
-    if (this.busStopsOption) {
-      this.busStopsOption.checked = this.layers.busStops;
+    if (this.stopsOption) {
+      this.stopsOption.checked = this.layers.stops;
     }
   }
 
   #stationShown(station) {
-    return (
-      (station.isRail && this.layers.railStops) ||
-      (station.isBus && this.layers.busStops)
-    );
+    return stationIsShown(station.modes, this.layers.stops, this.layers);
   }
 
   #drawStationNodes(p, context) {
-    const diameterPixels = nodeDiameterPixels(context.camera.zoomFraction());
-    if (diameterPixels === 0) {
-      return;
-    }
-    const diameter = diameterPixels * context.camera.worldPerPixel();
+    const diameter =
+      nodeDiameterPixels(context.camera.zoomFraction()) *
+      context.camera.worldPerPixel();
     const bounds = context.camera.visibleWorldBounds();
-    p.noStroke();
-    p.fill(STATION_NODE_COLOR[0], STATION_NODE_COLOR[1], STATION_NODE_COLOR[2]);
+    const outlined = this.background.source !== null;
+    p.fill(STATION_NODE_FILL[0], STATION_NODE_FILL[1], STATION_NODE_FILL[2]);
+    if (outlined) {
+      p.strokeWeight(
+        STATION_STROKE_WIDTH_PIXELS * context.camera.worldPerPixel(),
+      );
+    } else {
+      p.noStroke();
+    }
     this.catalog.entries.forEach((station) => {
       if (
         this.#stationShown(station) &&
@@ -211,16 +232,19 @@ export class HerzschlagPanel extends Panel {
         station.north >= bounds.northMin &&
         station.north <= bounds.northMax
       ) {
+        if (outlined) {
+          const [r, g, b] = STATION_STROKE_BY_MODE.get(
+            dominantStationMode(station.modes),
+          );
+          p.stroke(r, g, b);
+        }
         p.circle(station.east, station.north, diameter);
       }
     });
   }
 
   stationAt(screenX, screenY) {
-    if (
-      this.camera === null ||
-      nodeDiameterPixels(this.camera.zoomFraction()) === 0
-    ) {
+    if (this.camera === null) {
       return null;
     }
     const shown = this.catalog.entries.filter((station) =>
@@ -236,9 +260,7 @@ export class HerzschlagPanel extends Panel {
   }
 
   toggleStops() {
-    const anyShown = this.layers.railStops || this.layers.busStops;
-    this.layers.railStops = !anyShown;
-    this.layers.busStops = !anyShown;
+    this.layers.stops = !this.layers.stops;
   }
 
   #backgroundControl(context) {
@@ -250,8 +272,12 @@ export class HerzschlagPanel extends Panel {
       input.checked = index === 0;
       input.addEventListener('change', () => {
         context.setBackground(background.source);
-        this.backgroundShowsRailwayLines =
-          background.showsRailwayLines ?? false;
+        this.background = background;
+        // The pixel maps draw the rail network themselves, so the overlay would
+        // only double it: switch it off on selection (the user may re-enable it).
+        if (background.showsRailwayLines) {
+          this.layers.network = false;
+        }
       });
       group.appendChild(this.#option(input, background.label));
     });
@@ -300,11 +326,8 @@ export class HerzschlagPanel extends Panel {
       if (key === 'network') {
         this.networkOption = input;
       }
-      if (key === 'railStops') {
-        this.railStopsOption = input;
-      }
-      if (key === 'busStops') {
-        this.busStopsOption = input;
+      if (key === 'stops') {
+        this.stopsOption = input;
       }
       group.appendChild(this.#option(input, label));
     });
