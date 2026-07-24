@@ -1,0 +1,29 @@
+/* SMACSS Module: the map source credit — a small link pinned to the lower-right
+   corner, shown whenever a swisstopo raster background is active, as their terms
+   of use require. Its visibility lives as `is-visible` on the element. */
+.attribution {
+  position: absolute;
+  z-index: 10;
+  right: var(--space-m);
+  bottom: var(--space-m);
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--color-surface-translucent);
+  backdrop-filter: blur(6px);
+  color: var(--color-text);
+  font-size: 11px;
+  display: none;
+}
+
+.attribution.is-visible {
+  display: block;
+}
+
+.attribution-source {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.attribution-source:hover {
+  color: var(--color-control-text);
+}

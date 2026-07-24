@@ -1,3 +1,4 @@
+import { Attribution } from '../viz-core/attribution.js';
 import { Camera } from '../viz-core/camera.js';
 import { Cockpit } from '../viz-core/cockpit.js';
 import { KeyboardControls } from '../viz-core/keyboardControls.js';
@@ -50,7 +51,14 @@ async function bootstrap() {
   });
 
   const cockpit = new Cockpit(root, panel, time);
-  const sidebar = new Sidebar(root, panel.buildSidebarSections(context));
+  const attribution = new Attribution(root);
+  attribution.set(panel.background.attribution);
+  const sidebar = new Sidebar(
+    root,
+    panel.buildSidebarSections(context, {
+      onBackgroundChange: () => attribution.set(panel.background.attribution),
+    }),
+  );
   const popover = new StationPopover(root);
 
   // A search pick reveals the station: switch its stops layer on, centre on it,

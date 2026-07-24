@@ -163,9 +163,12 @@ export class HerzschlagPanel extends Panel {
     });
   }
 
-  buildSidebarSections(context) {
+  buildSidebarSections(context, { onBackgroundChange } = {}) {
     return [
-      { title: 'Hintergrund', element: this.#backgroundControl(context) },
+      {
+        title: 'Hintergrund',
+        element: this.#backgroundControl(context, onBackgroundChange),
+      },
       { title: 'Ebenen', element: this.#layerControl() },
       { title: 'Zoom', element: this.#zoomControl(context) },
     ];
@@ -280,7 +283,7 @@ export class HerzschlagPanel extends Panel {
     this.#setStops(!this.layers.stops);
   }
 
-  #backgroundControl(context) {
+  #backgroundControl(context, onBackgroundChange) {
     const group = element('div', 'sidebar-options');
     BACKGROUNDS.forEach((background, index) => {
       const input = element('input');
@@ -295,6 +298,7 @@ export class HerzschlagPanel extends Panel {
         if (background.showsRailwayLines) {
           this.layers.network = false;
         }
+        onBackgroundChange?.();
       });
       group.appendChild(this.#option(input, background.label));
     });
