@@ -108,6 +108,33 @@ def test_config_etag_tracks_content_not_only_the_day(
     assert after_deploy.json()["railScheduleBlobUrl"] == "/artifacts/changed.itsb"
 
 
+def test_stations_etag_tracks_content_not_only_the_day(
+    client: Client, published: Path
+) -> None:
+    etag = client.get("/api/stations-rail")["ETag"]
+    assert client.get("/api/stations-rail", HTTP_IF_NONE_MATCH=etag).status_code == 304
+
+    # A rebuild of the same day with new content (stations gaining a modes field)
+    # must invalidate the cache, or no-cache revalidation strands a stale body.
+    artifact_dir = DataDir(published).artifact_dir(date(2026, 7, 16))
+    (artifact_dir / STATIONS_RAIL_NAME).write_bytes(
+        json.dumps([{"didok": 8_507_000, "name": "Bern", "modes": ["rail"]}]).encode()
+    )
+
+    after_rebuild = client.get("/api/stations-rail", HTTP_IF_NONE_MATCH=etag)
+    assert after_rebuild.status_code == 200
+    assert json.loads(after_rebuild.content)[0]["modes"] == ["rail"]
+
+
+def test_rail_and_road_stations_have_distinct_etags(
+    client: Client, published: Path
+) -> None:
+    rail_etag = client.get("/api/stations-rail")["ETag"]
+    road_etag = client.get("/api/stations-road")["ETag"]
+
+    assert rail_etag != road_etag
+
+
 def test_herzschlag_serves_the_html_shell(client: Client, published: Path) -> None:
     response = client.get("/herzschlag")
 
