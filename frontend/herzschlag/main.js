@@ -50,17 +50,18 @@ async function bootstrap() {
   });
 
   const cockpit = new Cockpit(root, panel, time);
-  new Sidebar(root, panel.buildSidebarSections(context));
+  const sidebar = new Sidebar(root, panel.buildSidebarSections(context));
+  const bindings = {
+    h: () => panel.toggleStops(),
+    s: () => sidebar.toggle(),
+  };
   if (panel.capabilities.stationSearch) {
-    new StationSearch(root, panel.stationCatalog(), {
+    const stationSearch = new StationSearch(root, panel.stationCatalog(), {
       onSelect: (station) => context.focusStation(station.east, station.north),
     });
+    bindings.g = () => stationSearch.focus();
   }
-  new KeyboardControls(window, {
-    time,
-    camera,
-    bindings: { h: () => panel.toggleStops() },
-  });
+  new KeyboardControls(window, { time, camera, bindings });
   new VizCore(root, panel, context, {
     onFrameRendered: () => cockpit.sync(),
     onCanvasReady: (canvasElement) => {

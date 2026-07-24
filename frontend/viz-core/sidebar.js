@@ -21,10 +21,14 @@ export class Sidebar {
     this.toggleButton = element('button', 'sidebar-toggle');
     this.toggleButton.type = 'button';
     this.toggleButton.setAttribute('aria-label', 'Ansicht');
-    this.toggleButton.addEventListener('click', () => this.#toggle());
+    this.toggleButton.addEventListener('click', () => this.toggle());
 
     container.append(this.panel, this.toggleButton);
     this.#setOpen(false);
+  }
+
+  toggle() {
+    this.#setOpen(!this.open);
   }
 
   #section({ title, element: content }) {
@@ -33,10 +37,6 @@ export class Sidebar {
     heading.textContent = title;
     section.append(heading, content);
     return section;
-  }
-
-  #toggle() {
-    this.#setOpen(!this.open);
   }
 
   #setOpen(open) {

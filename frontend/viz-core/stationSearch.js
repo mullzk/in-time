@@ -31,6 +31,11 @@ export class StationSearch {
     });
   }
 
+  focus() {
+    this.input.focus();
+    this.input.select();
+  }
+
   #refresh() {
     this.suggestions = this.catalog.matching(this.input.value);
     this.activeIndex = this.suggestions.length > 0 ? 0 : -1;

@@ -1,5 +1,31 @@
 const ZOOM_KEY_FACTOR = 1.4;
 
+// Focusable controls that are not text fields, so shortcuts keep working while
+// one of them holds focus (a clicked checkbox stays focused until blurred).
+const NON_TYPING_INPUT_TYPES = new Set([
+  'checkbox',
+  'radio',
+  'range',
+  'button',
+  'submit',
+  'reset',
+  'file',
+  'color',
+]);
+
+export function isTypingElement(tagName, inputType, isContentEditable) {
+  if (isContentEditable) {
+    return true;
+  }
+  if (tagName === 'TEXTAREA') {
+    return true;
+  }
+  if (tagName === 'INPUT') {
+    return !NON_TYPING_INPUT_TYPES.has(inputType);
+  }
+  return false;
+}
+
 // Document-level keyboard shortcuts for playback and camera, plus panel-supplied
 // bindings (key -> handler) for panel-specific toggles. Bound to a target
 // (window) so they work regardless of focus; modifier combinations are left to
@@ -52,9 +78,7 @@ export class KeyboardControls {
   #isTypingInto(target) {
     return (
       target instanceof HTMLElement &&
-      (target.isContentEditable ||
-        target.tagName === 'INPUT' ||
-        target.tagName === 'TEXTAREA')
+      isTypingElement(target.tagName, target.type, target.isContentEditable)
     );
   }
 
