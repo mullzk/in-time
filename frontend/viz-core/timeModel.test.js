@@ -52,6 +52,17 @@ test('seekToTime sets current and clamps to the window', () => {
   assert.equal(time.current, 97_200);
 });
 
+test('every explicit seek bumps the seek generation', () => {
+  const time = new TimeModel(1000, 2000);
+  assert.equal(time.seekGeneration, 0);
+  time.seekToPosition(0.25);
+  assert.equal(time.seekGeneration, 1);
+  time.seekToTime(1500);
+  assert.equal(time.seekGeneration, 2);
+  time.advance(0.1);
+  assert.equal(time.seekGeneration, 2);
+});
+
 test('an operating window running past midnight is preserved', () => {
   const time = new TimeModel(18_000, 93_600);
   assert.equal(time.rangeEnd, 93_600);

@@ -8,6 +8,8 @@ import { MapSelection } from '../viz-core/mapSelection.js';
 import { PanelContext } from '../viz-core/panelContext.js';
 import { wgs84ToLv95 } from '../viz-core/projection.js';
 import { Sidebar } from '../viz-core/sidebar.js';
+import { AudioBridge } from '../viz-core/sonification/audioBridge.js';
+import { Sonifier } from '../viz-core/sonification/sonifier.js';
 import { StationSearch } from '../viz-core/stationSearch.js';
 import { TileLayer } from '../viz-core/tiles/tileLayer.js';
 import { RELIEF_TILE_SOURCE } from '../viz-core/tiles/tileSource.js';
@@ -60,7 +62,10 @@ async function bootstrap() {
       onBackgroundChange: () => attribution.set(panel.background.attribution),
     }),
   );
-  const selection = new MapSelection(root, panel, context);
+  const sonifier = new Sonifier(panel, time, new AudioBridge());
+  const selection = new MapSelection(root, panel, context, {
+    onStationChosen: (station) => sonifier.setStation(station),
+  });
   const infoModal = new InfoModal(
     root,
     buildInfoContent({ stationSearch: panel.capabilities.stationSearch }),
@@ -90,6 +95,7 @@ async function bootstrap() {
     onFrameRendered: () => {
       cockpit.sync();
       selection.onFrameRendered();
+      sonifier.onFrameRendered();
     },
     onZoomGesture: () => selection.onZoomGesture(),
     onCanvasReady: (canvasElement) => selection.attachTo(canvasElement),

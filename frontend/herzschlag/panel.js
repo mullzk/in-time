@@ -1,6 +1,8 @@
 import { readStationPoints } from '../viz-core/blobStations.js';
 import { element } from '../viz-core/dom.js';
 import { Panel } from '../viz-core/panel.js';
+import { TRANSPORT_GROUPS } from '../viz-core/sonification/scheduling.js';
+import { SonificationEngine } from '../viz-core/sonification/sonificationEngine.js';
 import { StationCatalog } from '../viz-core/stationCatalog.js';
 import {
   dominantStationMode,
@@ -161,6 +163,31 @@ export class HerzschlagPanel extends Panel {
       },
     ];
     this.engines = this.engineViews.map((view) => view.engine);
+    // For sonification each blob is also indexed by station, with a didok lookup
+    // so a selected station resolves to its events in whichever blobs serve it.
+    this.soundEngines = this.engineViews.map((view) => ({
+      engine: new SonificationEngine(view.engine.trips),
+      didokToIndex: new Map(
+        view.stations.map((station, index) => [station.didok, index]),
+      ),
+    }));
+  }
+
+  // The merged, time-sorted sound events at a station across the blobs that
+  // serve it -- the input the sonifier voices when this station is the "ear".
+  stationSoundEvents(didok) {
+    return this.soundEngines
+      .flatMap(({ engine, didokToIndex }) => {
+        const index = didokToIndex.get(didok);
+        return index === undefined ? [] : engine.eventsAtStation(index);
+      })
+      .sort((first, second) => first.time - second.time);
+  }
+
+  // Display toggles double as sound mutes, so a hidden transport group is also
+  // silenced.
+  hiddenTransportGroups() {
+    return TRANSPORT_GROUPS.filter((group) => !this.layers[group]);
   }
 
   update(currentTimeSeconds, _deltaSeconds) {

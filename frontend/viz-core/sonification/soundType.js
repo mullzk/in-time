@@ -47,6 +47,10 @@ export class PitchedSoundType {
     this.dwellStyle = dwellStyle;
   }
 
+  sources() {
+    return [this.sound.s];
+  }
+
   arrival(play) {
     play(
       this.uniformEvents
@@ -111,6 +115,10 @@ export class PercussiveSoundType {
     this.sound = { ...PercussiveSoundType.baseSound, ...sound };
     this.arrivalBank = arrivalBank ?? this.sound.s;
     this.departureBank = departureBank ?? this.sound.s;
+  }
+
+  sources() {
+    return [...new Set([this.sound.s, this.arrivalBank, this.departureBank])];
   }
 
   arrival(play) {

@@ -7,13 +7,14 @@ import { TapInteraction } from './tapInteraction.js';
 // The panel supplies stationAt/vehicleAt for picking and, for vehicles,
 // describeVehicle (category and route names) and vehiclePosition (live location).
 export class MapSelection {
-  constructor(container, panel, context) {
+  constructor(container, panel, context, { onStationChosen } = {}) {
     this.panel = panel;
     this.context = context;
     this.camera = context.camera;
     this.time = context.time;
     this.popover = new Popover(container);
     this.followedVehicle = null;
+    this.onStationChosen = onStationChosen;
   }
 
   attachTo(canvasElement) {
@@ -57,6 +58,7 @@ export class MapSelection {
     this.followedVehicle = null;
     const [x, y] = this.camera.worldToScreen(station.east, station.north);
     this.popover.showAt(x, y, station.name);
+    this.onStationChosen?.(station);
   }
 
   clear() {
@@ -94,6 +96,7 @@ export class MapSelection {
   #activate(target) {
     if (target.kind === 'station') {
       this.context.focusStation(target.station.east, target.station.north);
+      this.onStationChosen?.(target.station);
       return;
     }
     const position = this.panel.vehiclePosition(

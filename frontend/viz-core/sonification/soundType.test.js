@@ -64,6 +64,21 @@ test('a percussive sound slows arrivals and boosts departures', () => {
   assert.equal(soundType.dwell().sequence, 'bd*8');
 });
 
+test('sources lists every sound bank a type can emit', () => {
+  assert.deepEqual(new PitchedSoundType({ s: 'gm_marimba' }).sources(), [
+    'gm_marimba',
+  ]);
+  assert.deepEqual(
+    new PercussiveSoundType({
+      s: 'mt',
+      arrivalBank: 'lt',
+      departureBank: 'ht',
+    }).sources(),
+    ['mt', 'lt', 'ht'],
+  );
+  assert.deepEqual(new PercussiveSoundType({ s: 'bd' }).sources(), ['bd']);
+});
+
 test('a percussive sound with per-event banks distinguishes by drum, not speed', () => {
   const toms = new PercussiveSoundType({
     s: 'mt',
