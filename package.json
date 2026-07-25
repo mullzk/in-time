@@ -5,8 +5,8 @@
   "description": "Dev-time tooling only; the frontend runtime stays bundler-free",
   "scripts": {
     "test": "node --test 'frontend/**/*.test.js'",
-    "vendor": "node tooling/vendor-p5.mjs && node tooling/vendor-superdough.mjs",
-    "vendor:check": "node tooling/vendor-p5.mjs --check && node tooling/vendor-superdough.mjs --check"
+    "vendor": "node tooling/vendor-p5.mjs && node tooling/vendor-superdough.mjs && node tooling/vendor-audio-assets.mjs",
+    "vendor:check": "node tooling/vendor-p5.mjs --check && node tooling/vendor-superdough.mjs --check && node tooling/vendor-audio-assets.mjs --check"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5",

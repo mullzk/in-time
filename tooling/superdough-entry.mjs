@@ -5,7 +5,7 @@
 // single superdough instance backs both. Bundling one entry guarantees that.
 
 export { mini } from '@strudel/mini';
-export { registerSoundfonts } from '@strudel/soundfonts';
+export { registerSoundfonts, setSoundfontUrl } from '@strudel/soundfonts';
 export {
   getAudioContext,
   initAudio,
