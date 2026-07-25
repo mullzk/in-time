@@ -23,10 +23,13 @@ export class Cockpit {
     this.tempoScrubbing = false;
     this.root = element('div', 'cockpit');
 
-    if (panel.capabilities.transport) {
-      this.root.appendChild(this.#buildTransport());
+    if (panel.capabilities.simulationSpeed) {
+      this.root.appendChild(this.#buildTempo());
     }
-    if (panel.capabilities.transport && panel.capabilities.fullDayScrubber) {
+    if (
+      panel.capabilities.simulationSpeed &&
+      panel.capabilities.fullDayScrubber
+    ) {
       this.root.appendChild(element('div', 'cockpit-divider'));
     }
     if (panel.capabilities.fullDayScrubber) {
@@ -36,7 +39,7 @@ export class Cockpit {
     container.appendChild(this.root);
   }
 
-  #buildTransport() {
+  #buildTempo() {
     const group = this.#group('Tempo');
     const controls = element('div', 'cockpit-controls');
 

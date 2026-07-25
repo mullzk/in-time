@@ -101,7 +101,7 @@ const LAYER_LABELS = [
 
 export class HerzschlagPanel extends Panel {
   capabilities = {
-    transport: true,
+    simulationSpeed: true,
     fullDayScrubber: true,
     stationSearch: true,
   };
