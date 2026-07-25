@@ -4,7 +4,7 @@ import { Panel } from '../viz-core/panel.js';
 import { StationCatalog } from '../viz-core/stationCatalog.js';
 import {
   dominantStationMode,
-  fallbackModeForStops,
+  fallbackLayerForStops,
   nearestStation,
   nodeDiameterPixels,
   stationIsShown,
@@ -42,9 +42,15 @@ const CATEGORY_LABELS = [
 ];
 const categoryLabel = (category) => CATEGORY_LABELS[category] ?? 'Fahrt';
 
-// Rail spans categories 0-4 and is the default; only tram and bus carry a
-// dedicated layer, so the rail categories are absent from this map.
+// Rail splits into a long-distance and a regional layer, matching the same two
+// display groups used for the sounds: Fernverkehr (categories 0-1) and
+// Regionalverkehr (2-4), plus the tram and bus layers.
 const LAYER_BY_CATEGORY = new Map([
+  [0, 'fernverkehr'],
+  [1, 'fernverkehr'],
+  [2, 'regionalverkehr'],
+  [3, 'regionalverkehr'],
+  [4, 'regionalverkehr'],
   [CATEGORY_TRAM, 'tram'],
   [CATEGORY_BUS, 'bus'],
 ]);
@@ -94,7 +100,8 @@ const STOPS_ZOOM_THRESHOLD = 0.5;
 const LAYER_LABELS = [
   ['network', 'Netz'],
   ['stops', 'Haltestellen'],
-  ['rail', 'Bahn'],
+  ['fernverkehr', 'Fernverkehr'],
+  ['regionalverkehr', 'Regionalverkehr'],
   ['tram', 'Tram'],
   ['bus', 'Bus'],
 ];
@@ -122,7 +129,8 @@ export class HerzschlagPanel extends Panel {
     this.layers = {
       network: true,
       stops: false,
-      rail: true,
+      fernverkehr: true,
+      regionalverkehr: true,
       tram: false,
       bus: false,
     };
@@ -207,7 +215,7 @@ export class HerzschlagPanel extends Panel {
   }
 
   #categoryVisible(category) {
-    return this.layers[LAYER_BY_CATEGORY.get(category) ?? 'rail'];
+    return this.layers[LAYER_BY_CATEGORY.get(category) ?? 'regionalverkehr'];
   }
 
   // Zooming past the threshold switches the stops layer for the user; a manual
@@ -244,7 +252,7 @@ export class HerzschlagPanel extends Panel {
   // Stops with every vehicle layer off would draw nothing, so switching them on
   // pulls the trains in too.
   #ensureVisibleMode() {
-    const fallback = fallbackModeForStops(this.layers);
+    const fallback = fallbackLayerForStops(this.layers);
     if (fallback) {
       this.layers[fallback] = true;
     }

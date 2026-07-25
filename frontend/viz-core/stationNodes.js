@@ -14,14 +14,32 @@ export function nodeDiameterPixels(zoomFraction) {
     : NODE_LARGE_DIAMETER_PIXELS;
 }
 
+// A station's transport mode maps to the vehicle layers that reveal it. Rail
+// vehicles split across a long-distance and a regional layer, so a rail station
+// surfaces whenever either of them shows.
+const REVEALING_LAYERS_BY_MODE = new Map([
+  ['rail', ['fernverkehr', 'regionalverkehr']],
+  ['tram', ['tram']],
+  ['bus', ['bus']],
+]);
+const VEHICLE_LAYER_KEYS = ['fernverkehr', 'regionalverkehr', 'tram', 'bus'];
+
 export function stationIsShown(modes, stopsShown, layers) {
-  return stopsShown && modes.some((mode) => layers[mode]);
+  return (
+    stopsShown &&
+    modes.some((mode) =>
+      (REVEALING_LAYERS_BY_MODE.get(mode) ?? []).some((key) => layers[key]),
+    )
+  );
 }
 
 // Turning the stops layer on while every vehicle layer is off would show
-// nothing, so fall back to rail to reveal at least the train stops.
-export function fallbackModeForStops(layers) {
-  return !layers.rail && !layers.tram && !layers.bus ? 'rail' : null;
+// nothing, so fall back to the regional rail layer to reveal at least the train
+// stops.
+export function fallbackLayerForStops(layers) {
+  return VEHICLE_LAYER_KEYS.some((key) => layers[key])
+    ? null
+    : 'regionalverkehr';
 }
 
 // Where a station serves several modes its outline follows the most structural

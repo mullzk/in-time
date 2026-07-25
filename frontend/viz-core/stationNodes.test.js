@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { Camera } from './camera.js';
 import {
   dominantStationMode,
-  fallbackModeForStops,
+  fallbackLayerForStops,
   nearestStation,
   nodeDiameterPixels,
   stationIsShown,
@@ -23,12 +23,34 @@ test('nodeDiameterPixels is 5px from the second-largest step', () => {
 });
 
 test('stationIsShown needs the stops layer and a visible mode', () => {
-  const layers = { rail: true, tram: false, bus: false };
+  const layers = {
+    fernverkehr: true,
+    regionalverkehr: false,
+    tram: false,
+    bus: false,
+  };
   assert.equal(stationIsShown(['rail'], true, layers), true);
   assert.equal(stationIsShown(['rail'], false, layers), false);
   assert.equal(stationIsShown(['tram'], true, layers), false);
   // One visible mode is enough for a multi-mode station.
   assert.equal(stationIsShown(['tram', 'rail'], true, layers), true);
+});
+
+test('stationIsShown surfaces a rail station for either rail layer', () => {
+  const onlyRegional = {
+    fernverkehr: false,
+    regionalverkehr: true,
+    tram: false,
+    bus: false,
+  };
+  assert.equal(stationIsShown(['rail'], true, onlyRegional), true);
+  const noRail = {
+    fernverkehr: false,
+    regionalverkehr: false,
+    tram: true,
+    bus: false,
+  };
+  assert.equal(stationIsShown(['rail'], true, noRail), false);
 });
 
 test('dominantStationMode ranks rail over tram over bus', () => {
@@ -38,17 +60,32 @@ test('dominantStationMode ranks rail over tram over bus', () => {
   assert.equal(dominantStationMode([]), null);
 });
 
-test('fallbackModeForStops adds rail only when every mode is off', () => {
+test('fallbackLayerForStops adds regional rail only when every layer is off', () => {
   assert.equal(
-    fallbackModeForStops({ rail: false, tram: false, bus: false }),
-    'rail',
+    fallbackLayerForStops({
+      fernverkehr: false,
+      regionalverkehr: false,
+      tram: false,
+      bus: false,
+    }),
+    'regionalverkehr',
   );
   assert.equal(
-    fallbackModeForStops({ rail: false, tram: true, bus: false }),
+    fallbackLayerForStops({
+      fernverkehr: false,
+      regionalverkehr: false,
+      tram: true,
+      bus: false,
+    }),
     null,
   );
   assert.equal(
-    fallbackModeForStops({ rail: true, tram: false, bus: false }),
+    fallbackLayerForStops({
+      fernverkehr: true,
+      regionalverkehr: false,
+      tram: false,
+      bus: false,
+    }),
     null,
   );
 });
