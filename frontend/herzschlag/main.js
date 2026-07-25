@@ -56,13 +56,15 @@ async function bootstrap() {
   const cockpit = new Cockpit(root, panel, time);
   const attribution = new Attribution(root);
   attribution.set(panel.background.attribution);
+  const sonifier = new Sonifier(panel, time, new AudioBridge());
   const sidebar = new Sidebar(
     root,
     panel.buildSidebarSections(context, {
       onBackgroundChange: () => attribution.set(panel.background.attribution),
+      onInstrumentationChange: (instrumentation) =>
+        sonifier.setInstrumentation(instrumentation),
     }),
   );
-  const sonifier = new Sonifier(panel, time, new AudioBridge());
   const selection = new MapSelection(root, panel, context, {
     onStationChosen: (station) => sonifier.setStation(station),
   });

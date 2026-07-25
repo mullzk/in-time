@@ -79,6 +79,16 @@
   width: 100%;
 }
 
+.sidebar-select {
+  width: 100%;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--color-control);
+  color: var(--color-control-text);
+  cursor: pointer;
+}
+
 /* Narrow screens: the open panel takes the whole width, still slightly
    transparent so the map reads behind it. */
 @media (max-width: 640px) {

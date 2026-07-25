@@ -1,6 +1,7 @@
 import { readStationPoints } from '../viz-core/blobStations.js';
 import { element } from '../viz-core/dom.js';
 import { Panel } from '../viz-core/panel.js';
+import { INSTRUMENTATIONS } from '../viz-core/sonification/presets.js';
 import { TRANSPORT_GROUPS } from '../viz-core/sonification/scheduling.js';
 import { SonificationEngine } from '../viz-core/sonification/sonificationEngine.js';
 import { StationCatalog } from '../viz-core/stationCatalog.js';
@@ -113,6 +114,7 @@ export class HerzschlagPanel extends Panel {
     simulationSpeed: true,
     fullDayScrubber: true,
     stationSearch: true,
+    sonification: true,
   };
 
   constructor(railBuffer, roadBuffer, railStations, roadStations) {
@@ -230,8 +232,11 @@ export class HerzschlagPanel extends Panel {
     });
   }
 
-  buildSidebarSections(context, { onBackgroundChange } = {}) {
-    return [
+  buildSidebarSections(
+    context,
+    { onBackgroundChange, onInstrumentationChange } = {},
+  ) {
+    const sections = [
       {
         title: 'Hintergrund',
         element: this.#backgroundControl(context, onBackgroundChange),
@@ -239,6 +244,37 @@ export class HerzschlagPanel extends Panel {
       { title: 'Ebenen', element: this.#layerControl() },
       { title: 'Zoom', element: this.#zoomControl(context) },
     ];
+    if (this.capabilities.sonification) {
+      sections.push({
+        title: 'Sound',
+        element: this.#soundControl(onInstrumentationChange),
+      });
+    }
+    return sections;
+  }
+
+  // A single dropdown selects the instrumentation; "Kein Sound" is silence. The
+  // sonified station, tempo and per-group mutes come from the existing controls.
+  #soundControl(onInstrumentationChange) {
+    const group = element('div', 'sidebar-options');
+    const select = element('select', 'sidebar-select');
+    const silent = element('option');
+    silent.value = '';
+    silent.textContent = 'Kein Sound';
+    select.appendChild(silent);
+    INSTRUMENTATIONS.forEach((_, label) => {
+      const option = element('option');
+      option.value = label;
+      option.textContent = label;
+      select.appendChild(option);
+    });
+    select.addEventListener('change', () => {
+      onInstrumentationChange?.(
+        select.value === '' ? null : INSTRUMENTATIONS.get(select.value),
+      );
+    });
+    group.appendChild(select);
+    return group;
   }
 
   #categoryVisible(category) {
