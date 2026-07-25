@@ -1,0 +1,26 @@
+/* SMACSS Module: the map popover — a small label anchored above a tapped station
+   node or vehicle. Positioned by the script; it never intercepts pointer events. */
+.popover {
+  position: absolute;
+  z-index: 10;
+  transform: translate(-50%, calc(-100% - 8px));
+  padding: 6px 10px;
+  border-radius: var(--radius-m);
+  background: var(--color-surface);
+  backdrop-filter: blur(6px);
+  color: var(--color-text);
+  white-space: nowrap;
+  pointer-events: none;
+  display: none;
+}
+
+.popover.is-visible {
+  display: block;
+}
+
+/* A vehicle popover stacks several lines; its leading line (category) reads as a
+   muted caption above the route. A single-line station popover is unaffected. */
+.popover-line:not(:last-child) {
+  font-size: 11px;
+  opacity: 0.7;
+}

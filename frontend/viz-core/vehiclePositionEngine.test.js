@@ -82,3 +82,23 @@ test('activeAt depends only on t', () => {
   const second = engine.activeAt(36_450);
   assert.deepEqual(first, second);
 });
+
+test('tripEndpoints reports the first and last stop of a trip', () => {
+  assert.deepEqual(engine.tripEndpoints(0), {
+    originStation: 0,
+    destinationStation: 2,
+  });
+  assert.deepEqual(engine.tripEndpoints(1), {
+    originStation: 1,
+    destinationStation: 2,
+  });
+});
+
+test('positionAt matches activeAt inside the window and is null outside', () => {
+  assert.equal(engine.positionAt(0, 35_000), null);
+  assert.equal(engine.positionAt(0, 41_000), null);
+  const viaActive = positionAt(36_300, 0);
+  const direct = engine.positionAt(0, 36_300);
+  assert.ok(closeTo(direct.east, viaActive.east, 1e-6));
+  assert.ok(closeTo(direct.north, viaActive.north, 1e-6));
+});

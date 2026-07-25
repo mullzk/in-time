@@ -29,6 +29,19 @@ const FALLBACK_COLOR = [200, 200, 200];
 const CATEGORY_TRAM = 5;
 const CATEGORY_BUS = 6;
 
+// Human labels per blob category, shown on a clicked vehicle's popover. Rail
+// spans 0-4 (Fernverkehr down to other rail), then tram and bus.
+const CATEGORY_LABELS = [
+  'Fernverkehr',
+  'InterRegio',
+  'Regio',
+  'S-Bahn',
+  'Bahn',
+  'Tram',
+  'Bus',
+];
+const categoryLabel = (category) => CATEGORY_LABELS[category] ?? 'Fahrt';
+
 // Rail spans categories 0-4 and is the default; only tram and bus carry a
 // dedicated layer, so the rail categories are absent from this map.
 const LAYER_BY_CATEGORY = new Map([
@@ -70,6 +83,9 @@ const STATION_STROKE_BY_MODE = new Map([
 const STATION_STROKE_WIDTH_PIXELS = 1;
 // A generous tap target so small nodes stay hittable on touch.
 const STATION_HIT_RADIUS_PIXELS = 12;
+// Vehicles are smaller and denser than station nodes, so keep their tap target
+// tighter to avoid grabbing a neighbour.
+const VEHICLE_HIT_RADIUS_PIXELS = 10;
 
 // Zoom fraction at and above which the stops layer switches itself on; below it,
 // switches off. A manual toggle persists until the next crossing.
@@ -94,6 +110,8 @@ export class HerzschlagPanel extends Panel {
     super();
     this.railBuffer = railBuffer;
     this.roadBuffer = roadBuffer;
+    this.railStations = railStations;
+    this.roadStations = roadStations;
     this.catalog = StationCatalog.fromPublished(
       railStations,
       readStationPoints(railBuffer),
@@ -122,15 +140,29 @@ export class HerzschlagPanel extends Panel {
 
   init(context) {
     this.camera = context.camera;
-    this.engines = [
-      new VehiclePositionEngine(this.railBuffer),
-      new VehiclePositionEngine(this.roadBuffer),
+    // Each engine is paired with the station names its trips index into, so a
+    // clicked vehicle resolves to its origin and destination stop names.
+    this.engineViews = [
+      {
+        engine: new VehiclePositionEngine(this.railBuffer),
+        stations: this.railStations,
+      },
+      {
+        engine: new VehiclePositionEngine(this.roadBuffer),
+        stations: this.roadStations,
+      },
     ];
+    this.engines = this.engineViews.map((view) => view.engine);
   }
 
   update(currentTimeSeconds, _deltaSeconds) {
-    this.activeVehicles = this.engines
-      .flatMap((engine) => engine.activeAt(currentTimeSeconds))
+    this.activeVehicles = this.engineViews
+      .flatMap((view, engineIndex) =>
+        view.engine.activeAt(currentTimeSeconds).map((vehicle) => {
+          vehicle.engineIndex = engineIndex;
+          return vehicle;
+        }),
+      )
       .sort(
         (first, second) =>
           drawPriority(first.category) - drawPriority(second.category),
@@ -276,6 +308,43 @@ export class HerzschlagPanel extends Panel {
       screenX,
       screenY,
       STATION_HIT_RADIUS_PIXELS,
+    );
+  }
+
+  // Only vehicles whose layer is visible are pickable; nearestStation reads the
+  // same east/north an active vehicle carries, so it doubles as the picker.
+  vehicleAt(screenX, screenY) {
+    if (this.camera === null) {
+      return null;
+    }
+    const visible = this.activeVehicles.filter((vehicle) =>
+      this.#categoryVisible(vehicle.category),
+    );
+    return nearestStation(
+      visible,
+      this.camera,
+      screenX,
+      screenY,
+      VEHICLE_HIT_RADIUS_PIXELS,
+    );
+  }
+
+  describeVehicle(vehicle) {
+    const view = this.engineViews[vehicle.engineIndex];
+    const { originStation, destinationStation } = view.engine.tripEndpoints(
+      vehicle.tripIndex,
+    );
+    return {
+      label: categoryLabel(vehicle.category),
+      origin: view.stations[originStation]?.name,
+      destination: view.stations[destinationStation]?.name,
+    };
+  }
+
+  vehiclePosition(vehicle, currentTimeSeconds) {
+    return this.engineViews[vehicle.engineIndex].engine.positionAt(
+      vehicle.tripIndex,
+      currentTimeSeconds,
     );
   }
 

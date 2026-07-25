@@ -319,6 +319,30 @@ export class VehiclePositionEngine {
     return legCumulative[legCumulative.length - 1];
   }
 
+  tripEndpoints(tripIndex) {
+    const { events } = this.trips[tripIndex];
+    return {
+      originStation: events[0].station,
+      destinationStation: events[events.length - 1].station,
+    };
+  }
+
+  // A selected vehicle's live position, recomputed each frame so a popover can
+  // follow it; null once the trip is no longer running (so the caller drops it).
+  positionAt(tripIndex, t) {
+    const trip = this.trips[tripIndex];
+    const firstDep = trip.events[0].dep;
+    const lastArr = trip.events[trip.events.length - 1].arr;
+    if (t < firstDep || t > lastArr) {
+      return null;
+    }
+    const [east, north] = this.#pointAtTripDistance(
+      trip,
+      this.#tripDistanceAt(trip, t),
+    );
+    return { east, north };
+  }
+
   activeAt(t) {
     const active = [];
     this.trips.forEach((trip, tripIndex) => {

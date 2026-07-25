@@ -4,11 +4,10 @@ import { Cockpit } from '../viz-core/cockpit.js';
 import { InfoModal } from '../viz-core/infoModal.js';
 import { KeyboardControls } from '../viz-core/keyboardControls.js';
 import { loadSchedule } from '../viz-core/loader.js';
+import { MapSelection } from '../viz-core/mapSelection.js';
 import { PanelContext } from '../viz-core/panelContext.js';
 import { wgs84ToLv95 } from '../viz-core/projection.js';
 import { Sidebar } from '../viz-core/sidebar.js';
-import { StationInteraction } from '../viz-core/stationInteraction.js';
-import { StationPopover } from '../viz-core/stationPopover.js';
 import { StationSearch } from '../viz-core/stationSearch.js';
 import { TileLayer } from '../viz-core/tiles/tileLayer.js';
 import { RELIEF_TILE_SOURCE } from '../viz-core/tiles/tileSource.js';
@@ -61,19 +60,18 @@ async function bootstrap() {
       onBackgroundChange: () => attribution.set(panel.background.attribution),
     }),
   );
-  const popover = new StationPopover(root);
+  const selection = new MapSelection(root, panel, context);
   const infoModal = new InfoModal(
     root,
     buildInfoContent({ stationSearch: panel.capabilities.stationSearch }),
   );
 
   // A search pick reveals the station: switch its stops layer on, centre on it,
-  // and name it with a popover anchored to where it lands.
+  // and name it with a popover anchored to its node.
   const revealSearchedStation = (station) => {
     panel.activateStops();
     context.focusStation(station.east, station.north);
-    const [x, y] = camera.worldToScreen(station.east, station.north);
-    popover.showAt(x, y, station.name);
+    selection.selectStation(station);
   };
 
   const bindings = {
@@ -89,19 +87,12 @@ async function bootstrap() {
   }
   new KeyboardControls(window, { time, camera, bindings });
   new VizCore(root, panel, context, {
-    onFrameRendered: () => cockpit.sync(),
-    // Wheel and pinch zoom shift the centre, so the popover would drift off its
-    // station; the keyboard and sidebar keep it centred and leave it be.
-    onZoomGesture: () => popover.hide(),
-    onCanvasReady: (canvasElement) => {
-      new StationInteraction(canvasElement, {
-        pick: (x, y) => panel.stationAt(x, y),
-        onSelect: (station, x, y) => popover.showAt(x, y, station.name),
-        onActivate: (station) =>
-          context.focusStation(station.east, station.north),
-        onMiss: () => popover.hide(),
-      });
+    onFrameRendered: () => {
+      cockpit.sync();
+      selection.onFrameRendered();
     },
+    onZoomGesture: () => selection.onZoomGesture(),
+    onCanvasReady: (canvasElement) => selection.attachTo(canvasElement),
   });
   time.play();
 }
