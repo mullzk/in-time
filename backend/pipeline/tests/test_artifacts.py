@@ -45,7 +45,7 @@ def test_composite_version_joins_both_sources() -> None:
 
 
 def test_stations_json_is_indexed_by_position_with_ordered_modes() -> None:
-    entries = json.loads(stations_json(make_builds().rail.stations))
+    entries = json.loads(stations_json(make_builds().rail.stations, {}))
 
     # Modes are emitted in the canonical rail, tram, bus order regardless of the
     # set's iteration order.
@@ -55,8 +55,19 @@ def test_stations_json_is_indexed_by_position_with_ordered_modes() -> None:
     ]
 
 
+def test_stations_json_carries_the_cluster_of_a_clustered_station() -> None:
+    # A cluster spans blobs: the rail Bern and the road stop share a cluster id;
+    # an unclustered station omits the field.
+    clusters = {8_507_000: 8_507_000, 8_500_100: 8_507_000}
+    rail = json.loads(stations_json(make_builds().rail.stations, clusters))
+    road = json.loads(stations_json(make_builds().road.stations, clusters))
+    assert rail[0]["cluster"] == 8_507_000
+    assert "cluster" not in rail[1]
+    assert road[0]["cluster"] == 8_507_000
+
+
 def test_write_day_artifacts_writes_both_blobs_and_stations(tmp_path: Path) -> None:
-    write_day_artifacts(make_builds(), tmp_path)
+    write_day_artifacts(make_builds(), tmp_path, {})
 
     rail = read_header((tmp_path / "schedule-rail.itsb").read_bytes())
     road = read_header((tmp_path / "schedule-road.itsb").read_bytes())
@@ -74,7 +85,7 @@ def test_write_day_artifacts_writes_both_blobs_and_stations(tmp_path: Path) -> N
 
 def test_write_day_artifacts_creates_missing_dest(tmp_path: Path) -> None:
     dest = tmp_path / "2026-07-16"
-    write_day_artifacts(make_builds(), dest)
+    write_day_artifacts(make_builds(), dest, {})
 
     assert (dest / "schedule-rail.itsb").exists()
     assert (dest / "schedule-road.itsb").exists()
@@ -92,7 +103,7 @@ def test_write_day_artifacts_creates_missing_dest(tmp_path: Path) -> None:
     ],
 )
 def test_write_day_artifacts_emits_matching_sidecars(tmp_path: Path, name: str) -> None:
-    write_day_artifacts(make_builds(), tmp_path)
+    write_day_artifacts(make_builds(), tmp_path, {})
 
     raw = (tmp_path / name).read_bytes()
     assert gzip.decompress((tmp_path / f"{name}.gz").read_bytes()) == raw

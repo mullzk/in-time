@@ -28,27 +28,44 @@ def composite_version(gtfs_version: str, rail_network_version: str) -> str:
     return f"gtfs={gtfs_version};railnet={rail_network_version}"
 
 
-def stations_json(stations: list[StationEntry]) -> str:
+def _station_json(station: StationEntry, clusters: dict[int, int]) -> dict[str, object]:
+    entry: dict[str, object] = {
+        "didok": station.didok,
+        "name": station.name,
+        "modes": ordered_station_modes(station.modes),
+    }
+    cluster = clusters.get(station.didok)
+    if cluster is not None:
+        entry["cluster"] = cluster
+    return entry
+
+
+def stations_json(stations: list[StationEntry], clusters: dict[int, int]) -> str:
     return json.dumps(
-        [
-            {
-                "didok": station.didok,
-                "name": station.name,
-                "modes": ordered_station_modes(station.modes),
-            }
-            for station in stations
-        ],
+        [_station_json(station, clusters) for station in stations],
         ensure_ascii=False,
     )
 
 
-def write_day_artifacts(builds: DayBuilds, dest: Path) -> None:
+def write_day_artifacts(
+    builds: DayBuilds, dest: Path, clusters: dict[int, int]
+) -> None:
     dest.mkdir(parents=True, exist_ok=True)
     _write_build(
-        dest, builds.rail, SCHEDULE_RAIL_BLOB_NAME, STATIONS_RAIL_NAME, NetworkType.RAIL
+        dest,
+        builds.rail,
+        SCHEDULE_RAIL_BLOB_NAME,
+        STATIONS_RAIL_NAME,
+        NetworkType.RAIL,
+        clusters,
     )
     _write_build(
-        dest, builds.road, SCHEDULE_ROAD_BLOB_NAME, STATIONS_ROAD_NAME, NetworkType.BUS
+        dest,
+        builds.road,
+        SCHEDULE_ROAD_BLOB_NAME,
+        STATIONS_ROAD_NAME,
+        NetworkType.BUS,
+        clusters,
     )
 
 
@@ -58,12 +75,14 @@ def _write_build(
     blob_name: str,
     stations_name: str,
     network_type: NetworkType,
+    clusters: dict[int, int],
 ) -> None:
     _write_with_sidecars(
         dest / blob_name, create_schedule_blob(build.day, network_type)
     )
     _write_with_sidecars(
-        dest / stations_name, stations_json(build.stations).encode("utf-8")
+        dest / stations_name,
+        stations_json(build.stations, clusters).encode("utf-8"),
     )
 
 

@@ -22,6 +22,7 @@ from pipeline.frequency import REGULAR_EDGES_CACHE_NAME, load_or_scan_regular_ed
 from pipeline.network.rail_gdb import load_rail_graph
 from pipeline.schedule_day import build_schedule_day
 from pipeline.schedule_run import run_schedule_build
+from pipeline.station_clusters import load_station_clusters
 
 
 class Command(BaseCommand):
@@ -62,6 +63,7 @@ class Command(BaseCommand):
             rail_graph = load_rail_graph(gdb)
             gtfs_dir = gtfs.path_for(versions["gtfs"])
             bus_stops = load_bus_stops(gtfs_dir)
+            station_clusters = load_station_clusters(gtfs_dir)
             regular_edges = load_or_scan_regular_edges(
                 gtfs_dir, gtfs_dir / REGULAR_EDGES_CACHE_NAME
             )
@@ -73,7 +75,7 @@ class Command(BaseCommand):
             )
             build_seconds = time.monotonic() - started
 
-            write_day_artifacts(builds, dest)
+            write_day_artifacts(builds, dest, station_clusters)
             if options["diagnose"]:
                 diagnostics.append(
                     DayDiagnostics(

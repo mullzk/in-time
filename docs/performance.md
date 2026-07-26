@@ -34,6 +34,19 @@ run, Apple Silicon.
 | load + reproject (WGS84 → LV95)  | 0.22 s            |
 | Zürich HB 8503000 (LV95)         | 2683190 / 1248066 |
 
+## Station clusters — `station_clusters.load_station_clusters`
+
+Source: GTFS feed (`stops.txt` + `transfers.txt`), version 20260722. Union-find
+over the Swiss transfer edges in BPUIC space, for the sonification's "one
+interchange = one ear" grouping. Local run, Apple Silicon.
+
+| metric                               | value                        |
+| ------------------------------------ | ---------------------------- |
+| clustered didoks                     | 5 195                        |
+| clusters (≥ 2 members)               | 2 081                        |
+| load (`stops.txt` + `transfers.txt`) | ~1.5 s                       |
+| Bern cluster (rep 8507000)           | 7 members, rail + tram + bus |
+
 ## Frequency filter — `frequency.scan_regular_edges`
 
 Source: GTFS feed 2026 (full year, ~15 M `stop_times` rows), feed 2026-07-15.
