@@ -56,7 +56,7 @@ export class Sonifier {
 
   setStation(station) {
     this.station = station;
-    this.events = this.panel.stationSoundEvents(station.didok);
+    this.events = this.panel.stationSoundEvents(station);
     this.#resync();
     this.#ensureAudio();
   }

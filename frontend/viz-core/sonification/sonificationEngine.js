@@ -20,16 +20,51 @@ export class SonificationEngine {
   }
 
   eventsAtStation(stationIndex) {
-    const references = this.stationReferences.get(stationIndex) ?? [];
-    const rawEvents = references.map(({ tripIndex, eventOffset }) => {
+    return this.eventsAtCluster([stationIndex]);
+  }
+
+  // A cluster is a set of station indices treated as one place. A trip's
+  // consecutive calls within the cluster collapse into a single visit -- the
+  // first call's arrival to the last call's departure -- so a bus threading two
+  // cluster stops sounds once, not twice. A later re-entry is a separate visit.
+  eventsAtCluster(stationIndices) {
+    const offsetsByTrip = new Map();
+    stationIndices.forEach((stationIndex) => {
+      (this.stationReferences.get(stationIndex) ?? []).forEach(
+        ({ tripIndex, eventOffset }) => {
+          const offsets = offsetsByTrip.get(tripIndex);
+          if (offsets) {
+            offsets.push(eventOffset);
+          } else {
+            offsetsByTrip.set(tripIndex, [eventOffset]);
+          }
+        },
+      );
+    });
+
+    const rawEvents = [];
+    offsetsByTrip.forEach((offsets, tripIndex) => {
       const trip = this.trips[tripIndex];
-      const event = trip.events[eventOffset];
-      return {
-        arrival: event.arr,
-        departure: event.dep,
-        category: trip.category,
-      };
+      offsets.sort((first, second) => first - second);
+      let runStart = offsets[0];
+      let previous = offsets[0];
+      offsets.slice(1).forEach((offset) => {
+        if (offset !== previous + 1) {
+          rawEvents.push(this.#visit(trip, runStart, previous));
+          runStart = offset;
+        }
+        previous = offset;
+      });
+      rawEvents.push(this.#visit(trip, runStart, previous));
     });
     return deriveStationEvents(rawEvents);
+  }
+
+  #visit(trip, startOffset, endOffset) {
+    return {
+      arrival: trip.events[startOffset].arr,
+      departure: trip.events[endOffset].dep,
+      category: trip.category,
+    };
   }
 }

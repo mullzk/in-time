@@ -17,12 +17,15 @@ export function normalizeForSearch(text) {
 }
 
 export class StationEntry {
-  constructor(didok, name, east, north, modes = []) {
+  constructor(didok, name, east, north, modes = [], cluster = null) {
     this.didok = didok;
     this.name = name;
     this.east = east;
     this.north = north;
     this.modes = [...modes];
+    // The interchange this stop belongs to (its cluster's representative didok),
+    // or null when it stands alone. Stops sharing a cluster are sonified as one.
+    this.cluster = cluster;
   }
 
   addModes(modes) {
@@ -31,6 +34,12 @@ export class StationEntry {
         this.modes.push(mode);
       }
     });
+  }
+
+  adoptCluster(cluster) {
+    if (this.cluster === null && cluster != null) {
+      this.cluster = cluster;
+    }
   }
 }
 
@@ -78,10 +87,12 @@ export class StationCatalog {
               point[0],
               point[1],
               station.modes ?? [],
+              station.cluster ?? null,
             ),
           );
         } else {
           existing.addModes(station.modes ?? []);
+          existing.adoptCluster(station.cluster ?? null);
         }
       });
     };

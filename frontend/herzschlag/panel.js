@@ -173,17 +173,40 @@ export class HerzschlagPanel extends Panel {
         view.stations.map((station, index) => [station.didok, index]),
       ),
     }));
+    this.clusterToDidoks = new Map();
+    this.catalog.entries.forEach((entry) => {
+      if (entry.cluster !== null) {
+        const didoks = this.clusterToDidoks.get(entry.cluster);
+        if (didoks) {
+          didoks.push(entry.didok);
+        } else {
+          this.clusterToDidoks.set(entry.cluster, [entry.didok]);
+        }
+      }
+    });
   }
 
-  // The merged, time-sorted sound events at a station across the blobs that
-  // serve it -- the input the sonifier voices when this station is the "ear".
-  stationSoundEvents(didok) {
+  // The merged, time-sorted sound events for a chosen station across the blobs
+  // that serve it -- the input the sonifier voices when it is the "ear". A
+  // station that belongs to an interchange voices its whole cluster, so a rail
+  // stop and its neighbouring tram/bus stops are heard as one place.
+  stationSoundEvents(station) {
+    const didoks = this.#clusterDidoks(station);
     return this.soundEngines
       .flatMap(({ engine, didokToIndex }) => {
-        const index = didokToIndex.get(didok);
-        return index === undefined ? [] : engine.eventsAtStation(index);
+        const indices = didoks
+          .map((didok) => didokToIndex.get(didok))
+          .filter((index) => index !== undefined);
+        return indices.length === 0 ? [] : engine.eventsAtCluster(indices);
       })
       .sort((first, second) => first.time - second.time);
+  }
+
+  #clusterDidoks(station) {
+    if (station.cluster === null) {
+      return [station.didok];
+    }
+    return this.clusterToDidoks.get(station.cluster) ?? [station.didok];
   }
 
   // Display toggles double as sound mutes, so a hidden transport group is also

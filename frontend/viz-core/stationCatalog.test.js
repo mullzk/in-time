@@ -119,3 +119,22 @@ test('fromPublished unions the modes of a didok across both sets', () => {
   assert.deepEqual([...only('umsteige').modes].sort(), ['bus', 'tram']);
   assert.deepEqual(only('bushalt').modes, ['bus']);
 });
+
+test('fromPublished carries a stations cluster and adopts it across sets', () => {
+  const catalog = StationCatalog.fromPublished(
+    [
+      { didok: 1, name: 'Bahnhof', modes: ['rail'], cluster: 1 },
+      { didok: 4, name: 'Alleine', modes: ['rail'] },
+    ],
+    [
+      [1, 1],
+      [4, 4],
+    ],
+    [{ didok: 2, name: 'Bushalt', modes: ['bus'], cluster: 1 }],
+    [[2, 2]],
+  );
+  const only = (name) => catalog.matching(name)[0];
+  assert.equal(only('bahnhof').cluster, 1);
+  assert.equal(only('bushalt').cluster, 1);
+  assert.equal(only('alleine').cluster, null);
+});
