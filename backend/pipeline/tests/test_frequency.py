@@ -288,6 +288,29 @@ def test_stale_cache_is_rescanned_and_rewritten(tmp_path: Path) -> None:
     assert set(reused) == set(regular)
 
 
+def test_truncated_cache_is_rescanned_not_crashed(tmp_path: Path) -> None:
+    feed = tmp_path / "feed"
+    write_feed(
+        feed,
+        {
+            "stops.txt": stops_txt(A, B),
+            "trips.txt": trips_txt(
+                ("R_RAIL", "DAILY", "T1"), ("R_RAIL", "DAILY", "T2")
+            ),
+            "stop_times.txt": stop_times(("T1", [A, B]), ("T2", [A, B])),
+        },
+    )
+    cache = tmp_path / "regular_edges.bin"
+    one_edge = serialize_regular_edges(
+        RegularEdges(frozenset({(A, B, FREQUENCY_MODE_RAIL)}))
+    )
+    cache.write_bytes(one_edge[:-8])  # header intact, payload cut mid-record
+
+    regular = load_or_scan_regular_edges(feed, cache, SMALL)
+
+    assert regular.is_regular(A, B, FREQUENCY_MODE_RAIL)
+
+
 @pytest.mark.realdata
 @pytest.mark.skipif(not GTFS_DIR, reason="set GTFS_SCHEDULE_DIR to a GTFS feed")
 def test_real_regular_edges_are_plausible() -> None:

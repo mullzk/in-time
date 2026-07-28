@@ -18,6 +18,7 @@ from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
+from pipeline.atomicio import write_atomically
 from pipeline.gtfs import (
     CATEGORY_BUS,
     CATEGORY_TRAM,
@@ -303,8 +304,11 @@ def deserialize_regular_edges(data: bytes) -> RegularEdges:
     magic, version = _CACHE_HEADER.unpack_from(data)
     if magic != _CACHE_MAGIC or version != _CACHE_VERSION:
         raise ValueError("stale or unrecognized regular-edges cache")
+    payload = data[_CACHE_HEADER.size :]
+    if len(payload) % (array.array("i").itemsize * 3) != 0:
+        raise ValueError("truncated regular-edges cache")
     flat = array.array("i")
-    flat.frombytes(data[_CACHE_HEADER.size :])
+    flat.frombytes(payload)
     if sys.byteorder == "big":
         flat.byteswap()
     edges = {
@@ -328,5 +332,5 @@ def load_or_scan_regular_edges(
         except ValueError:
             pass  # stale or unrecognized cache -> rescan and overwrite it below
     regular = scan_regular_edges(gtfs_dir, thresholds)
-    cache_path.write_bytes(serialize_regular_edges(regular))
+    write_atomically(cache_path, serialize_regular_edges(regular))
     return regular

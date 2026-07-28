@@ -4,13 +4,13 @@ together (source version string, geodatabase lookup, service reload)."""
 
 import gzip
 import json
-import os
 import subprocess
 from collections.abc import Callable
 from pathlib import Path
 
 import brotli
 
+from pipeline.atomicio import write_atomically
 from pipeline.schedule_blob import NetworkType, create_schedule_blob
 from pipeline.schedule_day import (
     DayBuilds,
@@ -88,15 +88,11 @@ def _write_build(
 
 
 def _write_with_sidecars(path: Path, data: bytes) -> None:
-    _atomic_write(path, data)
-    _atomic_write(path.with_name(path.name + ".gz"), gzip.compress(data, 9))
-    _atomic_write(path.with_name(path.name + ".br"), brotli.compress(data, quality=11))
-
-
-def _atomic_write(path: Path, data: bytes) -> None:
-    tmp = path.with_name(f".{path.name}.tmp")
-    tmp.write_bytes(data)
-    os.replace(tmp, path)
+    write_atomically(path, data)
+    write_atomically(path.with_name(path.name + ".gz"), gzip.compress(data, 9))
+    write_atomically(
+        path.with_name(path.name + ".br"), brotli.compress(data, quality=11)
+    )
 
 
 def locate_gdb(archive_dir: Path) -> Path:
