@@ -238,6 +238,13 @@ def _accumulate_edges(
     service_masks: dict[str, int],
     stop_bpuic: dict[str, int],
 ) -> _EdgeTraffic:
+    """Requires stop_times.txt rows to be contiguous per trip_id: the scan is
+    single-pass and flushes a trip as soon as the trip_id changes, so a
+    fragmented trip would drop its cross-fragment edge and double-count shared
+    ones. This trades robustness for bounded memory (~1.8M trips / 28M rows in
+    the Swiss feed) — unlike `gtfs.stop_sequences`, which groups into a dict but
+    only for a pre-filtered trip set. GTFS recommends but does not guarantee the
+    grouping; the current national feed satisfies it."""
     traffic = _EdgeTraffic()
 
     def flush(trip_id: str, ordered: list[tuple[int, int]]) -> None:
