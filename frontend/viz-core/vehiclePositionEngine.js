@@ -232,9 +232,14 @@ export class VehiclePositionEngine {
   }
 
   #deriveOperatingWindow() {
-    this.rangeStart = Math.min(...this.trips.map((trip) => trip.events[0].dep));
-    this.rangeEnd = Math.max(
-      ...this.trips.map((trip) => trip.events[trip.events.length - 1].arr),
+    this.rangeStart = this.trips.reduce(
+      (earliest, trip) => Math.min(earliest, trip.events[0].dep),
+      Infinity,
+    );
+    this.rangeEnd = this.trips.reduce(
+      (latest, trip) =>
+        Math.max(latest, trip.events[trip.events.length - 1].arr),
+      -Infinity,
     );
   }
 
