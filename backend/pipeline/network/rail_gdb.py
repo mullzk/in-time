@@ -9,6 +9,7 @@ from shapely.geometry import LineString, MultiLineString
 from shapely.geometry import Point as ShapelyPoint
 from shapely.geometry.base import BaseGeometry
 
+from pipeline.network.geometry import polyline_length
 from pipeline.network.rail import Point, RailGraph
 
 
@@ -91,6 +92,8 @@ def load_rail_graph(gdb_path: Path) -> RailGraph:
         if key in edge_points:
             continue
         points = _vertices(geometry)
+        if len(points) < 2 or polyline_length(points) == 0.0:
+            points = [node_point[start], node_point[end]]
         edge_points[key] = points
         segment_list.append((start, end, points))
 
