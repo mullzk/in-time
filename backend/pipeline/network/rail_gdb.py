@@ -4,6 +4,7 @@ import math
 from pathlib import Path
 
 import geopandas as gpd
+from shapely import line_merge
 from shapely.geometry import LineString, MultiLineString
 from shapely.geometry import Point as ShapelyPoint
 from shapely.geometry.base import BaseGeometry
@@ -17,10 +18,15 @@ def _line_coords(line: LineString) -> list[Point]:
 
 def _vertices(geometry: BaseGeometry) -> list[Point]:
     if isinstance(geometry, MultiLineString):
-        coords: list[Point] = []
-        for part in geometry.geoms:
-            coords.extend(_line_coords(part))
-        return coords
+        stitched_geometry = line_merge(geometry)
+        if isinstance(stitched_geometry, LineString):
+            return _line_coords(stitched_geometry)
+        # Parts don't share endpoints (a real gap in the segment):
+        # nothing better than best-effort concatenation.
+        vertices: list[Point] = []
+        for disconnected_part in stitched_geometry.geoms:
+            vertices.extend(_vertices(disconnected_part))
+        return vertices
     if isinstance(geometry, LineString):
         return _line_coords(geometry)
     return []
