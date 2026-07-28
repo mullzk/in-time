@@ -4,6 +4,7 @@ together (source version string, geodatabase lookup, service reload)."""
 
 import gzip
 import json
+import os
 import subprocess
 from collections.abc import Callable
 from pathlib import Path
@@ -87,9 +88,15 @@ def _write_build(
 
 
 def _write_with_sidecars(path: Path, data: bytes) -> None:
-    path.write_bytes(data)
-    path.with_name(path.name + ".gz").write_bytes(gzip.compress(data, 9))
-    path.with_name(path.name + ".br").write_bytes(brotli.compress(data, quality=11))
+    _atomic_write(path, data)
+    _atomic_write(path.with_name(path.name + ".gz"), gzip.compress(data, 9))
+    _atomic_write(path.with_name(path.name + ".br"), brotli.compress(data, quality=11))
+
+
+def _atomic_write(path: Path, data: bytes) -> None:
+    tmp = path.with_name(f".{path.name}.tmp")
+    tmp.write_bytes(data)
+    os.replace(tmp, path)
 
 
 def locate_gdb(archive_dir: Path) -> Path:
