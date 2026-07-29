@@ -60,10 +60,21 @@ export class TileLayer {
       return cached === 'loading' || cached === 'error' ? null : cached;
     }
     this.cache.set(key, 'loading');
+    // The request outlives the source: a load still in flight when setSource
+    // swaps the background must not write the old layer's tile into the new one.
+    const requestedSource = this.source;
     p.loadImage(
-      this.source.urlFor(z, x, y),
-      (image) => this.cache.set(key, image),
-      () => this.cache.set(key, 'error'),
+      requestedSource.urlFor(z, x, y),
+      (image) => {
+        if (this.source === requestedSource) {
+          this.cache.set(key, image);
+        }
+      },
+      () => {
+        if (this.source === requestedSource) {
+          this.cache.set(key, 'error');
+        }
+      },
     );
     return null;
   }
