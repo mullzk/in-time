@@ -13,7 +13,7 @@ import {
   samples,
   setSoundfontUrl,
   superdough,
-} from '../../vendor/superdough.mjs';
+} from '../../vendor/superdough.js';
 
 // Assets are served next to the vendored bundle, so their URLs resolve against
 // this module's own location -- no build-time or deployment-specific base.
