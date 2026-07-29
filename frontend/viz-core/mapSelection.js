@@ -17,19 +17,23 @@ export function sameSelectionTarget(first, second) {
   );
 }
 
-// Tap-to-select on the map: a station shows a static popover, a vehicle one that
-// follows it each frame until its trip ends. Wires the canvas tap interaction to
-// the popover and the panel's pickers so the app entry point stays declarative.
-// The panel supplies stationAt/vehicleAt for picking and, for vehicles,
-// describeVehicle (category and route names) and vehiclePosition (live location).
+// Tap-to-select on the map: a station shows a popover pinned to its node, a
+// vehicle one that follows the vehicle until its trip ends. Both are re-anchored
+// to the moving camera every frame, so any camera change -- wheel, pinch,
+// keyboard zoom, the sidebar slider or a focus jump -- keeps them on target.
+// Wires the canvas tap interaction to the popover and the panel's pickers so the
+// app entry point stays declarative. The panel supplies stationAt/vehicleAt for
+// picking and, for vehicles, describeVehicle (category and route names) and
+// vehiclePosition (live location).
 export class MapSelection {
-  constructor(container, panel, context, { onStationChosen } = {}) {
+  constructor(container, panel, context, { onStationChosen, popover } = {}) {
     this.panel = panel;
     this.context = context;
     this.camera = context.camera;
     this.time = context.time;
-    this.popover = new Popover(container);
+    this.popover = popover ?? new Popover(container);
     this.followedVehicle = null;
+    this.selectedStation = null;
     this.onStationChosen = onStationChosen;
   }
 
@@ -44,9 +48,14 @@ export class MapSelection {
   }
 
   onFrameRendered() {
-    if (this.followedVehicle === null) {
-      return;
+    if (this.followedVehicle !== null) {
+      this.#followVehicle();
+    } else if (this.selectedStation !== null) {
+      this.#anchorTo(this.selectedStation.east, this.selectedStation.north);
     }
+  }
+
+  #followVehicle() {
     const position = this.panel.vehiclePosition(
       this.followedVehicle,
       this.time.current,
@@ -55,20 +64,17 @@ export class MapSelection {
       this.clear();
       return;
     }
-    const [x, y] = this.camera.worldToScreen(position.east, position.north);
-    this.popover.moveTo(x, y);
+    this.#anchorTo(position.east, position.north);
   }
 
-  // A zoom gesture recentres the view: a static station popover would drift off
-  // its node, but a followed vehicle is re-pinned each frame, so keep it.
-  onZoomGesture() {
-    if (this.followedVehicle === null) {
-      this.popover.hide();
-    }
+  #anchorTo(east, north) {
+    const [x, y] = this.camera.worldToScreen(east, north);
+    this.popover.moveTo(x, y);
   }
 
   selectStation(station) {
     this.followedVehicle = null;
+    this.selectedStation = station;
     const [x, y] = this.camera.worldToScreen(station.east, station.north);
     this.popover.showAt(x, y, station.name);
     this.onStationChosen?.(station);
@@ -76,6 +82,7 @@ export class MapSelection {
 
   clear() {
     this.followedVehicle = null;
+    this.selectedStation = null;
     this.popover.hide();
   }
 
@@ -97,6 +104,7 @@ export class MapSelection {
   }
 
   #selectVehicle(vehicle) {
+    this.selectedStation = null;
     this.followedVehicle = vehicle;
     const { label, origin, destination } = this.panel.describeVehicle(vehicle);
     const [x, y] = this.camera.worldToScreen(vehicle.east, vehicle.north);

@@ -99,7 +99,6 @@ async function bootstrap() {
       selection.onFrameRendered();
       sonifier.onFrameRendered();
     },
-    onZoomGesture: () => selection.onZoomGesture(),
     onCanvasReady: (canvasElement) => selection.attachTo(canvasElement),
   });
   time.play();
