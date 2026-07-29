@@ -67,7 +67,7 @@ class StationEntry:
 
 
 @dataclass
-class NamedStraight:
+class NamedStraightFallback:
     from_name: str
     to_name: str
     distance_km: float
@@ -78,7 +78,7 @@ class ScheduleBuild:
     day: ScheduleDay
     stations: list[StationEntry]
     method_counts: dict[str, int]
-    straight_fallbacks: list[NamedStraight]
+    straight_fallbacks: list[NamedStraightFallback]
 
 
 class StationSource(Protocol):
@@ -212,9 +212,9 @@ def assemble_schedule_day(
     )
     method_counts = dict(Counter(leg.method for leg in routed.values()))
     straight = [
-        NamedStraight(
-            catalog.name_of(fallback.from_key),
-            catalog.name_of(fallback.to_key),
+        NamedStraightFallback(
+            catalog.name_of(fallback.from_didok),
+            catalog.name_of(fallback.to_didok),
             fallback.distance_metres / 1000,
         )
         for fallback in router.straight_fallbacks(routed)

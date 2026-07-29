@@ -2,7 +2,7 @@ import datetime
 
 from pipeline.diagnostics import DayDiagnostics
 from pipeline.schedule_blob import ScheduleDay, Trip
-from pipeline.schedule_day import DayBuilds, NamedStraight, ScheduleBuild
+from pipeline.schedule_day import DayBuilds, NamedStraightFallback, ScheduleBuild
 
 
 def make_build(
@@ -10,7 +10,7 @@ def make_build(
     stations: int,
     edges: int,
     method_counts: dict[str, int],
-    straight_fallbacks: list[NamedStraight],
+    straight_fallbacks: list[NamedStraightFallback],
 ) -> ScheduleBuild:
     day = ScheduleDay(
         service_date=datetime.date(2026, 7, 16),
@@ -28,8 +28,8 @@ def make_diagnostics() -> DayDiagnostics:
         edges=90,
         method_counts={"direct": 700, "multi_snap": 200, "straight": 100},
         straight_fallbacks=[
-            NamedStraight("Aarau", "Zofingen", 12.5),
-            NamedStraight("Baden", "Brugg", 7.0),
+            NamedStraightFallback("Aarau", "Zofingen", 12.5),
+            NamedStraightFallback("Baden", "Brugg", 7.0),
         ],
     )
     road = make_build(50, 40, 0, {}, [])

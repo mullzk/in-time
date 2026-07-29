@@ -58,5 +58,5 @@ def test_straight_fallbacks_are_reported_with_distance() -> None:
     straight = router.straight_fallbacks(routed)
     assert len(straight) == 1
     fallback = straight[0]
-    assert (fallback.from_key, fallback.to_key) == (1, 5)
+    assert (fallback.from_didok, fallback.to_didok) == (1, 5)
     assert fallback.distance_metres == 50000.0

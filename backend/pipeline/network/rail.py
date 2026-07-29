@@ -56,8 +56,8 @@ class RoutedLeg:
 
 @dataclass
 class StraightFallback:
-    from_key: int
-    to_key: int
+    from_didok: int
+    to_didok: int
     distance_metres: float
 
 
