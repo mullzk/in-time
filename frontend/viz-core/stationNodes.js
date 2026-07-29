@@ -42,6 +42,16 @@ export function fallbackLayerForStops(layers) {
     : 'regionalverkehr';
 }
 
+// Revealing a searched station: if none of the layers that would surface its
+// modes is on, name the first that reveals it so its node actually draws.
+// Returns null when a revealing layer already shows, so nothing must change.
+export function layerToRevealStation(modes, layers) {
+  const revealing = modes.flatMap(
+    (mode) => REVEALING_LAYERS_BY_MODE.get(mode) ?? [],
+  );
+  return revealing.some((key) => layers[key]) ? null : (revealing[0] ?? null);
+}
+
 // Where a station serves several modes its outline follows the most structural
 // one: rail over tram over bus.
 const STATION_MODE_PRIORITY = ['rail', 'tram', 'bus'];

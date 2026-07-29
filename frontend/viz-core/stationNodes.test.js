@@ -4,6 +4,7 @@ import { Camera } from './camera.js';
 import {
   dominantStationMode,
   fallbackLayerForStops,
+  layerToRevealStation,
   nearestStation,
   nodeDiameterPixels,
   stationIsShown,
@@ -88,6 +89,33 @@ test('fallbackLayerForStops adds regional rail only when every layer is off', ()
     }),
     null,
   );
+});
+
+test('layerToRevealStation switches on a mode layer only when none reveals it', () => {
+  const railDefaults = {
+    fernverkehr: true,
+    regionalverkehr: true,
+    tram: false,
+    bus: false,
+  };
+  // A bus-only station stays hidden under the rail defaults, so name its layer.
+  assert.equal(stationIsShown(['bus'], true, railDefaults), false);
+  assert.equal(layerToRevealStation(['bus'], railDefaults), 'bus');
+  assert.equal(layerToRevealStation(['tram'], railDefaults), 'tram');
+  // A rail station already shows, so nothing needs switching on.
+  assert.equal(layerToRevealStation(['rail'], railDefaults), null);
+  // One already-revealing layer is enough for a multi-mode station.
+  assert.equal(layerToRevealStation(['rail', 'bus'], railDefaults), null);
+});
+
+test('layerToRevealStation leaves a station alone when its layer already shows', () => {
+  const busOnly = {
+    fernverkehr: false,
+    regionalverkehr: false,
+    tram: false,
+    bus: true,
+  };
+  assert.equal(layerToRevealStation(['bus'], busOnly), null);
 });
 
 test('stopsToggleOnZoomCross toggles only when the threshold is crossed', () => {

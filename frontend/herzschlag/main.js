@@ -73,10 +73,10 @@ async function bootstrap() {
     buildInfoContent({ stationSearch: panel.capabilities.stationSearch }),
   );
 
-  // A search pick reveals the station: switch its stops layer on, centre on it,
-  // and name it with a popover anchored to its node.
+  // A search pick reveals the station: switch on the layers that surface it,
+  // centre on it, and name it with a popover anchored to its node.
   const revealSearchedStation = (station) => {
-    panel.activateStops();
+    panel.revealStation(station);
     context.focusStation(station.east, station.north);
     selection.selectStation(station);
   };

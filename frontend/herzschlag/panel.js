@@ -8,6 +8,7 @@ import { StationCatalog } from '../viz-core/stationCatalog.js';
 import {
   dominantStationMode,
   fallbackLayerForStops,
+  layerToRevealStation,
   nearestStation,
   nodeDiameterPixels,
   stationIsShown,
@@ -324,7 +325,14 @@ export class HerzschlagPanel extends Panel {
     this.previousZoomFraction = fraction;
   }
 
-  activateStops() {
+  // A searched station may serve a mode whose vehicle layer is off (a bus or
+  // tram stop under the rail defaults); switch that layer on before the stops
+  // layer so its node draws and stays tappable.
+  revealStation(station) {
+    const layer = layerToRevealStation(station.modes, this.layers);
+    if (layer) {
+      this.layers[layer] = true;
+    }
     this.#setStops(true);
   }
 
