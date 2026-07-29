@@ -26,6 +26,12 @@ export function isTypingElement(tagName, inputType, isContentEditable) {
   return false;
 }
 
+// Panel bindings are single letters; Shift or Caps Lock report an uppercase
+// event.key, so fold single-character keys to match the binding either way.
+export function normalizedBindingKey(key) {
+  return key.length === 1 ? key.toLowerCase() : key;
+}
+
 // Document-level keyboard shortcuts for playback and camera, plus panel-supplied
 // bindings (key -> handler) for panel-specific toggles. Bound to a target
 // (window) so they work regardless of focus; modifier combinations are left to
@@ -45,7 +51,7 @@ export class KeyboardControls {
     if (this.#isTypingInto(event.target)) {
       return;
     }
-    const binding = this.bindings[event.key];
+    const binding = this.bindings[normalizedBindingKey(event.key)];
     if (binding) {
       binding();
       event.preventDefault();

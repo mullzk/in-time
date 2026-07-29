@@ -71,6 +71,9 @@ export class StationSearch {
       this.#choose(this.activeIndex);
       event.preventDefault();
     } else if (event.key === 'Escape') {
+      // Keep this Escape to the search; without it the same press also reaches
+      // the document-level info modal and closes both at once.
+      event.stopPropagation();
       this.#close();
       this.input.blur();
     }
