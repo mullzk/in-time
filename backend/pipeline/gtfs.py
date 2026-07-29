@@ -29,7 +29,7 @@ def is_swiss_bpuic_text(value: str) -> bool:
 # 4 übrige). Rail types without an explicit mapping fall into category 4.
 _CATEGORY = {101: 0, 102: 0, 103: 1, 106: 2, 100: 2, 107: 2, 109: 3, 105: 4}
 
-_WEEKDAY_COLUMNS = [
+WEEKDAY_COLUMNS = [
     "monday",
     "tuesday",
     "wednesday",
@@ -63,7 +63,7 @@ def seconds_since_midnight(clock: str) -> int:
 
 
 def active_services(gtfs_dir: Path, service_date: datetime.date) -> set[str]:
-    weekday_column = _WEEKDAY_COLUMNS[service_date.weekday()]
+    weekday_column = WEEKDAY_COLUMNS[service_date.weekday()]
     date_str = service_date.strftime("%Y%m%d")
 
     regular: set[str] = set()

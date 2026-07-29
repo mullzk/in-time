@@ -23,6 +23,7 @@ from pipeline.gtfs import (
     CATEGORY_BUS,
     CATEGORY_TRAM,
     RAIL_CATEGORIES,
+    WEEKDAY_COLUMNS,
     category_of,
     is_swiss_bpuic_text,
 )
@@ -46,16 +47,6 @@ REGULAR_EDGES_CACHE_NAME = "regular_edges.bin"
 _CACHE_MAGIC = b"ITRE"
 _CACHE_VERSION = 1
 _CACHE_HEADER = struct.Struct("<4sI")
-
-_WEEKDAY_COLUMNS = [
-    "monday",
-    "tuesday",
-    "wednesday",
-    "thursday",
-    "friday",
-    "saturday",
-    "sunday",
-]
 
 Edge = tuple[int, int, int]
 
@@ -165,7 +156,7 @@ def _operating_day_masks(gtfs_dir: Path, needed: set[str]) -> dict[str, int]:
     start_date_of_mask = _start_date_of_mask(calendar_rows, exceptions)
     operating_day_masks: dict[str, int] = {}
     for row in calendar_rows:
-        active_weekdays = [row[column] == "1" for column in _WEEKDAY_COLUMNS]
+        active_weekdays = [row[column] == "1" for column in WEEKDAY_COLUMNS]
         day = _parse_date(row["start_date"])
         end = _parse_date(row["end_date"])
         operating_day_mask = 0
