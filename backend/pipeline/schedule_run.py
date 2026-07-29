@@ -11,11 +11,11 @@ from pipeline.models import BuildCommand, BuildRun, BuildStatus
 def run_schedule_build(
     data_dir: DataDir,
     service_date: date,
-    fetch_gtfs: Callable[[], str],
+    fetch_sources: Callable[[], str],
     build_day_artifacts: Callable[[date, Path], None],
     reload_service: Callable[[], None],
 ) -> BuildRun:
-    version = fetch_gtfs()
+    version = fetch_sources()
     if _already_current(data_dir, service_date, version):
         return BuildRun.objects.create(
             command=BuildCommand.SCHEDULE,

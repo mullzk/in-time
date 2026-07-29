@@ -41,7 +41,7 @@ def test_first_run_builds_publishes_and_reloads(tmp_path: Path) -> None:
     run = run_schedule_build(
         data,
         DAY,
-        fetch_gtfs=const_fetch("v1"),
+        fetch_sources=const_fetch("v1"),
         build_day_artifacts=make_builder(),
         reload_service=lambda: reloads.append(1),
     )

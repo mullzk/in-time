@@ -91,7 +91,7 @@ class Command(BaseCommand):
         run = run_schedule_build(
             data_dir,
             service_date,
-            fetch_gtfs=fetch_sources,
+            fetch_sources=fetch_sources,
             build_day_artifacts=build_day_artifacts,
             reload_service=reload_runner(settings.SCHEDULE_RELOAD_COMMAND),
         )
