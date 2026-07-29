@@ -9,8 +9,8 @@ from shapely.geometry import LineString, MultiLineString
 from shapely.geometry import Point as ShapelyPoint
 from shapely.geometry.base import BaseGeometry
 
-from pipeline.network.geometry import polyline_length
-from pipeline.network.rail import Point, RailGraph
+from pipeline.network.geometry import Point, polyline_length
+from pipeline.network.rail import RailGraph
 
 
 def _line_coords(line: LineString) -> list[Point]:

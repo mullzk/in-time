@@ -222,6 +222,10 @@ def _read_column(data: bytes, typecode: str, count: int, start: int) -> list[int
     return column.tolist()
 
 
+def datetime_date_from_yyyymmdd(value: int) -> date:
+    return date(value // 10000, (value // 100) % 100, value % 100)
+
+
 def read_schedule_blob(data: bytes) -> ScheduleDay:
     header = read_header(data)
     east_origin = header.coord_origin_east
@@ -304,7 +308,3 @@ def read_schedule_blob(data: bytes) -> ScheduleDay:
     return ScheduleDay(
         service_date=service_date, stations=stations, edges=edges, trips=trips
     )
-
-
-def datetime_date_from_yyyymmdd(value: int) -> date:
-    return date(value // 10000, (value // 100) % 100, value % 100)

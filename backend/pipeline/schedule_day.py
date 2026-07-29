@@ -37,7 +37,7 @@ from pipeline.gtfs import (
     is_swiss_didok,
     stop_sequences,
 )
-from pipeline.network.rail import Point, RailGraph, RailRouter
+from pipeline.network import Point, RailGraph, RailRouter
 from pipeline.schedule_blob import Event, ScheduleDay, Trip
 
 _RAILBOUND_CATEGORIES = RAIL_CATEGORIES | {CATEGORY_TRAM}
@@ -80,6 +80,12 @@ class ScheduleBuild:
     stations: list[StationEntry]
     method_counts: dict[str, int]
     straight_fallbacks: list[NamedStraightFallback]
+
+
+@dataclass
+class DayBuilds:
+    rail: ScheduleBuild
+    road: ScheduleBuild
 
 
 class StationSource(Protocol):
@@ -251,12 +257,6 @@ def build_rail_schedule_day(
         placeable,
         regular_connections,
     )
-
-
-@dataclass
-class DayBuilds:
-    rail: ScheduleBuild
-    road: ScheduleBuild
 
 
 def assemble_straight_line_day(

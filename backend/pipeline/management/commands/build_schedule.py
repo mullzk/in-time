@@ -1,5 +1,7 @@
 import datetime
+import subprocess
 import time
+from collections.abc import Callable
 from pathlib import Path
 
 from django.conf import settings
@@ -10,14 +12,12 @@ from pipeline.artifacts import (
     SCHEDULE_RAIL_BLOB_NAME,
     SCHEDULE_ROAD_BLOB_NAME,
     composite_version,
-    locate_gdb,
-    reload_runner,
     write_day_artifacts,
 )
 from pipeline.bus_stops import load_bus_stops
 from pipeline.datadir import DataDir
 from pipeline.diagnostics import DayDiagnostics
-from pipeline.fetch import gtfs_archive, rail_network_archive
+from pipeline.fetch import gtfs_archive, locate_gdb, rail_network_archive
 from pipeline.frequency import (
     REGULAR_CONNECTIONS_CACHE_NAME,
     load_or_scan_regular_connections,
@@ -26,6 +26,17 @@ from pipeline.network.rail_gdb import load_rail_graph
 from pipeline.schedule_day import build_schedule_day
 from pipeline.schedule_run import run_schedule_build
 from pipeline.station_clusters import load_station_clusters
+
+
+def reload_runner(
+    command: list[str],
+    runner: Callable[[list[str]], object] = lambda cmd: subprocess.run(cmd, check=True),
+) -> Callable[[], None]:
+    def reload() -> None:
+        if command:
+            runner(command)
+
+    return reload
 
 
 class Command(BaseCommand):

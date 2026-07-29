@@ -1,11 +1,9 @@
 """Turns an assembled schedule day into the files published under a day's
-artifact directory, and provides the small glue the build command wires
-together (source version string, geodatabase lookup, service reload)."""
+artifact directory, plus the composite source-version string that tags a
+build."""
 
 import gzip
 import json
-import subprocess
-from collections.abc import Callable
 from pathlib import Path
 
 import brotli
@@ -93,23 +91,3 @@ def _write_with_sidecars(path: Path, data: bytes) -> None:
     write_atomically(
         path.with_name(path.name + ".br"), brotli.compress(data, quality=11)
     )
-
-
-def locate_gdb(archive_dir: Path) -> Path:
-    geodatabases = sorted(archive_dir.glob("*.gdb"))
-    if not geodatabases:
-        raise ValueError(f"no .gdb in {archive_dir}")
-    if len(geodatabases) > 1:
-        raise ValueError(f"multiple .gdb in {archive_dir}")
-    return geodatabases[0]
-
-
-def reload_runner(
-    command: list[str],
-    runner: Callable[[list[str]], object] = lambda cmd: subprocess.run(cmd, check=True),
-) -> Callable[[], None]:
-    def reload() -> None:
-        if command:
-            runner(command)
-
-    return reload

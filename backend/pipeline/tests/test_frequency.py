@@ -16,6 +16,7 @@ from pipeline.frequency import (
     serialize_regular_connections,
 )
 from pipeline.gtfs import CATEGORY_BUS, CATEGORY_TRAM
+from pipeline.tests.feeds import stop_times, stops_txt, trips_txt
 
 GTFS_DIR = os.environ.get("GTFS_SCHEDULE_DIR")
 
@@ -45,34 +46,6 @@ def write_feed(directory: Path, files: dict[str, str]) -> None:
     base = {"calendar.txt": CALENDAR, "routes.txt": ROUTES}
     for name, content in {**base, **files}.items():
         (directory / name).write_text(content, encoding="utf-8")
-
-
-def stops_txt(*didoks: int) -> str:
-    header = (
-        "stop_id,stop_name,stop_lat,stop_lon,location_type,parent_station,"
-        "platform_code,original_stop_id,didok\n"
-    )
-    rows = "".join(
-        f'"{didok}","S{didok}","47.0","8.0","1","","","","{didok}"\n'
-        for didok in didoks
-    )
-    return header + rows
-
-
-def trips_txt(*rows: tuple[str, str, str]) -> str:
-    header = "route_id,service_id,trip_id\n"
-    return header + "".join(
-        f"{route},{service},{trip}\n" for route, service, trip in rows
-    )
-
-
-def stop_times(*trips: tuple[str, list[int]]) -> str:
-    header = "trip_id,arrival_time,departure_time,stop_id,stop_sequence\n"
-    rows = ""
-    for trip_id, sequence in trips:
-        for position, didok in enumerate(sequence):
-            rows += f'"{trip_id}","08:00:00","08:00:00","{didok}","{position}"\n'
-    return header + rows
 
 
 @pytest.mark.parametrize(

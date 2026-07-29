@@ -107,3 +107,12 @@ def rail_network_archive(
         resolve_version=lambda: resolve_rail_network_version(url),
         download=lambda _version, dest: extract_zip_from_url(url, dest),
     )
+
+
+def locate_gdb(archive_dir: Path) -> Path:
+    geodatabases = sorted(archive_dir.glob("*.gdb"))
+    if not geodatabases:
+        raise ValueError(f"no .gdb in {archive_dir}")
+    if len(geodatabases) > 1:
+        raise ValueError(f"multiple .gdb in {archive_dir}")
+    return geodatabases[0]

@@ -4,13 +4,9 @@ from pathlib import Path
 import pytest
 
 from pipeline.bus_stops import load_bus_stops
+from pipeline.tests.feeds import STOPS_HEADER
 
 GTFS_DIR = os.environ.get("GTFS_SCHEDULE_DIR")
-
-STOPS_HEADER = (
-    "stop_id,stop_name,stop_lat,stop_lon,location_type,parent_station,"
-    "platform_code,original_stop_id,didok\n"
-)
 
 # WGS84 of the swisstopo fundamental point -> LV95 2600000 / 1200000.
 BERN_LAT = 46.951082958

@@ -4,13 +4,10 @@ from pathlib import Path
 import pytest
 
 from pipeline.station_clusters import load_station_clusters
+from pipeline.tests.feeds import STOPS_HEADER
 
 GTFS_DIR = os.environ.get("GTFS_SCHEDULE_DIR")
 
-STOPS_HEADER = (
-    "stop_id,stop_name,stop_lat,stop_lon,location_type,parent_station,"
-    "platform_code,original_stop_id,didok\n"
-)
 TRANSFERS_HEADER = "from_stop_id,to_stop_id,transfer_type,min_transfer_time\n"
 
 

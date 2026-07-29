@@ -17,7 +17,7 @@ from pipeline.network.geometry import Point, distance
 from pipeline.network.graph import NetworkGraph, Segment
 from pipeline.network.thresholds import DEFAULT_THRESHOLDS, RoutingThresholds
 
-__all__ = ["Point", "RailGraph", "RailRouter", "RoutedLeg", "StraightFallback"]
+__all__ = ["RailGraph", "RailRouter", "RoutedLeg", "StraightFallback"]
 
 # A direct leg is kept over a multi-snap alternative when it is at most this much
 # longer than the straight line between the two stations.

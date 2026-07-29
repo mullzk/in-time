@@ -8,8 +8,6 @@ import pytest
 
 from pipeline.artifacts import (
     composite_version,
-    locate_gdb,
-    reload_runner,
     stations_json,
     write_day_artifacts,
 )
@@ -108,34 +106,3 @@ def test_write_day_artifacts_emits_matching_sidecars(tmp_path: Path, name: str) 
     raw = (tmp_path / name).read_bytes()
     assert gzip.decompress((tmp_path / f"{name}.gz").read_bytes()) == raw
     assert brotli.decompress((tmp_path / f"{name}.br").read_bytes()) == raw
-
-
-def test_locate_gdb_finds_the_only_geodatabase(tmp_path: Path) -> None:
-    (tmp_path / "schienennetz_2056_de.gdb").mkdir()
-    (tmp_path / "readme.txt").write_text("ignored")
-
-    assert locate_gdb(tmp_path) == tmp_path / "schienennetz_2056_de.gdb"
-
-
-def test_locate_gdb_rejects_when_none(tmp_path: Path) -> None:
-    with pytest.raises(ValueError, match="no .gdb"):
-        locate_gdb(tmp_path)
-
-
-def test_locate_gdb_rejects_when_ambiguous(tmp_path: Path) -> None:
-    (tmp_path / "a.gdb").mkdir()
-    (tmp_path / "b.gdb").mkdir()
-
-    with pytest.raises(ValueError, match="multiple .gdb"):
-        locate_gdb(tmp_path)
-
-
-def test_reload_runner_is_a_noop_for_an_empty_command() -> None:
-    reload_runner([])()
-
-
-def test_reload_runner_invokes_a_configured_command() -> None:
-    calls: list[list[str]] = []
-    reload_runner(["true"], runner=calls.append)()
-
-    assert calls == [["true"]]
