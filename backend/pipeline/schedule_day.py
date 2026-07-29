@@ -9,9 +9,10 @@ drawn as straight lines between their stops (assemble_straight_line_day), so a
 bus leg carries no edges. build_schedule_day produces both.
 
 The frequency filter treats the modes differently. A rail or tram trip drops as
-soon as one of its edges is irregular. A bus trip is kept as long as it has any
-regular edge: an urban line whose city-centre routing legitimately varies day to
-day would otherwise vanish whole, and its rare segments cost nothing extra to
+soon as one of its connections is irregular. A bus trip is kept as long as it has
+any regular connection: an urban line whose city-centre routing legitimately
+varies day to day would otherwise vanish whole, and its rare segments cost
+nothing extra to
 show — they are the same straight lines every bus leg already is."""
 
 from collections import Counter
@@ -23,7 +24,7 @@ from typing import Protocol
 
 from pipeline.bus_stops import BusStop
 from pipeline.frequency import (
-    RegularEdges,
+    RegularConnections,
     frequency_mode_of_category,
 )
 from pipeline.gtfs import (
@@ -145,17 +146,17 @@ def _swiss_stations_and_mode(
 
 
 def _rail_trip_is_droppable(
-    sequence: list[StopCall], category: int, regular_edges: RegularEdges
+    sequence: list[StopCall], category: int, regular_connections: RegularConnections
 ) -> bool:
     swiss_stations, mode = _swiss_stations_and_mode(sequence, category)
-    return not regular_edges.trip_is_regular(swiss_stations, mode)
+    return not regular_connections.trip_is_regular(swiss_stations, mode)
 
 
 def _bus_trip_is_droppable(
-    sequence: list[StopCall], category: int, regular_edges: RegularEdges
+    sequence: list[StopCall], category: int, regular_connections: RegularConnections
 ) -> bool:
     swiss_stations, mode = _swiss_stations_and_mode(sequence, category)
-    return not regular_edges.trip_has_regular_edge(swiss_stations, mode)
+    return not regular_connections.trip_has_regular_connection(swiss_stations, mode)
 
 
 def assemble_schedule_day(
@@ -165,14 +166,14 @@ def assemble_schedule_day(
     router: RailRouter,
     source: StationSource,
     placeable: Set[int],
-    regular_edges: RegularEdges | None = None,
+    regular_connections: RegularConnections | None = None,
 ) -> ScheduleBuild:
     kept: dict[str, list[StopCall]] = {}
     pairs: set[tuple[int, int]] = set()
     for trip_id, category in trips.items():
         sequence = sequences.get(trip_id, [])
-        if regular_edges is not None and _rail_trip_is_droppable(
-            sequence, category, regular_edges
+        if regular_connections is not None and _rail_trip_is_droppable(
+            sequence, category, regular_connections
         ):
             continue
         calls = _kept_calls(sequence, placeable)
@@ -236,7 +237,7 @@ def build_rail_schedule_day(
     gtfs_dir: Path,
     rail_graph: RailGraph,
     service_date: date,
-    regular_edges: RegularEdges | None = None,
+    regular_connections: RegularConnections | None = None,
 ) -> ScheduleBuild:
     trips = active_rail_trips(gtfs_dir, service_date)
     sequences = stop_sequences(gtfs_dir, set(trips))
@@ -248,7 +249,7 @@ def build_rail_schedule_day(
         router,
         source,
         placeable,
-        regular_edges,
+        regular_connections,
     )
 
 
@@ -263,14 +264,14 @@ def assemble_straight_line_day(
     trips: dict[str, int],
     sequences: dict[str, list[StopCall]],
     bus_stops: dict[int, BusStop],
-    regular_edges: RegularEdges,
+    regular_connections: RegularConnections,
 ) -> ScheduleBuild:
     catalog = _StationCatalog(BusStationSource(bus_stops))
     placeable = set(bus_stops)
     assembled: list[Trip] = []
     for trip_id, category in trips.items():
         sequence = sequences.get(trip_id, [])
-        if _bus_trip_is_droppable(sequence, category, regular_edges):
+        if _bus_trip_is_droppable(sequence, category, regular_connections):
             continue
         calls = _kept_calls(sequence, placeable)
         if len(calls) < 2:
@@ -295,7 +296,7 @@ def build_schedule_day(
     gtfs_dir: Path,
     rail_graph: RailGraph,
     bus_stops: dict[int, BusStop],
-    regular_edges: RegularEdges,
+    regular_connections: RegularConnections,
     service_date: date,
 ) -> DayBuilds:
     trips = active_trips(gtfs_dir, service_date)
@@ -317,9 +318,9 @@ def build_schedule_day(
         router,
         source,
         placeable,
-        regular_edges,
+        regular_connections,
     )
     road = assemble_straight_line_day(
-        service_date, bus_trips, sequences, bus_stops, regular_edges
+        service_date, bus_trips, sequences, bus_stops, regular_connections
     )
     return DayBuilds(rail=rail, road=road)

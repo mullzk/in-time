@@ -1,13 +1,13 @@
-"""Frequency filter over a GTFS year: which (station-pair, mode) edges are served
-regularly enough to appear in the base map.
+"""Frequency filter over a GTFS year: which (station-pair, mode) connections are
+served regularly enough to appear in the base map.
 
 Over the whole feed each service's operating days form a bitmask (calendar plus
-calendar_dates); every edge accumulates the union of its trips' days and their
-total departures. An edge is regular when it runs on enough days and often enough
-per operating day. A trip is kept only if all of its edges are regular, so a
-single irregular edge drops the trip — decommissioned lines and rare seasonal
-variants vanish from the shared edge list. Foreign stops are bridged: an edge
-connects the surrounding Swiss stations."""
+calendar_dates); every connection accumulates the union of its trips' days and
+their total departures. A connection is regular when it runs on enough days and
+often enough per operating day. A trip is kept only if all of its connections are
+regular, so a single irregular connection drops the trip — decommissioned lines
+and rare seasonal variants vanish from the base map. Foreign stops are bridged: a
+connection joins the surrounding Swiss stations."""
 
 import array
 import csv
@@ -35,20 +35,20 @@ FREQUENCY_MODE_RAIL = 0
 FREQUENCY_MODE_TRAM = CATEGORY_TRAM
 FREQUENCY_MODE_BUS = CATEGORY_BUS
 
-REGULAR_EDGES_CACHE_NAME = "regular_edges.bin"
+REGULAR_CONNECTIONS_CACHE_NAME = "regular_connections.bin"
 
 # The sidecar is cached per GTFS version, but its contents also depend on how a
-# scanned edge is encoded — most subtly the frequency-mode numbering above. A
-# cache written under an older meaning would be silently misread (tram and bus
-# edges filed under retired mode codes, dropping every tram and bus). The header
-# pins that meaning: bump _CACHE_VERSION whenever the encoded meaning of an edge
-# changes; any cache lacking the current magic and version is treated as stale
-# and rescanned rather than trusted.
-_CACHE_MAGIC = b"ITRE"
+# scanned connection is encoded — most subtly the frequency-mode numbering above.
+# A cache written under an older meaning would be silently misread (tram and bus
+# connections filed under retired mode codes, dropping every tram and bus). The
+# header pins that meaning: bump _CACHE_VERSION whenever the encoded meaning of a
+# connection changes; any cache lacking the current magic and version is treated
+# as stale and rescanned rather than trusted.
+_CACHE_MAGIC = b"ITRC"
 _CACHE_VERSION = 1
 _CACHE_HEADER = struct.Struct("<4sI")
 
-Edge = tuple[int, int, int]
+Connection = tuple[int, int, int]
 
 
 @dataclass(frozen=True)
@@ -64,22 +64,22 @@ def frequency_mode_of_category(category: int) -> int:
     return FREQUENCY_MODE_RAIL if category in RAIL_CATEGORIES else category
 
 
-def _edge_key(first: int, second: int, mode: int) -> Edge:
+def _connection_key(first: int, second: int, mode: int) -> Connection:
     return (first, second, mode) if first < second else (second, first, mode)
 
 
-class RegularEdges:
-    def __init__(self, edges: frozenset[Edge]) -> None:
-        self._edges = edges
+class RegularConnections:
+    def __init__(self, connections: frozenset[Connection]) -> None:
+        self._connections = connections
 
     def __len__(self) -> int:
-        return len(self._edges)
+        return len(self._connections)
 
-    def __iter__(self) -> Iterator[Edge]:
-        return iter(self._edges)
+    def __iter__(self) -> Iterator[Connection]:
+        return iter(self._connections)
 
     def is_regular(self, first: int, second: int, mode: int) -> bool:
-        return _edge_key(first, second, mode) in self._edges
+        return _connection_key(first, second, mode) in self._connections
 
     def trip_is_regular(self, stations: list[int], mode: int) -> bool:
         return all(
@@ -88,7 +88,7 @@ class RegularEdges:
             if first != second
         )
 
-    def trip_has_regular_edge(self, stations: list[int], mode: int) -> bool:
+    def trip_has_regular_connection(self, stations: list[int], mode: int) -> bool:
         return any(
             self.is_regular(first, second, mode)
             for first, second in zip(stations, stations[1:], strict=False)
@@ -189,10 +189,10 @@ def _swiss_stop_didok(gtfs_dir: Path) -> dict[str, int]:
     return mapping
 
 
-class _EdgeTraffic:
+class _ConnectionTraffic:
     def __init__(self) -> None:
-        self._operating_day_masks: dict[Edge, int] = {}
-        self._departures: dict[Edge, int] = {}
+        self._operating_day_masks: dict[Connection, int] = {}
+        self._departures: dict[Connection, int] = {}
 
     def add_trip(
         self, stations: Iterable[int], mode: int, operating_day_mask: int
@@ -200,55 +200,57 @@ class _EdgeTraffic:
         operating_day_count = operating_day_mask.bit_count()
         if operating_day_count == 0:
             return
-        seen: set[Edge] = set()
+        seen: set[Connection] = set()
         previous: int | None = None
         for station in stations:
             if previous is not None and previous != station:
-                edge = _edge_key(previous, station, mode)
-                if edge not in seen:
-                    seen.add(edge)
-                    self._operating_day_masks[edge] = (
-                        self._operating_day_masks.get(edge, 0) | operating_day_mask
+                connection = _connection_key(previous, station, mode)
+                if connection not in seen:
+                    seen.add(connection)
+                    self._operating_day_masks[connection] = (
+                        self._operating_day_masks.get(connection, 0)
+                        | operating_day_mask
                     )
-                    self._departures[edge] = (
-                        self._departures.get(edge, 0) + operating_day_count
+                    self._departures[connection] = (
+                        self._departures.get(connection, 0) + operating_day_count
                     )
             previous = station
 
-    def regular(self, thresholds: FrequencyThresholds) -> frozenset[Edge]:
+    def regular(self, thresholds: FrequencyThresholds) -> frozenset[Connection]:
         return frozenset(
-            edge
-            for edge, operating_day_mask in self._operating_day_masks.items()
+            connection
+            for connection, operating_day_mask in self._operating_day_masks.items()
             if self._is_regular(
-                operating_day_mask.bit_count(), self._departures[edge], thresholds
+                operating_day_mask.bit_count(), self._departures[connection], thresholds
             )
         )
 
     @staticmethod
     def _is_regular(
-        edge_operating_days: int, departures: int, thresholds: FrequencyThresholds
+        connection_operating_days: int, departures: int, thresholds: FrequencyThresholds
     ) -> bool:
         return (
-            edge_operating_days >= thresholds.min_days
-            and departures >= edge_operating_days * thresholds.min_departures_per_day
+            connection_operating_days >= thresholds.min_days
+            and departures
+            >= connection_operating_days * thresholds.min_departures_per_day
         )
 
 
-def _accumulate_edges(
+def _accumulate_connections(
     gtfs_dir: Path,
     trip_mode: dict[str, int],
     trip_service: dict[str, str],
     operating_day_masks: dict[str, int],
     stop_didok: dict[str, int],
-) -> _EdgeTraffic:
+) -> _ConnectionTraffic:
     """Requires stop_times.txt rows to be contiguous per trip_id: the scan is
     single-pass and flushes a trip as soon as the trip_id changes, so a
-    fragmented trip would drop its cross-fragment edge and double-count shared
+    fragmented trip would drop its cross-fragment connection and double-count shared
     ones. This trades robustness for bounded memory (~1.8M trips / 28M rows in
     the Swiss feed) — unlike `gtfs.stop_sequences`, which groups into a dict but
     only for a pre-filtered trip set. GTFS recommends but does not guarantee the
     grouping; the current national feed satisfies it."""
-    traffic = _EdgeTraffic()
+    traffic = _ConnectionTraffic()
 
     def record_trip(trip_id: str, ordered: list[tuple[int, int]]) -> None:
         mode = trip_mode.get(trip_id)
@@ -283,23 +285,23 @@ def _accumulate_edges(
     return traffic
 
 
-def scan_regular_edges(
+def scan_regular_connections(
     gtfs_dir: Path,
     thresholds: FrequencyThresholds = DEFAULT_FREQUENCY_THRESHOLDS,
-) -> RegularEdges:
+) -> RegularConnections:
     trip_mode, trip_service = _trip_modes_and_services(gtfs_dir)
     operating_day_masks = _operating_day_masks(gtfs_dir, set(trip_service.values()))
     stop_didok = _swiss_stop_didok(gtfs_dir)
-    traffic = _accumulate_edges(
+    traffic = _accumulate_connections(
         gtfs_dir, trip_mode, trip_service, operating_day_masks, stop_didok
     )
-    return RegularEdges(traffic.regular(thresholds))
+    return RegularConnections(traffic.regular(thresholds))
 
 
 # The `i` item width is the platform's native int, but the sidecar never leaves
 # the host that wrote it (regenerated per host and per GTFS version), so it is
 # always read back at the same width; only byte order needs normalising.
-def serialize_regular_edges(regular: RegularEdges) -> bytes:
+def serialize_regular_connections(regular: RegularConnections) -> bytes:
     flat = array.array("i")
     for first, second, mode in regular:
         flat.extend((first, second, mode))
@@ -308,39 +310,39 @@ def serialize_regular_edges(regular: RegularEdges) -> bytes:
     return _CACHE_HEADER.pack(_CACHE_MAGIC, _CACHE_VERSION) + flat.tobytes()
 
 
-def deserialize_regular_edges(data: bytes) -> RegularEdges:
+def deserialize_regular_connections(data: bytes) -> RegularConnections:
     if len(data) < _CACHE_HEADER.size:
-        raise ValueError("truncated regular-edges cache")
+        raise ValueError("truncated regular-connections cache")
     magic, version = _CACHE_HEADER.unpack_from(data)
     if magic != _CACHE_MAGIC or version != _CACHE_VERSION:
-        raise ValueError("stale or unrecognized regular-edges cache")
+        raise ValueError("stale or unrecognized regular-connections cache")
     payload = data[_CACHE_HEADER.size :]
     if len(payload) % (array.array("i").itemsize * 3) != 0:
-        raise ValueError("truncated regular-edges cache")
+        raise ValueError("truncated regular-connections cache")
     flat = array.array("i")
     flat.frombytes(payload)
     if sys.byteorder == "big":
         flat.byteswap()
-    edges = {
+    connections = {
         (flat[index], flat[index + 1], flat[index + 2])
         for index in range(0, len(flat), 3)
     }
-    return RegularEdges(frozenset(edges))
+    return RegularConnections(frozenset(connections))
 
 
-def load_or_scan_regular_edges(
+def load_or_scan_regular_connections(
     gtfs_dir: Path,
     cache_path: Path,
     thresholds: FrequencyThresholds = DEFAULT_FREQUENCY_THRESHOLDS,
-) -> RegularEdges:
+) -> RegularConnections:
     # The scan reads the whole yearly feed (~1 min), but its result depends only
     # on the GTFS version, so it is cached per version and only recomputed when a
     # new feed appears and its cache is absent.
     if cache_path.exists():
         try:
-            return deserialize_regular_edges(cache_path.read_bytes())
+            return deserialize_regular_connections(cache_path.read_bytes())
         except ValueError:
             pass  # stale or unrecognized cache -> rescan and overwrite it below
-    regular = scan_regular_edges(gtfs_dir, thresholds)
-    write_atomically(cache_path, serialize_regular_edges(regular))
+    regular = scan_regular_connections(gtfs_dir, thresholds)
+    write_atomically(cache_path, serialize_regular_connections(regular))
     return regular

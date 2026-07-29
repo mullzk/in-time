@@ -8,12 +8,12 @@ from pipeline.frequency import (
     FREQUENCY_MODE_RAIL,
     FREQUENCY_MODE_TRAM,
     FrequencyThresholds,
-    RegularEdges,
-    deserialize_regular_edges,
+    RegularConnections,
+    deserialize_regular_connections,
     frequency_mode_of_category,
-    load_or_scan_regular_edges,
-    scan_regular_edges,
-    serialize_regular_edges,
+    load_or_scan_regular_connections,
+    scan_regular_connections,
+    serialize_regular_connections,
 )
 from pipeline.gtfs import CATEGORY_BUS, CATEGORY_TRAM
 
@@ -93,7 +93,7 @@ def test_frequency_mode_of_category_collapses_rail_subtypes(
     assert frequency_mode_of_category(category) == expected
 
 
-def test_edge_is_regular_with_enough_days_and_departures(tmp_path: Path) -> None:
+def test_connection_is_regular_with_enough_days_and_departures(tmp_path: Path) -> None:
     write_feed(
         tmp_path,
         {
@@ -105,13 +105,13 @@ def test_edge_is_regular_with_enough_days_and_departures(tmp_path: Path) -> None
             "stop_times.txt": stop_times(("T1", [A, B]), ("T2", [A, B])),
         },
     )
-    regular = scan_regular_edges(tmp_path, SMALL)
+    regular = scan_regular_connections(tmp_path, SMALL)
     assert regular.is_regular(A, B, FREQUENCY_MODE_RAIL)
-    # Edges are undirected.
+    # Connections are undirected.
     assert regular.is_regular(B, A, FREQUENCY_MODE_RAIL)
 
 
-def test_edge_with_too_few_days_is_irregular(tmp_path: Path) -> None:
+def test_connection_with_too_few_days_is_irregular(tmp_path: Path) -> None:
     write_feed(
         tmp_path,
         {
@@ -120,11 +120,11 @@ def test_edge_with_too_few_days_is_irregular(tmp_path: Path) -> None:
             "stop_times.txt": stop_times(("T1", [A, B]), ("T2", [A, B])),
         },
     )
-    regular = scan_regular_edges(tmp_path, SMALL)
+    regular = scan_regular_connections(tmp_path, SMALL)
     assert not regular.is_regular(A, B, FREQUENCY_MODE_RAIL)
 
 
-def test_edge_with_too_few_departures_is_irregular(tmp_path: Path) -> None:
+def test_connection_with_too_few_departures_is_irregular(tmp_path: Path) -> None:
     write_feed(
         tmp_path,
         {
@@ -134,11 +134,11 @@ def test_edge_with_too_few_departures_is_irregular(tmp_path: Path) -> None:
             "stop_times.txt": stop_times(("T1", [A, B])),
         },
     )
-    regular = scan_regular_edges(tmp_path, SMALL)
+    regular = scan_regular_connections(tmp_path, SMALL)
     assert not regular.is_regular(A, B, FREQUENCY_MODE_RAIL)
 
 
-def test_mode_separates_edges_on_the_same_pair(tmp_path: Path) -> None:
+def test_mode_separates_connections_on_the_same_pair(tmp_path: Path) -> None:
     write_feed(
         tmp_path,
         {
@@ -153,13 +153,14 @@ def test_mode_separates_edges_on_the_same_pair(tmp_path: Path) -> None:
             ),
         },
     )
-    regular = scan_regular_edges(tmp_path, SMALL)
+    regular = scan_regular_connections(tmp_path, SMALL)
     assert regular.is_regular(A, B, FREQUENCY_MODE_RAIL)
-    # Only one bus trip -> the bus edge stays irregular despite the busy rail pair.
+    # Only one bus trip -> the bus connection stays irregular despite the busy rail
+    # pair.
     assert not regular.is_regular(A, B, FREQUENCY_MODE_BUS)
 
 
-def test_trip_is_regular_only_when_all_edges_are(tmp_path: Path) -> None:
+def test_trip_is_regular_only_when_all_connections_are(tmp_path: Path) -> None:
     write_feed(
         tmp_path,
         {
@@ -171,19 +172,19 @@ def test_trip_is_regular_only_when_all_edges_are(tmp_path: Path) -> None:
             "stop_times.txt": stop_times(("T1", [A, B, C]), ("T2", [A, B, C])),
         },
     )
-    regular = scan_regular_edges(tmp_path, SMALL)
+    regular = scan_regular_connections(tmp_path, SMALL)
     assert regular.trip_is_regular([A, B, C], FREQUENCY_MODE_RAIL)
     assert not regular.trip_is_regular([A, B, D], FREQUENCY_MODE_RAIL)
 
 
-def test_trip_has_regular_edge_needs_only_one() -> None:
-    regular = RegularEdges(frozenset({(A, B, FREQUENCY_MODE_BUS)}))
+def test_trip_has_regular_connection_needs_only_one() -> None:
+    regular = RegularConnections(frozenset({(A, B, FREQUENCY_MODE_BUS)}))
 
     # A-B is regular, so a trip touching it survives despite the irregular B-C.
-    assert regular.trip_has_regular_edge([A, B, C], FREQUENCY_MODE_BUS)
-    # No regular edge at all -> nothing to keep.
-    assert not regular.trip_has_regular_edge([B, C, D], FREQUENCY_MODE_BUS)
-    assert not regular.trip_has_regular_edge([A, B], FREQUENCY_MODE_RAIL)
+    assert regular.trip_has_regular_connection([A, B, C], FREQUENCY_MODE_BUS)
+    # No regular connection at all -> nothing to keep.
+    assert not regular.trip_has_regular_connection([B, C, D], FREQUENCY_MODE_BUS)
+    assert not regular.trip_has_regular_connection([A, B], FREQUENCY_MODE_RAIL)
 
 
 def test_calendar_dates_add_and_remove_change_operating_days(tmp_path: Path) -> None:
@@ -197,7 +198,7 @@ def test_calendar_dates_add_and_remove_change_operating_days(tmp_path: Path) -> 
             "stop_times.txt": stop_times(("T1", [A, B]), ("T2", [A, B])),
         },
     )
-    regular = scan_regular_edges(tmp_path, SMALL)
+    regular = scan_regular_connections(tmp_path, SMALL)
     assert regular.is_regular(A, B, FREQUENCY_MODE_RAIL)
 
 
@@ -215,13 +216,13 @@ def test_foreign_stops_are_bridged(tmp_path: Path) -> None:
             ),
         },
     )
-    regular = scan_regular_edges(tmp_path, SMALL)
+    regular = scan_regular_connections(tmp_path, SMALL)
     assert regular.is_regular(A, B, FREQUENCY_MODE_RAIL)
     assert not regular.is_regular(A, FOREIGN, FREQUENCY_MODE_RAIL)
 
 
-def test_serialize_round_trips_the_regular_edges() -> None:
-    regular = RegularEdges(
+def test_serialize_round_trips_the_regular_connections() -> None:
+    regular = RegularConnections(
         frozenset(
             {
                 (A, B, FREQUENCY_MODE_RAIL),
@@ -230,7 +231,7 @@ def test_serialize_round_trips_the_regular_edges() -> None:
             }
         )
     )
-    restored = deserialize_regular_edges(serialize_regular_edges(regular))
+    restored = deserialize_regular_connections(serialize_regular_connections(regular))
     assert set(restored) == set(regular)
 
 
@@ -246,20 +247,22 @@ def test_cache_miss_scans_and_writes_the_cache(tmp_path: Path) -> None:
             "stop_times.txt": stop_times(("T1", [A, B]), ("T2", [A, B])),
         },
     )
-    cache = tmp_path / "regular_edges.bin"
-    regular = load_or_scan_regular_edges(feed, cache, SMALL)
+    cache = tmp_path / "regular_connections.bin"
+    regular = load_or_scan_regular_connections(feed, cache, SMALL)
 
     assert cache.exists()
     assert regular.is_regular(A, B, FREQUENCY_MODE_RAIL)
 
 
 def test_cache_hit_loads_without_scanning(tmp_path: Path) -> None:
-    cache = tmp_path / "regular_edges.bin"
+    cache = tmp_path / "regular_connections.bin"
     cache.write_bytes(
-        serialize_regular_edges(RegularEdges(frozenset({(A, B, FREQUENCY_MODE_RAIL)})))
+        serialize_regular_connections(
+            RegularConnections(frozenset({(A, B, FREQUENCY_MODE_RAIL)}))
+        )
     )
     # A missing feed dir would make a scan raise, proving the cache is used.
-    regular = load_or_scan_regular_edges(tmp_path / "absent", cache, SMALL)
+    regular = load_or_scan_regular_connections(tmp_path / "absent", cache, SMALL)
 
     assert regular.is_regular(A, B, FREQUENCY_MODE_RAIL)
 
@@ -276,15 +279,15 @@ def test_stale_cache_is_rescanned_and_rewritten(tmp_path: Path) -> None:
             "stop_times.txt": stop_times(("T1", [A, B]), ("T2", [A, B])),
         },
     )
-    cache = tmp_path / "regular_edges.bin"
+    cache = tmp_path / "regular_connections.bin"
     cache.write_bytes(b"OLD\x00" + b"\x00" * 12)  # a pre-header, unrecognized cache
 
-    regular = load_or_scan_regular_edges(feed, cache, SMALL)
+    regular = load_or_scan_regular_connections(feed, cache, SMALL)
 
     assert regular.is_regular(A, B, FREQUENCY_MODE_RAIL)
     # It was rewritten in the current format, so a second call serves it from the
     # cache alone -- an absent feed would make a rescan raise.
-    reused = load_or_scan_regular_edges(tmp_path / "absent", cache, SMALL)
+    reused = load_or_scan_regular_connections(tmp_path / "absent", cache, SMALL)
     assert set(reused) == set(regular)
 
 
@@ -300,20 +303,20 @@ def test_truncated_cache_is_rescanned_not_crashed(tmp_path: Path) -> None:
             "stop_times.txt": stop_times(("T1", [A, B]), ("T2", [A, B])),
         },
     )
-    cache = tmp_path / "regular_edges.bin"
-    one_edge = serialize_regular_edges(
-        RegularEdges(frozenset({(A, B, FREQUENCY_MODE_RAIL)}))
+    cache = tmp_path / "regular_connections.bin"
+    one_connection = serialize_regular_connections(
+        RegularConnections(frozenset({(A, B, FREQUENCY_MODE_RAIL)}))
     )
-    cache.write_bytes(one_edge[:-8])  # header intact, payload cut mid-record
+    cache.write_bytes(one_connection[:-8])  # header intact, payload cut mid-record
 
-    regular = load_or_scan_regular_edges(feed, cache, SMALL)
+    regular = load_or_scan_regular_connections(feed, cache, SMALL)
 
     assert regular.is_regular(A, B, FREQUENCY_MODE_RAIL)
 
 
 @pytest.mark.realdata
 @pytest.mark.skipif(not GTFS_DIR, reason="set GTFS_SCHEDULE_DIR to a GTFS feed")
-def test_real_regular_edges_are_plausible() -> None:
+def test_real_regular_connections_are_plausible() -> None:
     assert GTFS_DIR is not None
-    regular = scan_regular_edges(Path(GTFS_DIR))
+    regular = scan_regular_connections(Path(GTFS_DIR))
     assert len(regular) > 1000

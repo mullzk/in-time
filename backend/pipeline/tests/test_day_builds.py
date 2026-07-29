@@ -6,7 +6,7 @@ from pipeline.frequency import (
     FREQUENCY_MODE_BUS,
     FREQUENCY_MODE_RAIL,
     FREQUENCY_MODE_TRAM,
-    RegularEdges,
+    RegularConnections,
 )
 from pipeline.network.rail import RailGraph
 from pipeline.schedule_blob import NetworkType, create_schedule_blob, read_header
@@ -39,8 +39,8 @@ def bus_stops() -> dict[int, BusStop]:
     }
 
 
-def regular_edges() -> RegularEdges:
-    return RegularEdges(
+def regular_connections() -> RegularConnections:
+    return RegularConnections(
         frozenset(
             {
                 (RAIL_A, RAIL_B, FREQUENCY_MODE_RAIL),
@@ -86,7 +86,7 @@ def write_feed(directory: Path) -> None:
 def test_rail_build_carries_rail_and_tram_road_carries_bus(tmp_path: Path) -> None:
     write_feed(tmp_path)
     builds = build_schedule_day(
-        tmp_path, rail_graph(), bus_stops(), regular_edges(), THURSDAY
+        tmp_path, rail_graph(), bus_stops(), regular_connections(), THURSDAY
     )
 
     assert sorted(trip.category for trip in builds.rail.day.trips) == [1, 5]
@@ -96,7 +96,7 @@ def test_rail_build_carries_rail_and_tram_road_carries_bus(tmp_path: Path) -> No
 def test_stations_carry_the_mode_that_serves_them(tmp_path: Path) -> None:
     write_feed(tmp_path)
     builds = build_schedule_day(
-        tmp_path, rail_graph(), bus_stops(), regular_edges(), THURSDAY
+        tmp_path, rail_graph(), bus_stops(), regular_connections(), THURSDAY
     )
 
     rail_modes = {station.didok: station.modes for station in builds.rail.stations}
@@ -132,7 +132,7 @@ def test_station_served_by_two_modes_accumulates_both(tmp_path: Path) -> None:
         f"T_TRAM,09:00:00,09:00:30,{RAIL_A},1\n"
         f"T_TRAM,09:05:00,09:05:00,{RAIL_B},2\n"
     )
-    regular = RegularEdges(
+    regular = RegularConnections(
         frozenset(
             {
                 (RAIL_A, RAIL_B, FREQUENCY_MODE_RAIL),
@@ -149,7 +149,7 @@ def test_station_served_by_two_modes_accumulates_both(tmp_path: Path) -> None:
 def test_bus_build_is_geometry_free(tmp_path: Path) -> None:
     write_feed(tmp_path)
     builds = build_schedule_day(
-        tmp_path, rail_graph(), bus_stops(), regular_edges(), THURSDAY
+        tmp_path, rail_graph(), bus_stops(), regular_connections(), THURSDAY
     )
 
     # Bus legs are drawn straight between stations, so the blob carries no edges.
@@ -182,8 +182,8 @@ def mixed_bus_stops() -> dict[int, BusStop]:
 
 
 # A-B is regular for both modes; B-C is served by neither.
-def mixed_regular_edges() -> RegularEdges:
-    return RegularEdges(
+def mixed_regular_connections() -> RegularConnections:
+    return RegularConnections(
         frozenset(
             {
                 (RAIL_A, RAIL_B, FREQUENCY_MODE_RAIL),
@@ -224,33 +224,39 @@ def write_three_stop_feed(directory: Path) -> None:
     )
 
 
-def test_bus_survives_an_irregular_edge_but_rail_does_not(tmp_path: Path) -> None:
+def test_bus_survives_an_irregular_connection_but_rail_does_not(
+    tmp_path: Path,
+) -> None:
     write_three_stop_feed(tmp_path)
     builds = build_schedule_day(
-        tmp_path, mixed_graph(), mixed_bus_stops(), mixed_regular_edges(), THURSDAY
+        tmp_path,
+        mixed_graph(),
+        mixed_bus_stops(),
+        mixed_regular_connections(),
+        THURSDAY,
     )
 
-    # The bus keeps all three stops though its B-C edge is irregular.
+    # The bus keeps all three stops though its B-C connection is irregular.
     assert [len(trip.events) for trip in builds.road.day.trips] == [3]
-    # The rail trip still drops whole on the same kind of irregular edge.
+    # The rail trip still drops whole on the same kind of irregular connection.
     assert builds.rail.day.trips == []
 
 
-def test_bus_with_no_regular_edge_is_dropped(tmp_path: Path) -> None:
+def test_bus_with_no_regular_connection_is_dropped(tmp_path: Path) -> None:
     write_three_stop_feed(tmp_path)
-    rail_only = RegularEdges(frozenset({(RAIL_A, RAIL_B, FREQUENCY_MODE_RAIL)}))
+    rail_only = RegularConnections(frozenset({(RAIL_A, RAIL_B, FREQUENCY_MODE_RAIL)}))
     builds = build_schedule_day(
         tmp_path, mixed_graph(), mixed_bus_stops(), rail_only, THURSDAY
     )
 
-    # No regular bus edge covers this feed -> nothing to keep.
+    # No regular bus connection covers this feed -> nothing to keep.
     assert builds.road.day.trips == []
 
 
 def test_each_blob_round_trips_with_its_network_type(tmp_path: Path) -> None:
     write_feed(tmp_path)
     builds = build_schedule_day(
-        tmp_path, rail_graph(), bus_stops(), regular_edges(), THURSDAY
+        tmp_path, rail_graph(), bus_stops(), regular_connections(), THURSDAY
     )
 
     rail_blob = create_schedule_blob(builds.rail.day, NetworkType.RAIL)

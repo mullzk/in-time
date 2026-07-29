@@ -1,7 +1,7 @@
 import datetime
 from pathlib import Path
 
-from pipeline.frequency import FREQUENCY_MODE_RAIL, RegularEdges
+from pipeline.frequency import FREQUENCY_MODE_RAIL, RegularConnections
 from pipeline.network.rail import RailGraph
 from pipeline.schedule_day import build_rail_schedule_day
 
@@ -69,10 +69,12 @@ def test_build_rail_schedule_day_assembles_trip(tmp_path: Path) -> None:
     assert build.straight_fallbacks == []
 
 
-def test_frequency_filter_drops_trip_with_an_irregular_edge(tmp_path: Path) -> None:
+def test_frequency_filter_drops_trip_with_an_irregular_connection(
+    tmp_path: Path,
+) -> None:
     write_gtfs(tmp_path)
     # Alpha-Beta is regular but Beta-Gamma is not, so the trip is dropped whole.
-    regular = RegularEdges(frozenset({(ALPHA, BETA, FREQUENCY_MODE_RAIL)}))
+    regular = RegularConnections(frozenset({(ALPHA, BETA, FREQUENCY_MODE_RAIL)}))
     build = build_rail_schedule_day(tmp_path, line_rail_graph(), THURSDAY, regular)
 
     assert build.day.trips == []
@@ -80,7 +82,7 @@ def test_frequency_filter_drops_trip_with_an_irregular_edge(tmp_path: Path) -> N
 
 def test_frequency_filter_keeps_a_fully_regular_trip(tmp_path: Path) -> None:
     write_gtfs(tmp_path)
-    regular = RegularEdges(
+    regular = RegularConnections(
         frozenset(
             {
                 (ALPHA, BETA, FREQUENCY_MODE_RAIL),

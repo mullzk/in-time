@@ -18,7 +18,10 @@ from pipeline.bus_stops import load_bus_stops
 from pipeline.datadir import DataDir
 from pipeline.diagnostics import DayDiagnostics
 from pipeline.fetch import gtfs_archive, rail_network_archive
-from pipeline.frequency import REGULAR_EDGES_CACHE_NAME, load_or_scan_regular_edges
+from pipeline.frequency import (
+    REGULAR_CONNECTIONS_CACHE_NAME,
+    load_or_scan_regular_connections,
+)
 from pipeline.network.rail_gdb import load_rail_graph
 from pipeline.schedule_day import build_schedule_day
 from pipeline.schedule_run import run_schedule_build
@@ -64,14 +67,14 @@ class Command(BaseCommand):
             gtfs_dir = gtfs.path_for(versions["gtfs"])
             bus_stops = load_bus_stops(gtfs_dir)
             station_clusters = load_station_clusters(gtfs_dir)
-            regular_edges = load_or_scan_regular_edges(
-                gtfs_dir, gtfs_dir / REGULAR_EDGES_CACHE_NAME
+            regular_connections = load_or_scan_regular_connections(
+                gtfs_dir, gtfs_dir / REGULAR_CONNECTIONS_CACHE_NAME
             )
             inputs_seconds = time.monotonic() - started
 
             started = time.monotonic()
             builds = build_schedule_day(
-                gtfs_dir, rail_graph, bus_stops, regular_edges, day
+                gtfs_dir, rail_graph, bus_stops, regular_connections, day
             )
             build_seconds = time.monotonic() - started
 
