@@ -54,9 +54,9 @@ def test_signed_path_returns_none_without_connection() -> None:
     assert router.signed_path("A", "C") is None
 
 
-def test_co_located_components_are_bridged() -> None:
+def test_co_located_subnetworks_are_bridged() -> None:
     # Two disjoint segments whose inner ends sit 50 m apart get bridged, so a
-    # path can cross from one component into the other.
+    # path can cross from one subnetwork into the other.
     near_b = (1000.0, 1000.0)
     near_c = (1050.0, 1000.0)
     graph = RailGraph.from_rail_segments(

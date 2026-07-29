@@ -22,14 +22,14 @@ class Command(BaseCommand):
         load_seconds = time.monotonic() - started
 
         graph = rail_graph.graph
-        components_before = nx.number_connected_components(graph)
+        subnetworks_before = nx.number_connected_components(graph)
 
         started = time.monotonic()
         router = RailRouter(rail_graph)
         build_seconds = time.monotonic() - started
 
         edge_points = sum(len(edge) for edge in router.edges)
-        components_after = router.component_count()
+        subnetworks_after = router.subnetwork_count()
 
         self.stdout.write(f"GDB:                {gdb_path}")
         self.stdout.write(f"rail graph nodes:   {graph.number_of_nodes()}")
@@ -38,7 +38,7 @@ class Command(BaseCommand):
         self.stdout.write(f"shared edges:       {len(router.edges)} (simplified)")
         self.stdout.write(f"shared edge points: {edge_points}")
         self.stdout.write(
-            f"components:         {components_before} -> {components_after} "
+            f"subnetworks:        {subnetworks_before} -> {subnetworks_after} "
             f"(after bridging)"
         )
         self.stdout.write(f"load time:          {load_seconds:.1f}s")

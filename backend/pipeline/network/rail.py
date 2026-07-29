@@ -85,8 +85,8 @@ class RailRouter:
     def edge_index_of(self, first: str, second: str) -> int:
         return self._edges.index_of(first, second)
 
-    def component_count(self) -> int:
-        return self._edges.component_count()
+    def subnetwork_count(self) -> int:
+        return self._edges.subnetwork_count()
 
     def signed_length(self, signed_path: list[int]) -> float:
         return self._edges.length_of(signed_path)

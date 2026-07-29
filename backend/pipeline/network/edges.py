@@ -22,7 +22,7 @@ class SharedEdges:
     the larger node id. A leg is a list of signed 1-based indices: the magnitude
     picks the edge (1-based, because 0 could not carry a sign), the sign gives
     the travel direction (positive = stored orientation). Disconnected
-    components whose nearest nodes are close are bridged so a leg can cross
+    subnetworks whose nearest nodes are close are bridged so a leg can cross
     between them."""
 
     def __init__(self, graph: nx.Graph[str], node_point: dict[str, Point]) -> None:
@@ -39,7 +39,7 @@ class SharedEdges:
         edges._register_segments(
             network.edge_points, thresholds.simplify_tolerance_metres
         )
-        edges._bridge_components(thresholds.component_bridge_max_metres)
+        edges._connect_nearby_subnetworks(thresholds.subnetwork_bridge_max_metres)
         return edges
 
     def _register(self, endpoints: tuple[str, str], polyline: list[Point]) -> None:
@@ -58,11 +58,11 @@ class SharedEdges:
             )
             self._register((low, high), simplify(geometry, tolerance))
 
-    def _bridge_components(self, bridge_max: float) -> None:
-        component_of: dict[str, int] = {}
-        for index, component in enumerate(nx.connected_components(self._graph)):
-            for node in component:
-                component_of[node] = index
+    def _connect_nearby_subnetworks(self, bridge_max: float) -> None:
+        subnetwork_of: dict[str, int] = {}
+        for index, subnetwork in enumerate(nx.connected_components(self._graph)):
+            for node in subnetwork:
+                subnetwork_of[node] = index
 
         buckets: dict[tuple[int, int], list[str]] = defaultdict(list)
         for node in self._graph.nodes():
@@ -76,7 +76,7 @@ class SharedEdges:
                 for delta_north in (-1, 0, 1):
                     cell = (base_east + delta_east, base_north + delta_north)
                     for other in buckets.get(cell, ()):
-                        if other <= node or component_of[node] == component_of[other]:
+                        if other <= node or subnetwork_of[node] == subnetwork_of[other]:
                             continue
                         gap = distance(self._node_point[node], self._node_point[other])
                         if gap > bridge_max:
@@ -93,7 +93,7 @@ class SharedEdges:
     def routable_nodes(self) -> list[str]:
         return [node for node in self._graph if self._graph.degree(node) > 0]
 
-    def component_count(self) -> int:
+    def subnetwork_count(self) -> int:
         return nx.number_connected_components(self._graph)
 
     def index_of(self, first: str, second: str) -> int:
