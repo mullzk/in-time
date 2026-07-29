@@ -3,7 +3,7 @@
    state lives as `is-open` on the overlay. */
 .info-toggle {
   position: absolute;
-  z-index: 11;
+  z-index: 13;
   top: var(--space-m);
   left: calc(var(--space-m) + 34px + var(--space-s));
   min-width: 34px;
@@ -27,7 +27,7 @@
   align-items: center;
   justify-content: center;
   padding: var(--space-l);
-  background: rgba(16, 18, 26, 0.6);
+  background: var(--color-scrim);
   backdrop-filter: blur(2px);
 }
 

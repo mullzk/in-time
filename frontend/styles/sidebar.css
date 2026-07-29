@@ -3,7 +3,7 @@
    `is-sidebar-open` on the container. */
 .sidebar {
   position: absolute;
-  z-index: 10;
+  z-index: 12;
   top: 0;
   left: 0;
   bottom: 0;
@@ -24,7 +24,7 @@
    closes the sidebar from the same spot. */
 .sidebar-toggle {
   position: absolute;
-  z-index: 11;
+  z-index: 13;
   top: var(--space-m);
   left: var(--space-m);
   min-width: 34px;
@@ -68,11 +68,6 @@
   align-items: center;
   gap: 8px;
   cursor: pointer;
-}
-
-.sidebar-option:has(:disabled) {
-  opacity: 0.4;
-  cursor: default;
 }
 
 .sidebar-zoom {
