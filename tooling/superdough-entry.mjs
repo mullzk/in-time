@@ -1,4 +1,4 @@
-// The single entry esbuild bundles into frontend/vendor/superdough.mjs. All five
+// The single entry esbuild bundles into frontend/vendor/superdough.js. All five
 // surfaces must come from one shared module graph: @strudel/soundfonts registers
 // its instruments through @strudel/webaudio, which re-exports superdough's sound
 // registry, so registerSoundfonts and the superdough player only meet when a
