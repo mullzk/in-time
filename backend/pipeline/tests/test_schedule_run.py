@@ -7,7 +7,7 @@ import pytest
 from pipeline.archive import VersionedArchive
 from pipeline.datadir import DataDir
 from pipeline.models import BuildRun, BuildStatus
-from pipeline.schedule import run_build_schedule
+from pipeline.schedule_run import run_schedule_build
 
 DAY = datetime.date(2026, 7, 16)
 NEXT_DAY = datetime.date(2026, 7, 17)
@@ -16,14 +16,14 @@ NEXT_DAY = datetime.date(2026, 7, 17)
 def make_builder(
     recorder: list[datetime.date] | None = None,
 ) -> Callable[[datetime.date, Path], None]:
-    def build_day(service_date: datetime.date, dest: Path) -> None:
+    def build_day_artifacts(service_date: datetime.date, dest: Path) -> None:
         dest.mkdir(parents=True, exist_ok=True)
-        (dest / "schedule.itsb").write_bytes(b"ITSB")
-        (dest / "stations.json").write_text("{}")
+        (dest / "schedule-rail.itsb").write_bytes(b"ITSB")
+        (dest / "stations-rail.json").write_text("{}")
         if recorder is not None:
             recorder.append(service_date)
 
-    return build_day
+    return build_day_artifacts
 
 
 def const_fetch(version: str) -> Callable[[], str]:
@@ -38,28 +38,28 @@ def test_first_run_builds_publishes_and_reloads(tmp_path: Path) -> None:
     data = DataDir(tmp_path)
     reloads: list[int] = []
 
-    run = run_build_schedule(
+    run = run_schedule_build(
         data,
         DAY,
-        fetch_gtfs=const_fetch("v1"),
-        build_day=make_builder(),
+        fetch_sources=const_fetch("v1"),
+        build_day_artifacts=make_builder(),
         reload_service=lambda: reloads.append(1),
     )
 
     assert run.status == BuildStatus.SUCCESS
     assert data.current_target_name() == "2026-07-16"
-    assert (data.artifacts / "2026-07-16" / "schedule.itsb").exists()
+    assert (data.artifacts / "2026-07-16" / "schedule-rail.itsb").exists()
     assert reloads == [1]
 
 
 @pytest.mark.django_db
 def test_skip_when_same_version_already_current(tmp_path: Path) -> None:
     data = DataDir(tmp_path)
-    run_build_schedule(data, DAY, const_fetch("v1"), make_builder(), lambda: None)
+    run_schedule_build(data, DAY, const_fetch("v1"), make_builder(), lambda: None)
 
     builds: list[datetime.date] = []
     reloads: list[int] = []
-    second = run_build_schedule(
+    second = run_schedule_build(
         data,
         DAY,
         const_fetch("v1"),
@@ -76,14 +76,14 @@ def test_skip_when_same_version_already_current(tmp_path: Path) -> None:
 @pytest.mark.django_db
 def test_failed_build_keeps_previous_current(tmp_path: Path) -> None:
     data = DataDir(tmp_path)
-    run_build_schedule(data, DAY, const_fetch("v1"), make_builder(), lambda: None)
+    run_schedule_build(data, DAY, const_fetch("v1"), make_builder(), lambda: None)
 
     def boom(service_date: datetime.date, dest: Path) -> None:
         raise RuntimeError("build failed")
 
     reloads: list[int] = []
     with pytest.raises(RuntimeError):
-        run_build_schedule(
+        run_schedule_build(
             data, NEXT_DAY, const_fetch("v2"), boom, lambda: reloads.append(1)
         )
 
@@ -95,8 +95,8 @@ def test_failed_build_keeps_previous_current(tmp_path: Path) -> None:
 @pytest.mark.django_db
 def test_previous_artifact_dir_deleted_after_swap(tmp_path: Path) -> None:
     data = DataDir(tmp_path)
-    run_build_schedule(data, DAY, const_fetch("v1"), make_builder(), lambda: None)
-    run_build_schedule(data, NEXT_DAY, const_fetch("v2"), make_builder(), lambda: None)
+    run_schedule_build(data, DAY, const_fetch("v1"), make_builder(), lambda: None)
+    run_schedule_build(data, NEXT_DAY, const_fetch("v2"), make_builder(), lambda: None)
 
     assert not (data.artifacts / "2026-07-16").exists()
     assert (data.artifacts / "2026-07-17").exists()

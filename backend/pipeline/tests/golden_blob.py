@@ -1,26 +1,34 @@
-"""Deterministic golden schedule blob shared by the Python writer guard and the
+"""Deterministic golden schedule blobs shared by the Python writer guard and the
 JavaScript VehiclePositionEngine tests — the cross-language format proof.
 
-Geometry and times are chosen so the reader's interpolation lands on round
-coordinates: a straight edge traversed in reverse (leg 0) and a symmetric
-three-point bend traversed forward (leg 1), each leg spanning 600 seconds.
+`golden-rail-day.itsb` covers the routed (rail) branch: geometry and times are
+chosen
+so the reader's interpolation lands on round coordinates — a straight edge
+traversed in reverse (leg 0) and a symmetric three-point bend traversed forward
+(leg 1), each leg spanning 600 seconds. `golden-bus-day.itsb` covers the
+straight-line branch: a bus blob carries no edges, so every leg has empty
+`leg_edges` and is drawn as the straight line between its two stations.
 """
 
 import datetime
 from pathlib import Path
 
-from pipeline.schedule_blob import Event, ScheduleDay, Trip, write_schedule_blob
-
-GOLDEN_BLOB_PATH = (
-    Path(__file__).resolve().parents[3]
-    / "frontend"
-    / "viz-core"
-    / "fixtures"
-    / "golden-day.itsb"
+from pipeline.schedule_blob import (
+    Event,
+    NetworkType,
+    ScheduleDay,
+    Trip,
+    create_schedule_blob,
 )
 
+_FIXTURES_DIR = (
+    Path(__file__).resolve().parents[3] / "frontend" / "viz-core" / "fixtures"
+)
+GOLDEN_RAIL_BLOB_PATH = _FIXTURES_DIR / "golden-rail-day.itsb"
+GOLDEN_BUS_BLOB_PATH = _FIXTURES_DIR / "golden-bus-day.itsb"
 
-def build_golden_day() -> ScheduleDay:
+
+def build_golden_rail_day() -> ScheduleDay:
     stations = [
         (2_600_000.0, 1_200_000.0),  # S0
         (2_610_000.0, 1_200_000.0),  # S1
@@ -38,16 +46,16 @@ def build_golden_day() -> ScheduleDay:
         Trip(
             category=0,
             events=[
-                Event(station=0, arr=36_000, dep=36_000, leg_edges=[-1]),
-                Event(station=1, arr=36_600, dep=36_660, leg_edges=[2]),
-                Event(station=2, arr=37_260, dep=37_260, leg_edges=[]),
+                Event(station=0, arrival=36_000, departure=36_000, leg_edges=[-1]),
+                Event(station=1, arrival=36_600, departure=36_660, leg_edges=[2]),
+                Event(station=2, arrival=37_260, departure=37_260, leg_edges=[]),
             ],
         ),
         Trip(
             category=3,
             events=[
-                Event(station=1, arr=40_000, dep=40_000, leg_edges=[2]),
-                Event(station=2, arr=40_600, dep=40_600, leg_edges=[]),
+                Event(station=1, arrival=40_000, departure=40_000, leg_edges=[2]),
+                Event(station=2, arrival=40_600, departure=40_600, leg_edges=[]),
             ],
         ),
     ]
@@ -59,10 +67,39 @@ def build_golden_day() -> ScheduleDay:
     )
 
 
-def write_golden_blob() -> None:
-    GOLDEN_BLOB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    GOLDEN_BLOB_PATH.write_bytes(write_schedule_blob(build_golden_day()))
+def build_golden_bus_day() -> ScheduleDay:
+    stations = [
+        (2_600_000.0, 1_200_000.0),  # S0
+        (2_620_000.0, 1_200_000.0),  # S1
+        (2_620_000.0, 1_220_000.0),  # S2
+    ]
+    trips = [
+        Trip(
+            category=6,
+            events=[
+                Event(station=0, arrival=36_000, departure=36_000, leg_edges=[]),
+                Event(station=1, arrival=36_600, departure=36_660, leg_edges=[]),
+                Event(station=2, arrival=37_260, departure=37_260, leg_edges=[]),
+            ],
+        ),
+    ]
+    return ScheduleDay(
+        service_date=datetime.date(2026, 7, 17),
+        stations=stations,
+        edges=[],
+        trips=trips,
+    )
+
+
+def write_golden_blobs() -> None:
+    _FIXTURES_DIR.mkdir(parents=True, exist_ok=True)
+    GOLDEN_RAIL_BLOB_PATH.write_bytes(
+        create_schedule_blob(build_golden_rail_day(), NetworkType.RAIL)
+    )
+    GOLDEN_BUS_BLOB_PATH.write_bytes(
+        create_schedule_blob(build_golden_bus_day(), NetworkType.ROAD)
+    )
 
 
 if __name__ == "__main__":
-    write_golden_blob()
+    write_golden_blobs()

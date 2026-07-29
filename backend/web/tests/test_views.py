@@ -6,17 +6,21 @@ import pytest
 from django.test import Client
 from pytest_django.fixtures import SettingsWrapper
 
-from pipeline.artifacts import STATIONS_NAME
+from pipeline.artifacts import STATIONS_RAIL_NAME, STATIONS_ROAD_NAME
 from pipeline.datadir import DataDir
 
 STATIONS = json.dumps([{"didok": 8_507_000, "name": "Bern"}]).encode("utf-8")
+STATIONS_ROAD = json.dumps([{"didok": 8_500_100, "name": "Basel, Bahnhof"}]).encode(
+    "utf-8"
+)
 
 
 def _publish(root: Path, service_date: date) -> None:
     data_dir = DataDir(root)
     artifact_dir = data_dir.artifact_dir(service_date)
     artifact_dir.mkdir(parents=True, exist_ok=True)
-    (artifact_dir / STATIONS_NAME).write_bytes(STATIONS)
+    (artifact_dir / STATIONS_RAIL_NAME).write_bytes(STATIONS)
+    (artifact_dir / STATIONS_ROAD_NAME).write_bytes(STATIONS_ROAD)
     data_dir.publish(service_date)
 
 
@@ -33,8 +37,10 @@ def test_config_returns_the_published_day(client: Client, published: Path) -> No
     assert response.status_code == 200
     body = response.json()
     assert body["serviceDate"] == "2026-07-16"
-    assert body["scheduleBlobUrl"] == "/artifacts/schedule.itsb"
-    assert body["stationsUrl"] == "/api/stations"
+    assert body["railScheduleBlobUrl"] == "/artifacts/schedule-rail.itsb"
+    assert body["roadScheduleBlobUrl"] == "/artifacts/schedule-road.itsb"
+    assert body["railStationsUrl"] == "/api/stations-rail"
+    assert body["roadStationsUrl"] == "/api/stations-road"
     assert "no-cache" in response["Cache-Control"]
     assert response.has_header("ETag")
 
@@ -50,8 +56,10 @@ def test_config_is_503_without_publication(
     assert response.json()["detail"]
 
 
-def test_stations_passes_the_artifact_through(client: Client, published: Path) -> None:
-    response = client.get("/api/stations")
+def test_stations_rail_passes_the_artifact_through(
+    client: Client, published: Path
+) -> None:
+    response = client.get("/api/stations-rail")
 
     assert response.status_code == 200
     assert response["Content-Type"].startswith("application/json")
@@ -59,12 +67,21 @@ def test_stations_passes_the_artifact_through(client: Client, published: Path) -
     assert "no-cache" in response["Cache-Control"]
 
 
-def test_stations_is_503_without_publication(
+def test_stations_road_passes_the_artifact_through(
+    client: Client, published: Path
+) -> None:
+    response = client.get("/api/stations-road")
+
+    assert response.status_code == 200
+    assert response.content == STATIONS_ROAD
+
+
+def test_stations_rail_is_503_without_publication(
     client: Client, settings: SettingsWrapper, tmp_path: Path
 ) -> None:
     settings.DATA_DIR = tmp_path
 
-    assert client.get("/api/stations").status_code == 503
+    assert client.get("/api/stations-rail").status_code == 503
 
 
 def test_api_revalidates_across_a_swap(client: Client, published: Path) -> None:
@@ -84,11 +101,38 @@ def test_config_etag_tracks_content_not_only_the_day(
 ) -> None:
     etag = client.get("/api/config")["ETag"]
 
-    monkeypatch.setattr("web.views.SCHEDULE_BLOB_URL", "/artifacts/changed.itsb")
+    monkeypatch.setattr("web.views.RAIL_SCHEDULE_BLOB_URL", "/artifacts/changed.itsb")
     after_deploy = client.get("/api/config", HTTP_IF_NONE_MATCH=etag)
 
     assert after_deploy.status_code == 200
-    assert after_deploy.json()["scheduleBlobUrl"] == "/artifacts/changed.itsb"
+    assert after_deploy.json()["railScheduleBlobUrl"] == "/artifacts/changed.itsb"
+
+
+def test_stations_etag_tracks_content_not_only_the_day(
+    client: Client, published: Path
+) -> None:
+    etag = client.get("/api/stations-rail")["ETag"]
+    assert client.get("/api/stations-rail", HTTP_IF_NONE_MATCH=etag).status_code == 304
+
+    # A rebuild of the same day with new content (stations gaining a modes field)
+    # must invalidate the cache, or no-cache revalidation strands a stale body.
+    artifact_dir = DataDir(published).artifact_dir(date(2026, 7, 16))
+    (artifact_dir / STATIONS_RAIL_NAME).write_bytes(
+        json.dumps([{"didok": 8_507_000, "name": "Bern", "modes": ["rail"]}]).encode()
+    )
+
+    after_rebuild = client.get("/api/stations-rail", HTTP_IF_NONE_MATCH=etag)
+    assert after_rebuild.status_code == 200
+    assert json.loads(after_rebuild.content)[0]["modes"] == ["rail"]
+
+
+def test_rail_and_road_stations_have_distinct_etags(
+    client: Client, published: Path
+) -> None:
+    rail_etag = client.get("/api/stations-rail")["ETag"]
+    road_etag = client.get("/api/stations-road")["ETag"]
+
+    assert rail_etag != road_etag
 
 
 def test_herzschlag_serves_the_html_shell(client: Client, published: Path) -> None:

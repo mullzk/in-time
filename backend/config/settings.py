@@ -11,7 +11,11 @@ SECRET_KEY = env.str("DJANGO_SECRET_KEY")
 DEBUG = env.bool("DJANGO_DEBUG", False)
 ALLOWED_HOSTS: list[str] = env.list("DJANGO_ALLOWED_HOSTS", [])
 
-DATA_DIR = env.path("IN_TIME_DATA_DIR", BASE_DIR.parent / "data")
+_data_dir = env.path("IN_TIME_DATA_DIR", BASE_DIR.parent / "data")
+# Anchor a relative IN_TIME_DATA_DIR to the repo root instead of working dir.
+if not _data_dir.is_absolute():
+    _data_dir = BASE_DIR.parent / _data_dir
+DATA_DIR = _data_dir.resolve()
 SCHEDULE_RELOAD_COMMAND: list[str] = env.list("IN_TIME_RELOAD_COMMAND", [])
 
 # Only used on DEBUG. In Prod, nginx makes the request and sets the Referer.

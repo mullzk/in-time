@@ -19,6 +19,16 @@ export class TileLayer {
     this.cache = new Map();
   }
 
+  // The cache is keyed by z/x/y alone, so images from the old layer must go when
+  // the source changes or they would be reused under the new background.
+  setSource(source) {
+    if (source === this.source) {
+      return;
+    }
+    this.source = source;
+    this.cache.clear();
+  }
+
   draw(p, camera) {
     const level = selectLevel(camera.worldPerPixel());
     const span = tileSpanMetres(level);
@@ -50,10 +60,21 @@ export class TileLayer {
       return cached === 'loading' || cached === 'error' ? null : cached;
     }
     this.cache.set(key, 'loading');
+    // The request outlives the source: a load still in flight when setSource
+    // swaps the background must not write the old layer's tile into the new one.
+    const requestedSource = this.source;
     p.loadImage(
-      this.source.urlFor(z, x, y),
-      (image) => this.cache.set(key, image),
-      () => this.cache.set(key, 'error'),
+      requestedSource.urlFor(z, x, y),
+      (image) => {
+        if (this.source === requestedSource) {
+          this.cache.set(key, image);
+        }
+      },
+      () => {
+        if (this.source === requestedSource) {
+          this.cache.set(key, 'error');
+        }
+      },
     );
     return null;
   }

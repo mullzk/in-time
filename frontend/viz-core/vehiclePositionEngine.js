@@ -3,12 +3,14 @@
 // layout of the Python writer (backend/pipeline/schedule_blob.py); the shared
 // golden fixture is the cross-language proof that both agree on the format.
 
+import { readStationPoints } from './blobStations.js';
+
 const MAGIC = 'ITSB';
 const VERSION = 1;
 
 const HEADER = {
   version: 4,
-  flags: 6,
+  networkType: 6,
   serviceDate: 8,
   originEast: 12,
   originNorth: 16,
@@ -79,7 +81,7 @@ export class VehiclePositionEngine {
     const originEast = view.getUint32(HEADER.originEast, true);
     const originNorth = view.getUint32(HEADER.originNorth, true);
 
-    this.stations = this.#readStations(view, originEast, originNorth);
+    this.stations = readStationPoints(arrayBuffer);
     this.edges = this.#readEdges(view, originEast, originNorth);
     this.#buildEdgeArcLengths();
     this.trips = this.#readTrips(view);
@@ -99,20 +101,6 @@ export class VehiclePositionEngine {
     if (view.getUint16(HEADER.version, true) !== VERSION) {
       throw new Error('unsupported ITSB version');
     }
-  }
-
-  #readStations(view, originEast, originNorth) {
-    const start = view.getUint32(HEADER.offsetStations, true);
-    const east = readU32Column(view, start, this.stationCount);
-    const north = readU32Column(
-      view,
-      start + this.stationCount * 4,
-      this.stationCount,
-    );
-    return Array.from({ length: this.stationCount }, (_, index) => [
-      east[index] + originEast,
-      north[index] + originNorth,
-    ]);
   }
 
   #readEdges(view, originEast, originNorth) {
@@ -221,19 +209,37 @@ export class VehiclePositionEngine {
       if (index === events.length - 1) {
         return;
       }
-      const legDistance = event.legEdges.reduce(
-        (sum, signedEdge) => sum + this.edgeLengths[Math.abs(signedEdge) - 1],
-        0,
-      );
+      const legDistance =
+        event.legEdges.length === 0
+          ? this.#straightLegLength(event, events[index + 1])
+          : event.legEdges.reduce(
+              (sum, signedEdge) =>
+                sum + this.edgeLengths[Math.abs(signedEdge) - 1],
+              0,
+            );
       cumulative.push(cumulative[index] + legDistance);
     });
     return cumulative;
   }
 
+  // A leg with no edges is a straight line between its two stations — the shape
+  // every bus leg takes. Rail and tram always carry routed edges, their straight
+  // fallback included.
+  #straightLegLength(fromEvent, toEvent) {
+    const from = this.stations[fromEvent.station];
+    const to = this.stations[toEvent.station];
+    return Math.hypot(to[0] - from[0], to[1] - from[1]);
+  }
+
   #deriveOperatingWindow() {
-    this.rangeStart = Math.min(...this.trips.map((trip) => trip.events[0].dep));
-    this.rangeEnd = Math.max(
-      ...this.trips.map((trip) => trip.events[trip.events.length - 1].arr),
+    this.rangeStart = this.trips.reduce(
+      (earliest, trip) => Math.min(earliest, trip.events[0].dep),
+      Infinity,
+    );
+    this.rangeEnd = this.trips.reduce(
+      (latest, trip) =>
+        Math.max(latest, trip.events[trip.events.length - 1].arr),
+      -Infinity,
     );
   }
 
@@ -279,10 +285,22 @@ export class VehiclePositionEngine {
     ) {
       leg += 1;
     }
-    return this.#pointOnLeg(
-      events[leg].legEdges,
-      distance - legCumulative[leg],
-    );
+    const distanceIntoLeg = distance - legCumulative[leg];
+    if (events[leg].legEdges.length === 0) {
+      return this.#pointOnStraightLeg(
+        events[leg],
+        events[leg + 1],
+        distanceIntoLeg,
+      );
+    }
+    return this.#pointOnLeg(events[leg].legEdges, distanceIntoLeg);
+  }
+
+  #pointOnStraightLeg(fromEvent, toEvent, distanceIntoLeg) {
+    const from = this.stations[fromEvent.station];
+    const to = this.stations[toEvent.station];
+    const length = this.#straightLegLength(fromEvent, toEvent);
+    return lerp(from, to, length === 0 ? 0 : distanceIntoLeg / length);
   }
 
   #tripDistanceAt(trip, t) {
@@ -304,6 +322,30 @@ export class VehiclePositionEngine {
       }
     }
     return legCumulative[legCumulative.length - 1];
+  }
+
+  tripEndpoints(tripIndex) {
+    const { events } = this.trips[tripIndex];
+    return {
+      originStation: events[0].station,
+      destinationStation: events[events.length - 1].station,
+    };
+  }
+
+  // A selected vehicle's live position, recomputed each frame so a popover can
+  // follow it; null once the trip is no longer running (so the caller drops it).
+  positionAt(tripIndex, t) {
+    const trip = this.trips[tripIndex];
+    const firstDep = trip.events[0].dep;
+    const lastArr = trip.events[trip.events.length - 1].arr;
+    if (t < firstDep || t > lastArr) {
+      return null;
+    }
+    const [east, north] = this.#pointAtTripDistance(
+      trip,
+      this.#tripDistanceAt(trip, t),
+    );
+    return { east, north };
   }
 
   activeAt(t) {

@@ -1,4 +1,7 @@
 import datetime
+import subprocess
+import time
+from collections.abc import Callable
 from pathlib import Path
 
 from django.conf import settings
@@ -6,16 +9,34 @@ from django.core.management.base import BaseCommand, CommandParser
 from django.utils import timezone
 
 from pipeline.artifacts import (
+    SCHEDULE_RAIL_BLOB_NAME,
+    SCHEDULE_ROAD_BLOB_NAME,
     composite_version,
-    locate_gdb,
-    reload_runner,
     write_day_artifacts,
 )
+from pipeline.bus_stops import load_bus_stops
 from pipeline.datadir import DataDir
-from pipeline.fetch import gtfs_archive, rail_network_archive
-from pipeline.railnet_gdb import load_rail_graph
-from pipeline.schedule import run_build_schedule
+from pipeline.diagnostics import DayDiagnostics
+from pipeline.fetch import gtfs_archive, locate_gdb, rail_network_archive
+from pipeline.frequency import (
+    REGULAR_CONNECTIONS_CACHE_NAME,
+    load_or_scan_regular_connections,
+)
+from pipeline.network.rail_gdb import load_rail_graph
 from pipeline.schedule_day import build_schedule_day
+from pipeline.schedule_run import run_schedule_build
+from pipeline.station_clusters import load_station_clusters
+
+
+def reload_runner(
+    command: list[str],
+    runner: Callable[[list[str]], object] = lambda cmd: subprocess.run(cmd, check=True),
+) -> Callable[[], None]:
+    def reload() -> None:
+        if command:
+            runner(command)
+
+    return reload
 
 
 class Command(BaseCommand):
@@ -24,6 +45,11 @@ class Command(BaseCommand):
     def add_arguments(self, parser: CommandParser) -> None:
         parser.add_argument(
             "--date", default=None, help="service day YYYY-MM-DD (default: today)"
+        )
+        parser.add_argument(
+            "--diagnose",
+            action="store_true",
+            help="print a routing-quality report for the built day",
         )
 
     def handle(self, *args: object, **options: object) -> None:
@@ -38,26 +64,55 @@ class Command(BaseCommand):
         gtfs = gtfs_archive(data_dir.gtfs_archive)
         rail_network = rail_network_archive(data_dir.rail_network_archive)
         versions: dict[str, str] = {}
+        diagnostics: list[DayDiagnostics] = []
 
         def fetch_sources() -> str:
             versions["gtfs"] = gtfs.ensure()
             versions["rail"] = rail_network.ensure()
             return composite_version(versions["gtfs"], versions["rail"])
 
-        def build_day(day: datetime.date, dest: Path) -> None:
+        def build_day_artifacts(day: datetime.date, dest: Path) -> None:
             gdb = locate_gdb(rail_network.path_for(versions["rail"]))
+            started = time.monotonic()
             rail_graph = load_rail_graph(gdb)
-            build = build_schedule_day(gtfs.path_for(versions["gtfs"]), rail_graph, day)
-            write_day_artifacts(build, dest)
+            gtfs_dir = gtfs.path_for(versions["gtfs"])
+            bus_stops = load_bus_stops(gtfs_dir)
+            station_clusters = load_station_clusters(gtfs_dir)
+            regular_connections = load_or_scan_regular_connections(
+                gtfs_dir, gtfs_dir / REGULAR_CONNECTIONS_CACHE_NAME
+            )
+            inputs_seconds = time.monotonic() - started
 
-        run = run_build_schedule(
+            started = time.monotonic()
+            builds = build_schedule_day(
+                gtfs_dir, rail_graph, bus_stops, regular_connections, day
+            )
+            build_seconds = time.monotonic() - started
+
+            write_day_artifacts(builds, dest, station_clusters)
+            if options["diagnose"]:
+                diagnostics.append(
+                    DayDiagnostics(
+                        service_date=day,
+                        builds=builds,
+                        inputs_seconds=inputs_seconds,
+                        build_seconds=build_seconds,
+                        rail_blob_bytes=(dest / SCHEDULE_RAIL_BLOB_NAME).stat().st_size,
+                        road_blob_bytes=(dest / SCHEDULE_ROAD_BLOB_NAME).stat().st_size,
+                    )
+                )
+
+        run = run_schedule_build(
             data_dir,
             service_date,
-            fetch_gtfs=fetch_sources,
-            build_day=build_day,
+            fetch_sources=fetch_sources,
+            build_day_artifacts=build_day_artifacts,
             reload_service=reload_runner(settings.SCHEDULE_RELOAD_COMMAND),
         )
 
         gtfs.retain_only(versions["gtfs"])
         rail_network.retain_only(versions["rail"])
         self.stdout.write(f"{service_date}: {run.status} ({run.source_version})")
+        for report in diagnostics:
+            for line in report.lines():
+                self.stdout.write(line)

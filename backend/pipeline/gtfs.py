@@ -1,4 +1,4 @@
-"""GTFS schedule reading: active services, rail trips, and per-trip stop
+"""GTFS schedule reading: active services, categorised trips, and per-trip stop
 sequences for a service date."""
 
 import csv
@@ -7,12 +7,29 @@ from dataclasses import dataclass
 from pathlib import Path
 
 RAIL_ROUTE_TYPES = frozenset({100, 101, 102, 103, 105, 106, 107, 109, 116, 117})
+TRAM_ROUTE_TYPE = 900
+BUS_ROUTE_TYPES = frozenset({700, 702})
+
+CATEGORY_TRAM = 5
+CATEGORY_BUS = 6
+RAIL_CATEGORIES = frozenset({0, 1, 2, 3, 4})
+
+SWISS_DIDOK_PREFIX = "85"
+
+
+def is_swiss_didok(didok: int) -> bool:
+    return str(didok).startswith(SWISS_DIDOK_PREFIX)
+
+
+def is_swiss_didok_text(didok_text: str) -> bool:
+    return didok_text.isdigit() and didok_text.startswith(SWISS_DIDOK_PREFIX)
+
 
 # route_type -> product category (0 Fernverkehr, 1 IR, 2 Regio, 3 S-Bahn,
 # 4 übrige). Rail types without an explicit mapping fall into category 4.
 _CATEGORY = {101: 0, 102: 0, 103: 1, 106: 2, 100: 2, 107: 2, 109: 3, 105: 4}
 
-_WEEKDAY_COLUMNS = [
+WEEKDAY_COLUMNS = [
     "monday",
     "tuesday",
     "wednesday",
@@ -26,14 +43,18 @@ _WEEKDAY_COLUMNS = [
 @dataclass
 class StopCall:
     didok: int
-    arr: int
-    dep: int
+    arrival: int
+    departure: int
 
 
 def category_of(route_type: int) -> int | None:
-    if route_type not in RAIL_ROUTE_TYPES:
-        return None
-    return _CATEGORY.get(route_type, 4)
+    if route_type in RAIL_ROUTE_TYPES:
+        return _CATEGORY.get(route_type, 4)
+    if route_type == TRAM_ROUTE_TYPE:
+        return CATEGORY_TRAM
+    if route_type in BUS_ROUTE_TYPES:
+        return CATEGORY_BUS
+    return None
 
 
 def seconds_since_midnight(clock: str) -> int:
@@ -42,7 +63,7 @@ def seconds_since_midnight(clock: str) -> int:
 
 
 def active_services(gtfs_dir: Path, service_date: datetime.date) -> set[str]:
-    weekday_column = _WEEKDAY_COLUMNS[service_date.weekday()]
+    weekday_column = WEEKDAY_COLUMNS[service_date.weekday()]
     date_str = service_date.strftime("%Y%m%d")
 
     regular: set[str] = set()
@@ -67,7 +88,7 @@ def active_services(gtfs_dir: Path, service_date: datetime.date) -> set[str]:
     return (regular | added) - removed
 
 
-def rail_routes(gtfs_dir: Path) -> dict[str, int]:
+def routes_by_category(gtfs_dir: Path) -> dict[str, int]:
     routes: dict[str, int] = {}
     with open(gtfs_dir / "routes.txt", encoding="utf-8-sig", newline="") as feed:
         for row in csv.DictReader(feed):
@@ -77,15 +98,23 @@ def rail_routes(gtfs_dir: Path) -> dict[str, int]:
     return routes
 
 
-def active_rail_trips(gtfs_dir: Path, service_date: datetime.date) -> dict[str, int]:
+def active_trips(gtfs_dir: Path, service_date: datetime.date) -> dict[str, int]:
     services = active_services(gtfs_dir, service_date)
-    routes = rail_routes(gtfs_dir)
+    routes = routes_by_category(gtfs_dir)
     trips: dict[str, int] = {}
     with open(gtfs_dir / "trips.txt", encoding="utf-8-sig", newline="") as feed:
         for row in csv.DictReader(feed):
             if row["route_id"] in routes and row["service_id"] in services:
                 trips[row["trip_id"]] = routes[row["route_id"]]
     return trips
+
+
+def active_rail_trips(gtfs_dir: Path, service_date: datetime.date) -> dict[str, int]:
+    return {
+        trip_id: category
+        for trip_id, category in active_trips(gtfs_dir, service_date).items()
+        if category in RAIL_CATEGORIES
+    }
 
 
 def _stop_didok_map(gtfs_dir: Path) -> dict[str, int]:
@@ -117,8 +146,8 @@ def stop_sequences(gtfs_dir: Path, trip_ids: set[str]) -> dict[str, list[StopCal
         header = next(reader)
         column = {name: index for index, name in enumerate(header)}
         trip_at = column["trip_id"]
-        arr_at = column["arrival_time"]
-        dep_at = column["departure_time"]
+        arrival_at = column["arrival_time"]
+        departure_at = column["departure_time"]
         stop_at = column["stop_id"]
         sequence_at = column["stop_sequence"]
         for row in reader:
@@ -130,8 +159,8 @@ def stop_sequences(gtfs_dir: Path, trip_ids: set[str]) -> dict[str, list[StopCal
                 continue
             call = StopCall(
                 didok=didok,
-                arr=seconds_since_midnight(row[arr_at]),
-                dep=seconds_since_midnight(row[dep_at]),
+                arrival=seconds_since_midnight(row[arrival_at]),
+                departure=seconds_since_midnight(row[departure_at]),
             )
             ordered[trip].append((int(row[sequence_at]), call))
 

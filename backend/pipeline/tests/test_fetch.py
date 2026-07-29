@@ -7,6 +7,7 @@ import pytest
 from pipeline.fetch import (
     extract_zip_from_url,
     gtfs_version_from_final_url,
+    locate_gdb,
     resolve_gtfs_version,
     resolve_rail_network_version,
     sanitize_last_modified,
@@ -39,6 +40,40 @@ def test_extract_zip_from_url_reads_a_local_zip(tmp_path: Path) -> None:
 
     assert (dest / "feed_info.txt").read_text() == "feed_version=x"
     assert (dest / "nested" / "stops.txt").exists()
+
+
+def test_extract_zip_normalises_windows_separators(tmp_path: Path) -> None:
+    # The swissTLM3D archive stores paths with backslashes; they must become a
+    # real nested directory, not a flat file named "DIR.gdb\inner".
+    zip_path = tmp_path / "gdb.zip"
+    with zipfile.ZipFile(zip_path, "w") as archive:
+        archive.writestr("SUB.gdb\\a0001.gdbtable", "content")
+
+    dest = tmp_path / "out"
+    extract_zip_from_url(zip_path.as_uri(), dest)
+
+    assert (dest / "SUB.gdb" / "a0001.gdbtable").read_text() == "content"
+    assert (dest / "SUB.gdb").is_dir()
+
+
+def test_locate_gdb_finds_the_only_geodatabase(tmp_path: Path) -> None:
+    (tmp_path / "schienennetz_2056_de.gdb").mkdir()
+    (tmp_path / "readme.txt").write_text("ignored")
+
+    assert locate_gdb(tmp_path) == tmp_path / "schienennetz_2056_de.gdb"
+
+
+def test_locate_gdb_rejects_when_none(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="no .gdb"):
+        locate_gdb(tmp_path)
+
+
+def test_locate_gdb_rejects_when_ambiguous(tmp_path: Path) -> None:
+    (tmp_path / "a.gdb").mkdir()
+    (tmp_path / "b.gdb").mkdir()
+
+    with pytest.raises(ValueError, match="multiple .gdb"):
+        locate_gdb(tmp_path)
 
 
 @pytest.mark.realdata

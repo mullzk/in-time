@@ -1,3 +1,7 @@
+// Halfway between the fully zoomed-out fit and the maximum zoom-in: the floor a
+// station gets centred at, unless the view is already closer.
+export const MEDIUM_ZOOM_FRACTION = 0.5;
+
 // Curated facade onto the core services a panel is allowed to touch — camera,
 // projection, time, and the drawing helpers — rather than the whole VizCore.
 // Panel-specific state (its VehiclePositionEngine) lives in the panel, not here.
@@ -7,10 +11,31 @@ export class PanelContext {
     this.projection = projection;
     this.time = time;
     this.tileLayer = tileLayer;
+    this.tilesVisible = true;
+  }
+
+  // A null source is the black background: no raster, the dark canvas shows
+  // through. Any other source turns the tiles back on under the new layer.
+  setBackground(source) {
+    this.tilesVisible = source !== null;
+    if (source !== null) {
+      this.tileLayer.setSource(source);
+    }
   }
 
   drawTiles(p) {
-    this.tileLayer.draw(p, this.camera);
+    if (this.tilesVisible) {
+      this.tileLayer.draw(p, this.camera);
+    }
+  }
+
+  // Centre the view on a station, raising the zoom to at least minZoomFraction
+  // but never pulling it back when the view is already closer.
+  focusStation(east, north, { minZoomFraction = MEDIUM_ZOOM_FRACTION } = {}) {
+    if (this.camera.zoomFraction() < minZoomFraction) {
+      this.camera.setZoomFraction(minZoomFraction);
+    }
+    this.camera.centerOn(east, north);
   }
 
   // Draws the public-transport network as static vector strokes — a shared

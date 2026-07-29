@@ -5,9 +5,12 @@ const ZOOM_STEP = 1.1;
 // tempo, play) never reaches the camera. Pointer events unify mouse, touch and
 // pen; two active pointers pinch-zoom.
 export class CameraControls {
-  constructor(canvasElement, camera) {
+  // onZoomGesture fires on the center-shifting zooms (wheel, pinch), not on the
+  // centre-preserving ones the keyboard and sidebar drive.
+  constructor(canvasElement, camera, { onZoomGesture } = {}) {
     this.canvas = canvasElement;
     this.camera = camera;
+    this.onZoomGesture = onZoomGesture ?? (() => {});
     this.activePointers = new Map();
     this.pinchDistance = null;
     this.#bind();
@@ -39,6 +42,7 @@ export class CameraControls {
     event.preventDefault();
     const [x, y] = this.#localPoint(event);
     this.camera.zoomAt(x, y, event.deltaY > 0 ? 1 / ZOOM_STEP : ZOOM_STEP);
+    this.onZoomGesture();
   }
 
   #onPointerDown(event) {
@@ -84,6 +88,7 @@ export class CameraControls {
         (first[1] + second[1]) / 2,
         distance / this.pinchDistance,
       );
+      this.onZoomGesture();
     }
     this.pinchDistance = distance;
   }

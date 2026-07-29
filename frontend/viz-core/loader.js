@@ -1,4 +1,5 @@
-// Reads the schedule blob referenced by /api/config.
+// Reads the two schedule blobs referenced by /api/config: the routed rail blob
+// (rail + tram) and the straight-line road blob (buses).
 export async function loadSchedule(configUrl) {
   const configResponse = await fetch(configUrl);
   if (configResponse.status === 503) {
@@ -9,14 +10,36 @@ export async function loadSchedule(configUrl) {
   }
 
   const config = await configResponse.json();
-  const blobResponse = await fetch(config.scheduleBlobUrl);
-  if (!blobResponse.ok) {
-    throw new Error(`schedule blob request failed: ${blobResponse.status}`);
-  }
+  const [railBuffer, roadBuffer, railStations, roadStations] =
+    await Promise.all([
+      fetchBlob(config.railScheduleBlobUrl),
+      fetchBlob(config.roadScheduleBlobUrl),
+      fetchJson(config.railStationsUrl),
+      fetchJson(config.roadStationsUrl),
+    ]);
 
   return {
     published: true,
     config,
-    scheduleBuffer: await blobResponse.arrayBuffer(),
+    railBuffer,
+    roadBuffer,
+    railStations,
+    roadStations,
   };
+}
+
+async function fetchBlob(url) {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`schedule blob request failed: ${response.status}`);
+  }
+  return response.arrayBuffer();
+}
+
+async function fetchJson(url) {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`stations request failed: ${response.status}`);
+  }
+  return response.json();
 }

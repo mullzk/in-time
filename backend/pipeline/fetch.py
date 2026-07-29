@@ -1,8 +1,8 @@
 """Fetches the public GTFS and BAV rail-network sources into a VersionedArchive.
 
-Both are public open-data endpoints, so their URLs are code defaults; the
-version is resolved cheaply (without downloading the payload) before deciding
-whether a download is needed."""
+Both are public open-data endpoints, so their URLs are code defaults; the version
+is resolved cheaply (without downloading the payload) before deciding whether a
+download is needed."""
 
 import re
 import shutil
@@ -52,9 +52,26 @@ def extract_zip_from_url(url: str, dest_dir: Path) -> None:
             zip_path = Path(buffer.name)
     try:
         with zipfile.ZipFile(zip_path) as archive:
-            archive.extractall(dest_dir)
+            _extract_normalising_separators(archive, dest_dir)
     finally:
         zip_path.unlink(missing_ok=True)
+
+
+def _extract_normalising_separators(archive: zipfile.ZipFile, dest_dir: Path) -> None:
+    # The swissTLM3D archive stores paths with Windows backslashes, which
+    # extractall keeps as literal filename characters instead of directories.
+    root = dest_dir.resolve()
+    for member in archive.infolist():
+        relative = member.filename.replace("\\", "/")
+        target = (dest_dir / relative).resolve()
+        if not target.is_relative_to(root):
+            raise ValueError(f"zip entry escapes the destination: {member.filename}")
+        if relative.endswith("/"):
+            target.mkdir(parents=True, exist_ok=True)
+            continue
+        target.parent.mkdir(parents=True, exist_ok=True)
+        with archive.open(member) as source, open(target, "wb") as sink:
+            shutil.copyfileobj(source, sink)
 
 
 def resolve_gtfs_version(url: str = GTFS_SCHEDULE_URL) -> str:
@@ -90,3 +107,12 @@ def rail_network_archive(
         resolve_version=lambda: resolve_rail_network_version(url),
         download=lambda _version, dest: extract_zip_from_url(url, dest),
     )
+
+
+def locate_gdb(archive_dir: Path) -> Path:
+    geodatabases = sorted(archive_dir.glob("*.gdb"))
+    if not geodatabases:
+        raise ValueError(f"no .gdb in {archive_dir}")
+    if len(geodatabases) > 1:
+        raise ValueError(f"multiple .gdb in {archive_dir}")
+    return geodatabases[0]

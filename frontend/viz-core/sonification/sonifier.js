@@ -1,0 +1,279 @@
+// The runtime coordinator: it turns the events of the one selected station into
+// sound as the shared simulation clock plays. Called every frame, it schedules
+// the events falling into a short lookahead window through the pure scheduling
+// rules (mute, group gap, voice budget, density damping) and keeps the standing
+// dwell figures running, all against the audio clock. It plays only while an
+// instrumentation is chosen and a station is selected; selecting or double-
+// clicking a station re-seats it, scrubbing and the loop wrap resync it.
+
+import {
+  cursorAtOrAfter,
+  DENSITY_DAMPING_VOICES,
+  DWELL_MINIMUM_SECONDS,
+  dropPriorityOf,
+  eventsInLookahead,
+  gainDampingForDensity,
+  groupOf,
+  isRailGroup,
+  LOOKAHEAD_SECONDS,
+  MAXIMUM_VOICES_PER_WINDOW,
+  MINIMUM_GROUP_GAP_SECONDS,
+  passesGroupGap,
+  passesMuteFilter,
+  passesVoiceBudget,
+  TRANSPORT_GROUPS,
+} from './scheduling.js';
+
+// A rendered frame this far apart in real time is a rendering stall (a
+// backgrounded tab), not the steady advance: the sim clock leaped over a stretch
+// of events while the audio clock ran on, so we resync past them rather than
+// schedule the whole backlog at once.
+const STALL_RESYNC_SECONDS = 0.5;
+
+// A fixed master level (no slider); the per-sound gains and the density damping
+// do the balancing, system volume does the rest.
+const MASTER_GAIN = 0.9;
+const DEFAULT_DURATION_SECONDS = 0.2;
+const DEFAULT_GAIN = 0.3;
+
+export class Sonifier {
+  constructor(panel, timeModel, audioBridge) {
+    this.panel = panel;
+    this.timeModel = timeModel;
+    this.audioBridge = audioBridge;
+    this.instrumentation = null;
+    this.station = null;
+    this.events = [];
+    this.wasActive = false;
+    this.cursor = 0;
+    this.lastSimTime = 0;
+    this.lastSeekGeneration = timeModel.seekGeneration;
+    this.lastTimeByGroup = new Map();
+    this.recentVoiceTimes = [];
+    this.dwellVoices = [];
+  }
+
+  setInstrumentation(instrumentation) {
+    this.instrumentation = instrumentation;
+    this.dwellVoices = [];
+    if (instrumentation && this.audioBridge.started) {
+      this.audioBridge.warmUp(this.#sources());
+    }
+  }
+
+  setStation(station) {
+    this.station = station;
+    this.events = this.panel.stationSoundEvents(station);
+    this.#resync();
+    this.#ensureAudio();
+  }
+
+  onFrameRendered() {
+    if (
+      this.instrumentation === null ||
+      this.station === null ||
+      !this.audioBridge.started
+    ) {
+      this.wasActive = false;
+      return;
+    }
+    // While inactive the cursor stood still as the clock ran on, so the events
+    // that elapsed meanwhile would now fire at once. Skip past them on resuming.
+    if (!this.wasActive) {
+      this.#resync();
+      this.wasActive = true;
+    }
+    const audioNow = this.audioBridge.currentTime;
+    const hiddenGroups = this.panel.hiddenTransportGroups();
+    this.#scheduleUpcoming(audioNow, hiddenGroups);
+    this.#advanceDwellVoices(audioNow, hiddenGroups);
+  }
+
+  async #ensureAudio() {
+    await this.audioBridge.start();
+    if (this.instrumentation) {
+      await this.audioBridge.warmUp(this.#sources());
+    }
+  }
+
+  #sources() {
+    const sources = new Set();
+    TRANSPORT_GROUPS.forEach((group) => {
+      this.instrumentation
+        .soundTypeFor(group)
+        .sources()
+        .forEach((source) => {
+          sources.add(source);
+        });
+    });
+    return [...sources];
+  }
+
+  #resync() {
+    this.cursor = cursorAtOrAfter(this.events, this.timeModel.current);
+    this.lastSimTime = this.timeModel.current;
+    this.lastSeekGeneration = this.timeModel.seekGeneration;
+    this.dwellVoices = [];
+  }
+
+  // A scrub bumps the seek generation; the loop wrap steps time backwards; a
+  // rendering stall leaps the clock far forward in one frame. Either way the
+  // cursor and dwell voices belong to a timeline the lookahead can no longer
+  // bridge, so we treat it as a jump and resync.
+  #timelineJumped(simTime, timeScale) {
+    const realSecondsSinceLastFrame = (simTime - this.lastSimTime) / timeScale;
+    return (
+      this.timeModel.seekGeneration !== this.lastSeekGeneration ||
+      simTime < this.lastSimTime ||
+      realSecondsSinceLastFrame > STALL_RESYNC_SECONDS
+    );
+  }
+
+  #scheduleUpcoming(audioNow, hiddenGroups) {
+    const simTime = this.timeModel.current;
+    const timeScale = this.timeModel.tempo;
+    if (this.#timelineJumped(simTime, timeScale)) {
+      this.#resync();
+    }
+    this.lastSimTime = simTime;
+
+    const horizon = simTime + LOOKAHEAD_SECONDS * timeScale;
+    this.recentVoiceTimes = this.recentVoiceTimes.filter(
+      (time) => time > audioNow - LOOKAHEAD_SECONDS,
+    );
+
+    const { due, cursor } = eventsInLookahead(
+      this.events,
+      this.cursor,
+      horizon,
+    );
+    this.cursor = cursor;
+    due.forEach((event) => {
+      const group = groupOf(event.category);
+      if (!passesMuteFilter(group, hiddenGroups)) {
+        return;
+      }
+      const delaySeconds = Math.max(0, (event.time - simTime) / timeScale);
+      const soundTime = audioNow + delaySeconds;
+      if (
+        !passesGroupGap(
+          soundTime,
+          this.lastTimeByGroup.get(group),
+          MINIMUM_GROUP_GAP_SECONDS,
+        )
+      ) {
+        return;
+      }
+      if (
+        !passesVoiceBudget(
+          this.recentVoiceTimes.length,
+          MAXIMUM_VOICES_PER_WINDOW,
+          dropPriorityOf(group),
+        )
+      ) {
+        return;
+      }
+      this.lastTimeByGroup.set(group, soundTime);
+      this.recentVoiceTimes.push(soundTime);
+      this.#playEvent(event, group, audioNow + delaySeconds, timeScale);
+    });
+  }
+
+  #playEvent(event, group, startAudio, timeScale) {
+    const soundType = this.instrumentation.soundTypeFor(group);
+    const play = (parameters, extraDelaySeconds = 0) => {
+      const { duration = DEFAULT_DURATION_SECONDS, ...rest } = parameters;
+      this.audioBridge.play(
+        { ...rest, gain: this.#dampedGain(rest.gain) },
+        startAudio + extraDelaySeconds,
+        duration,
+      );
+    };
+    if (event.kind === 'arrival') {
+      soundType.arrival(play);
+      if (isRailGroup(group) && event.dwellSeconds >= DWELL_MINIMUM_SECONDS) {
+        this.#startDwellVoice(soundType, group, event, startAudio, timeScale);
+      }
+    } else if (event.kind === 'departure') {
+      soundType.departure(play);
+    } else {
+      soundType.passthrough(play);
+    }
+  }
+
+  #startDwellVoice(soundType, group, event, startAudio, timeScale) {
+    const figure = soundType.dwell();
+    if (figure === null) {
+      return;
+    }
+    let pattern;
+    try {
+      pattern = this.audioBridge.mini(figure.sequence);
+    } catch {
+      return;
+    }
+    this.dwellVoices.push({
+      pattern,
+      parameters: figure.parameters ?? {},
+      cycleSeconds: figure.cycleSeconds ?? 1,
+      group,
+      startAudio,
+      endAudio: startAudio + event.dwellSeconds / timeScale,
+      queriedUntilAudio: startAudio,
+    });
+  }
+
+  #advanceDwellVoices(audioNow, hiddenGroups) {
+    const horizon = audioNow + LOOKAHEAD_SECONDS;
+    this.dwellVoices = this.dwellVoices.filter((voice) => {
+      if (!passesMuteFilter(voice.group, hiddenGroups)) {
+        return false;
+      }
+      const until = Math.min(horizon, voice.endAudio);
+      if (until > voice.queriedUntilAudio) {
+        this.#scheduleDwellHits(voice, until, audioNow);
+        voice.queriedUntilAudio = until;
+      }
+      return until < voice.endAudio;
+    });
+  }
+
+  // queryArc includes the window start and excludes its end, so back-to-back
+  // windows neither drop nor double a hit; cycle 0 begins at the voice start.
+  #scheduleDwellHits(voice, until, audioNow) {
+    const fromCycle =
+      (voice.queriedUntilAudio - voice.startAudio) / voice.cycleSeconds;
+    const toCycle = (until - voice.startAudio) / voice.cycleSeconds;
+    voice.pattern.queryArc(fromCycle, toCycle).forEach((hap) => {
+      if (typeof hap.hasOnset === 'function' && !hap.hasOnset()) {
+        return;
+      }
+      const hitValue =
+        typeof hap.value === 'string' ? { s: hap.value } : hap.value;
+      const { duration = DEFAULT_DURATION_SECONDS, ...parameters } = {
+        ...voice.parameters,
+        ...hitValue,
+      };
+      const hitStart =
+        voice.startAudio + Number(hap.whole.begin) * voice.cycleSeconds;
+      const hitSeconds =
+        (Number(hap.whole.end) - Number(hap.whole.begin)) * voice.cycleSeconds;
+      this.audioBridge.play(
+        { ...parameters, gain: this.#dampedGain(parameters.gain) },
+        Math.max(audioNow, hitStart),
+        hitSeconds,
+      );
+    });
+  }
+
+  #dampedGain(gain) {
+    return (
+      (gain ?? DEFAULT_GAIN) *
+      MASTER_GAIN *
+      gainDampingForDensity(
+        this.recentVoiceTimes.length,
+        DENSITY_DAMPING_VOICES,
+      )
+    );
+  }
+}

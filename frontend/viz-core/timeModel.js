@@ -12,6 +12,9 @@ export class TimeModel {
     this.current = rangeStart;
     this.tempo = DEFAULT_TEMPO;
     this.playing = false;
+    // Bumped on every explicit seek so time-driven consumers (the sonifier's
+    // scheduler) can tell a scrub apart from the steady advance and resync.
+    this.seekGeneration = 0;
   }
 
   #span() {
@@ -49,9 +52,11 @@ export class TimeModel {
 
   seekToPosition(position01) {
     this.current = this.rangeStart + clamp(position01, 0, 1) * this.#span();
+    this.seekGeneration += 1;
   }
 
   seekToTime(seconds) {
     this.current = clamp(seconds, this.rangeStart, this.rangeEnd);
+    this.seekGeneration += 1;
   }
 }

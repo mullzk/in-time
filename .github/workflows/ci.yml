@@ -2,7 +2,7 @@ name: CI/CD
 
 on:
   push:
-    branches: [main]
+    branches: [main, production]
   pull_request:
   workflow_dispatch:
 
@@ -48,10 +48,12 @@ jobs:
   deploy:
     needs: check-and-test
     if: >-
-      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
-      && github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'
+      vars.DEPLOY_ENABLED == 'true' && (github.ref_name == 'main' ||
+      github.ref_name == 'production')
     runs-on: ubuntu-latest
-    environment: intimedev
+    environment:
+      ${{ github.ref_name == 'production' && 'all_in_time_prod' || 'intimedev'
+      }}
 
     steps:
       - name: Configure SSH
@@ -68,7 +70,7 @@ jobs:
           dir="${{ vars.DEPLOY_PATH }}/current"
           [ -d "$dir/.git" ] || git clone "$repo" "$dir"
           cd "$dir"
-          git fetch origin main
+          git fetch origin "${{ github.ref_name }}"
           git checkout --force --detach "${{ github.sha }}"
           git clean -fd
           ln -sfn ../shared/config/env .env

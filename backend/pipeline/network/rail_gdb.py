@@ -4,11 +4,13 @@ import math
 from pathlib import Path
 
 import geopandas as gpd
+from shapely import line_merge
 from shapely.geometry import LineString, MultiLineString
 from shapely.geometry import Point as ShapelyPoint
 from shapely.geometry.base import BaseGeometry
 
-from pipeline.railnet import Point, RailGraph
+from pipeline.network.geometry import Point, polyline_length
+from pipeline.network.rail import RailGraph
 
 
 def _line_coords(line: LineString) -> list[Point]:
@@ -17,10 +19,15 @@ def _line_coords(line: LineString) -> list[Point]:
 
 def _vertices(geometry: BaseGeometry) -> list[Point]:
     if isinstance(geometry, MultiLineString):
-        coords: list[Point] = []
-        for part in geometry.geoms:
-            coords.extend(_line_coords(part))
-        return coords
+        stitched_geometry = line_merge(geometry)
+        if isinstance(stitched_geometry, LineString):
+            return _line_coords(stitched_geometry)
+        # Parts don't share endpoints (a real gap in the segment):
+        # nothing better than best-effort concatenation.
+        vertices: list[Point] = []
+        for disconnected_part in stitched_geometry.geoms:
+            vertices.extend(_vertices(disconnected_part))
+        return vertices
     if isinstance(geometry, LineString):
         return _line_coords(geometry)
     return []
@@ -65,12 +72,12 @@ def load_rail_graph(gdb_path: Path) -> RailGraph:
         if name
     }
 
-    didok_to_node: dict[int, str] = {}
+    station_to_node: dict[int, str] = {}
     numbers = nodes["Betriebspunkt_Nummer"].tolist()
     for node_id, number in zip(node_ids, numbers, strict=True):
         didok = _to_didok(number)
-        if didok is not None and didok not in didok_to_node:
-            didok_to_node[didok] = node_id
+        if didok is not None and didok not in station_to_node:
+            station_to_node[didok] = node_id
 
     starts = [str(value) for value in segments["rAnfangsknoten"].tolist()]
     ends = [str(value) for value in segments["rEndknoten"].tolist()]
@@ -85,12 +92,14 @@ def load_rail_graph(gdb_path: Path) -> RailGraph:
         if key in edge_points:
             continue
         points = _vertices(geometry)
+        if len(points) < 2 or polyline_length(points) == 0.0:
+            points = [node_point[start], node_point[end]]
         edge_points[key] = points
         segment_list.append((start, end, points))
 
-    return RailGraph.from_segments(
+    return RailGraph.from_rail_segments(
         nodes=node_point,
         segments=segment_list,
-        didok_to_node=didok_to_node,
+        station_to_node=station_to_node,
         node_name=node_name,
     )

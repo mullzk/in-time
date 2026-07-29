@@ -9,38 +9,50 @@ from django.views.decorators.http import condition
 from pipeline.datadir import DataDir
 from web.published import PublishedSchedule
 
-SCHEDULE_BLOB_URL = "/artifacts/schedule.itsb"
-STATIONS_URL = "/api/stations"
+RAIL_SCHEDULE_BLOB_URL = "/artifacts/schedule-rail.itsb"
+ROAD_SCHEDULE_BLOB_URL = "/artifacts/schedule-road.itsb"
+RAIL_STATIONS_URL = "/api/stations-rail"
+ROAD_STATIONS_URL = "/api/stations-road"
 
 
 def _published() -> PublishedSchedule:
     return PublishedSchedule(DataDir(settings.DATA_DIR))
 
 
-def _published_etag(request: HttpRequest) -> str | None:
-    service_date = _published().service_date()
-    if service_date is None:
+def _content_etag(payload: bytes | None) -> str | None:
+    if payload is None:
         return None
-    return f'W/"{service_date.isoformat()}"'
+    return f'W/"{hashlib.sha256(payload).hexdigest()[:16]}"'
+
+
+def _rail_stations_etag(request: HttpRequest) -> str | None:
+    return _content_etag(_published().stations_rail_bytes())
+
+
+def _road_stations_etag(request: HttpRequest) -> str | None:
+    return _content_etag(_published().stations_road_bytes())
 
 
 def _config_body(service_date_iso: str) -> dict[str, str]:
     return {
         "serviceDate": service_date_iso,
-        "scheduleBlobUrl": SCHEDULE_BLOB_URL,
-        "stationsUrl": STATIONS_URL,
+        "railScheduleBlobUrl": RAIL_SCHEDULE_BLOB_URL,
+        "roadScheduleBlobUrl": ROAD_SCHEDULE_BLOB_URL,
+        "railStationsUrl": RAIL_STATIONS_URL,
+        "roadStationsUrl": ROAD_STATIONS_URL,
     }
 
 
-# The config's URLs can change on a code deploy while the service day stays the
-# same, so a day-keyed ETag would let `no-cache` revalidation answer 304 and
-# strand clients on a stale body. Key it to the whole payload instead.
+# The published content can change while the service day stays the same (a code
+# deploy alters the config URLs; a rebuild re-emits the same day's stations with
+# new fields), so a day-keyed ETag would let `no-cache` revalidation answer 304
+# and strand clients on a stale body. Key every endpoint to its payload instead.
 def _config_etag(request: HttpRequest) -> str | None:
     service_date = _published().service_date()
     if service_date is None:
         return None
     body = json.dumps(_config_body(service_date.isoformat()), sort_keys=True)
-    return f'W/"{hashlib.sha256(body.encode()).hexdigest()[:16]}"'
+    return _content_etag(body.encode())
 
 
 def _no_publication() -> HttpResponse:
@@ -60,9 +72,17 @@ def config(request: HttpRequest) -> HttpResponse:
     return _revalidated(JsonResponse(_config_body(service_date.isoformat())))
 
 
-@condition(etag_func=_published_etag)
-def stations(request: HttpRequest) -> HttpResponse:
-    payload = _published().stations_bytes()
+@condition(etag_func=_rail_stations_etag)
+def stations_rail(request: HttpRequest) -> HttpResponse:
+    payload = _published().stations_rail_bytes()
+    if payload is None:
+        return _no_publication()
+    return _revalidated(HttpResponse(payload, content_type="application/json"))
+
+
+@condition(etag_func=_road_stations_etag)
+def stations_road(request: HttpRequest) -> HttpResponse:
+    payload = _published().stations_road_bytes()
     if payload is None:
         return _no_publication()
     return _revalidated(HttpResponse(payload, content_type="application/json"))
