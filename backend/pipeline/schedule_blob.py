@@ -24,7 +24,7 @@ HEADER_SIZE = struct.calcsize(_HEADER_FORMAT)
 
 class NetworkType(IntEnum):
     RAIL = 1  # rail and tram, routed over the rail network
-    BUS = 2  # buses, drawn as straight lines between their stops
+    ROAD = 2  # buses, drawn as straight lines between their stops
 
 
 @dataclass

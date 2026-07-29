@@ -65,7 +65,7 @@ def write_day_artifacts(
         builds.road,
         SCHEDULE_ROAD_BLOB_NAME,
         STATIONS_ROAD_NAME,
-        NetworkType.BUS,
+        NetworkType.ROAD,
         clusters,
     )
 

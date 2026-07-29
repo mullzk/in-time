@@ -75,7 +75,7 @@ def test_write_day_artifacts_writes_both_blobs_and_stations(tmp_path: Path) -> N
     assert road.station_count == 1
     # The rail blob is tagged rail; the road blob bus.
     assert rail.network_type == NetworkType.RAIL
-    assert road.network_type == NetworkType.BUS
+    assert road.network_type == NetworkType.ROAD
 
     rail_stations = json.loads((tmp_path / "stations-rail.json").read_text())
     road_stations = json.loads((tmp_path / "stations-road.json").read_text())

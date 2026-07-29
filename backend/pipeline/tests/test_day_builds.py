@@ -254,9 +254,9 @@ def test_each_blob_round_trips_with_its_network_type(tmp_path: Path) -> None:
     )
 
     rail_blob = create_schedule_blob(builds.rail.day, NetworkType.RAIL)
-    road_blob = create_schedule_blob(builds.road.day, NetworkType.BUS)
+    road_blob = create_schedule_blob(builds.road.day, NetworkType.ROAD)
 
     assert read_header(rail_blob).network_type == NetworkType.RAIL
-    assert read_header(road_blob).network_type == NetworkType.BUS
+    assert read_header(road_blob).network_type == NetworkType.ROAD
     assert read_header(road_blob).trip_count == 1
     assert read_header(road_blob).edge_count == 0

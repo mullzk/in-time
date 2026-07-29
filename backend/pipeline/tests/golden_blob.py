@@ -97,7 +97,7 @@ def write_golden_blobs() -> None:
         create_schedule_blob(build_golden_rail_day(), NetworkType.RAIL)
     )
     GOLDEN_BUS_BLOB_PATH.write_bytes(
-        create_schedule_blob(build_golden_bus_day(), NetworkType.BUS)
+        create_schedule_blob(build_golden_bus_day(), NetworkType.ROAD)
     )
 
 

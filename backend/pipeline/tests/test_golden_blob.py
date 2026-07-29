@@ -20,7 +20,7 @@ _STALE_HINT = (
     ("path", "day", "network_type"),
     [
         (GOLDEN_RAIL_BLOB_PATH, build_golden_rail_day(), NetworkType.RAIL),
-        (GOLDEN_BUS_BLOB_PATH, build_golden_bus_day(), NetworkType.BUS),
+        (GOLDEN_BUS_BLOB_PATH, build_golden_bus_day(), NetworkType.ROAD),
     ],
 )
 def test_committed_golden_blob_matches_the_writer(
