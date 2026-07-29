@@ -147,7 +147,7 @@ def _calendar_exceptions(
         ]
 
 
-def _epoch(
+def _start_date_of_mask(
     calendar_rows: list[dict[str, str]], exceptions: list[tuple[str, str, str]]
 ) -> datetime.date:
     starts = [row["start_date"] for row in calendar_rows]
@@ -156,32 +156,36 @@ def _epoch(
     return datetime.date(earliest_year, 1, 1)
 
 
-def _service_masks(gtfs_dir: Path, needed: set[str]) -> dict[str, int]:
+def _operating_day_masks(gtfs_dir: Path, needed: set[str]) -> dict[str, int]:
     calendar_rows = _calendar_rows(gtfs_dir, needed)
     exceptions = _calendar_exceptions(gtfs_dir, needed)
     if not calendar_rows and not exceptions:
         return {}
 
-    epoch = _epoch(calendar_rows, exceptions)
-    masks: dict[str, int] = {}
+    start_date_of_mask = _start_date_of_mask(calendar_rows, exceptions)
+    operating_day_masks: dict[str, int] = {}
     for row in calendar_rows:
         active_weekdays = [row[column] == "1" for column in _WEEKDAY_COLUMNS]
         day = _parse_date(row["start_date"])
         end = _parse_date(row["end_date"])
-        mask = 0
+        operating_day_mask = 0
         while day <= end:
             if active_weekdays[day.weekday()]:
-                mask |= 1 << (day - epoch).days
+                operating_day_mask |= 1 << (day - start_date_of_mask).days
             day += datetime.timedelta(days=1)
-        masks[row["service_id"]] = mask
+        operating_day_masks[row["service_id"]] = operating_day_mask
 
     for service_id, date, kind in exceptions:
-        bit = 1 << (_parse_date(date) - epoch).days
+        bit = 1 << (_parse_date(date) - start_date_of_mask).days
         if kind == "1":
-            masks[service_id] = masks.get(service_id, 0) | bit
+            operating_day_masks[service_id] = (
+                operating_day_masks.get(service_id, 0) | bit
+            )
         else:
-            masks[service_id] = masks.get(service_id, 0) & ~bit
-    return masks
+            operating_day_masks[service_id] = (
+                operating_day_masks.get(service_id, 0) & ~bit
+            )
+    return operating_day_masks
 
 
 def _swiss_stop_bpuic(gtfs_dir: Path) -> dict[str, int]:
@@ -196,12 +200,14 @@ def _swiss_stop_bpuic(gtfs_dir: Path) -> dict[str, int]:
 
 class _EdgeTraffic:
     def __init__(self) -> None:
-        self._mask: dict[Edge, int] = {}
+        self._operating_day_masks: dict[Edge, int] = {}
         self._departures: dict[Edge, int] = {}
 
-    def add_trip(self, stations: Iterable[int], mode: int, mask: int) -> None:
-        trip_days = mask.bit_count()
-        if trip_days == 0:
+    def add_trip(
+        self, stations: Iterable[int], mode: int, operating_day_mask: int
+    ) -> None:
+        operating_day_count = operating_day_mask.bit_count()
+        if operating_day_count == 0:
             return
         seen: set[Edge] = set()
         previous: int | None = None
@@ -210,24 +216,30 @@ class _EdgeTraffic:
                 edge = _edge_key(previous, station, mode)
                 if edge not in seen:
                     seen.add(edge)
-                    self._mask[edge] = self._mask.get(edge, 0) | mask
-                    self._departures[edge] = self._departures.get(edge, 0) + trip_days
+                    self._operating_day_masks[edge] = (
+                        self._operating_day_masks.get(edge, 0) | operating_day_mask
+                    )
+                    self._departures[edge] = (
+                        self._departures.get(edge, 0) + operating_day_count
+                    )
             previous = station
 
     def regular(self, thresholds: FrequencyThresholds) -> frozenset[Edge]:
         return frozenset(
             edge
-            for edge, mask in self._mask.items()
-            if self._is_regular(mask.bit_count(), self._departures[edge], thresholds)
+            for edge, operating_day_mask in self._operating_day_masks.items()
+            if self._is_regular(
+                operating_day_mask.bit_count(), self._departures[edge], thresholds
+            )
         )
 
     @staticmethod
     def _is_regular(
-        edge_service_days: int, departures: int, thresholds: FrequencyThresholds
+        edge_operating_days: int, departures: int, thresholds: FrequencyThresholds
     ) -> bool:
         return (
-            edge_service_days >= thresholds.min_days
-            and departures >= edge_service_days * thresholds.min_departures_per_day
+            edge_operating_days >= thresholds.min_days
+            and departures >= edge_operating_days * thresholds.min_departures_per_day
         )
 
 
@@ -235,7 +247,7 @@ def _accumulate_edges(
     gtfs_dir: Path,
     trip_mode: dict[str, int],
     trip_service: dict[str, str],
-    service_masks: dict[str, int],
+    operating_day_masks: dict[str, int],
     stop_bpuic: dict[str, int],
 ) -> _EdgeTraffic:
     """Requires stop_times.txt rows to be contiguous per trip_id: the scan is
@@ -247,13 +259,13 @@ def _accumulate_edges(
     grouping; the current national feed satisfies it."""
     traffic = _EdgeTraffic()
 
-    def flush(trip_id: str, ordered: list[tuple[int, int]]) -> None:
+    def record_trip(trip_id: str, ordered: list[tuple[int, int]]) -> None:
         mode = trip_mode.get(trip_id)
-        mask = service_masks.get(trip_service.get(trip_id, ""), 0)
-        if mode is None or mask == 0:
+        operating_day_mask = operating_day_masks.get(trip_service.get(trip_id, ""), 0)
+        if mode is None or operating_day_mask == 0:
             return
         stations = [bpuic for _sequence, bpuic in sorted(ordered)]
-        traffic.add_trip(stations, mode, mask)
+        traffic.add_trip(stations, mode, operating_day_mask)
 
     with open(gtfs_dir / "stop_times.txt", encoding="utf-8-sig", newline="") as feed:
         reader = csv.reader(feed)
@@ -269,14 +281,14 @@ def _accumulate_edges(
             trip_id = row[trip_at]
             if trip_id != current:
                 if current is not None:
-                    flush(current, ordered)
+                    record_trip(current, ordered)
                 current = trip_id
                 ordered = []
             bpuic = stop_bpuic.get(row[stop_at])
             if bpuic is not None:
                 ordered.append((int(row[sequence_at]), bpuic))
         if current is not None:
-            flush(current, ordered)
+            record_trip(current, ordered)
     return traffic
 
 
@@ -285,10 +297,10 @@ def scan_regular_edges(
     thresholds: FrequencyThresholds = DEFAULT_FREQUENCY_THRESHOLDS,
 ) -> RegularEdges:
     trip_mode, trip_service = _trip_modes_and_services(gtfs_dir)
-    service_masks = _service_masks(gtfs_dir, set(trip_service.values()))
+    operating_day_masks = _operating_day_masks(gtfs_dir, set(trip_service.values()))
     stop_bpuic = _swiss_stop_bpuic(gtfs_dir)
     traffic = _accumulate_edges(
-        gtfs_dir, trip_mode, trip_service, service_masks, stop_bpuic
+        gtfs_dir, trip_mode, trip_service, operating_day_masks, stop_bpuic
     )
     return RegularEdges(traffic.regular(thresholds))
 
