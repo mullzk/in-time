@@ -30,9 +30,9 @@ def sample_day() -> ScheduleDay:
     trip = Trip(
         category=3,
         events=[
-            Event(station=0, arr=28800, dep=28860, leg_edges=[1]),
-            Event(station=1, arr=29400, dep=29460, leg_edges=[2]),
-            Event(station=2, arr=30000, dep=30000, leg_edges=[]),
+            Event(station=0, arrival=28800, departure=28860, leg_edges=[1]),
+            Event(station=1, arrival=29400, departure=29460, leg_edges=[2]),
+            Event(station=2, arrival=30000, departure=30000, leg_edges=[]),
         ],
     )
     return ScheduleDay(

@@ -58,7 +58,7 @@ def test_build_rail_schedule_day_assembles_trip(tmp_path: Path) -> None:
     assert trip.category == 1  # IR
 
     assert [event.station for event in trip.events] == [0, 1, 2]
-    assert [event.arr for event in trip.events] == [28800, 29100, 29400]
+    assert [event.arrival for event in trip.events] == [28800, 29100, 29400]
     # Every stop but the last carries an outgoing routed leg.
     assert trip.events[0].leg_edges and trip.events[1].leg_edges
     assert trip.events[2].leg_edges == []

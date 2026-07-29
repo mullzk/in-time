@@ -137,8 +137,8 @@ def test_stop_sequences_sorted_and_drops_unresolvable(tmp_path: Path) -> None:
     calls = stop_sequences(tmp_path, {"T1"})["T1"]
 
     assert [call.didok for call in calls] == [8507000, 8510000]
-    assert calls[0].arr == 8 * 3600
-    assert calls[0].dep == 8 * 3600 + 30
-    assert calls[1].arr == 8 * 3600 + 2 * 60
+    assert calls[0].arrival == 8 * 3600
+    assert calls[0].departure == 8 * 3600 + 30
+    assert calls[1].arrival == 8 * 3600 + 2 * 60
     # Times stay monotonic along the sorted sequence.
-    assert calls[0].dep <= calls[1].arr
+    assert calls[0].departure <= calls[1].arrival

@@ -197,8 +197,8 @@ def assemble_schedule_day(
             events.append(
                 Event(
                     catalog.index_of(call.didok, category),
-                    call.arr,
-                    call.dep,
+                    call.arrival,
+                    call.departure,
                     leg_edges,
                 )
             )
@@ -276,7 +276,9 @@ def assemble_straight_line_day(
         if len(calls) < 2:
             continue
         events = [
-            Event(catalog.index_of(call.didok, category), call.arr, call.dep, [])
+            Event(
+                catalog.index_of(call.didok, category), call.arrival, call.departure, []
+            )
             for call in calls
         ]
         assembled.append(Trip(category=category, events=events))

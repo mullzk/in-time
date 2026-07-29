@@ -46,16 +46,16 @@ def build_golden_rail_day() -> ScheduleDay:
         Trip(
             category=0,
             events=[
-                Event(station=0, arr=36_000, dep=36_000, leg_edges=[-1]),
-                Event(station=1, arr=36_600, dep=36_660, leg_edges=[2]),
-                Event(station=2, arr=37_260, dep=37_260, leg_edges=[]),
+                Event(station=0, arrival=36_000, departure=36_000, leg_edges=[-1]),
+                Event(station=1, arrival=36_600, departure=36_660, leg_edges=[2]),
+                Event(station=2, arrival=37_260, departure=37_260, leg_edges=[]),
             ],
         ),
         Trip(
             category=3,
             events=[
-                Event(station=1, arr=40_000, dep=40_000, leg_edges=[2]),
-                Event(station=2, arr=40_600, dep=40_600, leg_edges=[]),
+                Event(station=1, arrival=40_000, departure=40_000, leg_edges=[2]),
+                Event(station=2, arrival=40_600, departure=40_600, leg_edges=[]),
             ],
         ),
     ]
@@ -77,9 +77,9 @@ def build_golden_bus_day() -> ScheduleDay:
         Trip(
             category=6,
             events=[
-                Event(station=0, arr=36_000, dep=36_000, leg_edges=[]),
-                Event(station=1, arr=36_600, dep=36_660, leg_edges=[]),
-                Event(station=2, arr=37_260, dep=37_260, leg_edges=[]),
+                Event(station=0, arrival=36_000, departure=36_000, leg_edges=[]),
+                Event(station=1, arrival=36_600, departure=36_660, leg_edges=[]),
+                Event(station=2, arrival=37_260, departure=37_260, leg_edges=[]),
             ],
         ),
     ]

@@ -30,8 +30,8 @@ class NetworkType(IntEnum):
 @dataclass
 class Event:
     station: int
-    arr: int
-    dep: int
+    arrival: int
+    departure: int
     leg_edges: list[int]
 
 
@@ -107,29 +107,29 @@ def create_schedule_blob(day: ScheduleDay, network_type: NetworkType) -> bytes:
             point_north.append(_offset_north(north))
 
     trip_category: list[int] = []
-    trip_first_dep: list[int] = []
-    trip_last_arr: list[int] = []
+    trip_first_departure: list[int] = []
+    trip_last_arrival: list[int] = []
     trip_event_start: list[int] = []
     trip_event_len: list[int] = []
     trip_path_start: list[int] = []
     trip_path_len: list[int] = []
-    ev_station: list[int] = []
-    ev_arr: list[int] = []
-    ev_dep: list[int] = []
-    ev_leg_edge_count: list[int] = []
+    event_station: list[int] = []
+    event_arrival: list[int] = []
+    event_departure: list[int] = []
+    event_leg_edge_count: list[int] = []
     path: list[int] = []
     for trip in day.trips:
         trip_category.append(trip.category)
-        trip_first_dep.append(trip.events[0].dep)
-        trip_last_arr.append(trip.events[-1].arr)
-        trip_event_start.append(len(ev_station))
+        trip_first_departure.append(trip.events[0].departure)
+        trip_last_arrival.append(trip.events[-1].arrival)
+        trip_event_start.append(len(event_station))
         trip_event_len.append(len(trip.events))
         trip_path_start.append(len(path))
         for event in trip.events:
-            ev_station.append(event.station)
-            ev_arr.append(event.arr)
-            ev_dep.append(event.dep)
-            ev_leg_edge_count.append(len(event.leg_edges))
+            event_station.append(event.station)
+            event_arrival.append(event.arrival)
+            event_departure.append(event.departure)
+            event_leg_edge_count.append(len(event.leg_edges))
             path.extend(event.leg_edges)
         trip_path_len.append(len(path) - trip_path_start[-1])
 
@@ -139,18 +139,18 @@ def create_schedule_blob(day: ScheduleDay, network_type: NetworkType) -> bytes:
         _pad_to_four(_column("I", point_east) + _column("I", point_north)),
         _pad_to_four(
             _column("B", trip_category)
-            + _column("I", trip_first_dep)
-            + _column("I", trip_last_arr)
+            + _column("I", trip_first_departure)
+            + _column("I", trip_last_arrival)
             + _column("I", trip_event_start)
             + _column("H", trip_event_len)
             + _column("I", trip_path_start)
             + _column("I", trip_path_len)
         ),
         _pad_to_four(
-            _column("I", ev_station)
-            + _column("I", ev_arr)
-            + _column("I", ev_dep)
-            + _column("H", ev_leg_edge_count)
+            _column("I", event_station)
+            + _column("I", event_arrival)
+            + _column("I", event_departure)
+            + _column("H", event_leg_edge_count)
         ),
         _pad_to_four(_column("i", path)),
     ]
@@ -175,7 +175,7 @@ def create_schedule_blob(day: ScheduleDay, network_type: NetworkType) -> bytes:
         len(day.edges),
         len(point_east),
         len(day.trips),
-        len(ev_station),
+        len(event_station),
         len(path),
         *offsets,
         0,
@@ -263,21 +263,21 @@ def read_schedule_blob(data: bytes) -> ScheduleDay:
     count = header.trip_count
     trip_category = _read_column(data, "B", count, start)
     start += count  # category uint8
-    start += count * 4  # skip trip_first_dep (engine fast-path, derivable)
-    start += count * 4  # skip trip_last_arr
+    start += count * 4  # skip trip_first_departure (engine fast-path, derivable)
+    start += count * 4  # skip trip_last_arrival
     trip_event_start = _read_column(data, "I", count, start)
     start += count * 4
     trip_event_len = _read_column(data, "H", count, start)
 
     start = header.offset_events
     events_count = header.event_count
-    ev_station = _read_column(data, "I", events_count, start)
+    event_station = _read_column(data, "I", events_count, start)
     start += events_count * 4
-    ev_arr = _read_column(data, "I", events_count, start)
+    event_arrival = _read_column(data, "I", events_count, start)
     start += events_count * 4
-    ev_dep = _read_column(data, "I", events_count, start)
+    event_departure = _read_column(data, "I", events_count, start)
     start += events_count * 4
-    ev_leg_edge_count = _read_column(data, "H", events_count, start)
+    event_leg_edge_count = _read_column(data, "H", events_count, start)
 
     path = _read_column(data, "i", header.path_count, header.offset_path)
 
@@ -287,14 +287,14 @@ def read_schedule_blob(data: bytes) -> ScheduleDay:
         event_start = trip_event_start[trip_index]
         events = []
         for event_index in range(event_start, event_start + trip_event_len[trip_index]):
-            leg_count = ev_leg_edge_count[event_index]
+            leg_count = event_leg_edge_count[event_index]
             leg_edges = path[path_cursor : path_cursor + leg_count]
             path_cursor += leg_count
             events.append(
                 Event(
-                    station=ev_station[event_index],
-                    arr=ev_arr[event_index],
-                    dep=ev_dep[event_index],
+                    station=event_station[event_index],
+                    arrival=event_arrival[event_index],
+                    departure=event_departure[event_index],
                     leg_edges=leg_edges,
                 )
             )

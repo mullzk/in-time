@@ -43,8 +43,8 @@ _WEEKDAY_COLUMNS = [
 @dataclass
 class StopCall:
     didok: int
-    arr: int
-    dep: int
+    arrival: int
+    departure: int
 
 
 def category_of(route_type: int) -> int | None:
@@ -146,8 +146,8 @@ def stop_sequences(gtfs_dir: Path, trip_ids: set[str]) -> dict[str, list[StopCal
         header = next(reader)
         column = {name: index for index, name in enumerate(header)}
         trip_at = column["trip_id"]
-        arr_at = column["arrival_time"]
-        dep_at = column["departure_time"]
+        arrival_at = column["arrival_time"]
+        departure_at = column["departure_time"]
         stop_at = column["stop_id"]
         sequence_at = column["stop_sequence"]
         for row in reader:
@@ -159,8 +159,8 @@ def stop_sequences(gtfs_dir: Path, trip_ids: set[str]) -> dict[str, list[StopCal
                 continue
             call = StopCall(
                 didok=didok,
-                arr=seconds_since_midnight(row[arr_at]),
-                dep=seconds_since_midnight(row[dep_at]),
+                arrival=seconds_since_midnight(row[arrival_at]),
+                departure=seconds_since_midnight(row[departure_at]),
             )
             ordered[trip].append((int(row[sequence_at]), call))
 
