@@ -14,15 +14,15 @@ CATEGORY_TRAM = 5
 CATEGORY_BUS = 6
 RAIL_CATEGORIES = frozenset({0, 1, 2, 3, 4})
 
-SWISS_BPUIC_PREFIX = "85"
+SWISS_DIDOK_PREFIX = "85"
 
 
-def is_swiss_bpuic(bpuic: int) -> bool:
-    return str(bpuic).startswith(SWISS_BPUIC_PREFIX)
+def is_swiss_didok(didok: int) -> bool:
+    return str(didok).startswith(SWISS_DIDOK_PREFIX)
 
 
-def is_swiss_bpuic_text(value: str) -> bool:
-    return value.isdigit() and value.startswith(SWISS_BPUIC_PREFIX)
+def is_swiss_didok_text(didok_text: str) -> bool:
+    return didok_text.isdigit() and didok_text.startswith(SWISS_DIDOK_PREFIX)
 
 
 # route_type -> product category (0 Fernverkehr, 1 IR, 2 Regio, 3 S-Bahn,

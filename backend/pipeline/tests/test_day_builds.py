@@ -68,8 +68,8 @@ def write_feed(directory: Path) -> None:
     (directory / "stops.txt").write_text(
         "stop_id,stop_name,stop_lat,stop_lon,didok\n"
         + "".join(
-            f"{bpuic},S{bpuic},46.9,7.4,{bpuic}\n"
-            for bpuic in (RAIL_A, RAIL_B, TRAM_A, TRAM_B, BUS_A, BUS_B)
+            f"{didok},S{didok},46.9,7.4,{didok}\n"
+            for didok in (RAIL_A, RAIL_B, TRAM_A, TRAM_B, BUS_A, BUS_B)
         )
     )
     (directory / "stop_times.txt").write_text(
@@ -209,8 +209,8 @@ def write_three_stop_feed(directory: Path) -> None:
     (directory / "stops.txt").write_text(
         "stop_id,stop_name,stop_lat,stop_lon,didok\n"
         + "".join(
-            f"{bpuic},S{bpuic},46.9,7.4,{bpuic}\n"
-            for bpuic in (RAIL_A, RAIL_B, RAIL_C, BUS_A, BUS_B, BUS_C)
+            f"{didok},S{didok},46.9,7.4,{didok}\n"
+            for didok in (RAIL_A, RAIL_B, RAIL_C, BUS_A, BUS_B, BUS_C)
         )
     )
     (directory / "stop_times.txt").write_text(

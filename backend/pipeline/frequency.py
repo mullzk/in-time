@@ -25,7 +25,7 @@ from pipeline.gtfs import (
     RAIL_CATEGORIES,
     WEEKDAY_COLUMNS,
     category_of,
-    is_swiss_bpuic_text,
+    is_swiss_didok_text,
 )
 
 # Frequency-filter modes: a collapsed projection of the gtfs CATEGORY_* space.
@@ -179,13 +179,13 @@ def _operating_day_masks(gtfs_dir: Path, needed: set[str]) -> dict[str, int]:
     return operating_day_masks
 
 
-def _swiss_stop_bpuic(gtfs_dir: Path) -> dict[str, int]:
+def _swiss_stop_didok(gtfs_dir: Path) -> dict[str, int]:
     mapping: dict[str, int] = {}
     with open(gtfs_dir / "stops.txt", encoding="utf-8-sig", newline="") as feed:
         for row in csv.DictReader(feed):
-            bpuic = (row.get("didok") or "").strip()
-            if is_swiss_bpuic_text(bpuic):
-                mapping[row["stop_id"]] = int(bpuic)
+            didok = (row.get("didok") or "").strip()
+            if is_swiss_didok_text(didok):
+                mapping[row["stop_id"]] = int(didok)
     return mapping
 
 
@@ -239,7 +239,7 @@ def _accumulate_edges(
     trip_mode: dict[str, int],
     trip_service: dict[str, str],
     operating_day_masks: dict[str, int],
-    stop_bpuic: dict[str, int],
+    stop_didok: dict[str, int],
 ) -> _EdgeTraffic:
     """Requires stop_times.txt rows to be contiguous per trip_id: the scan is
     single-pass and flushes a trip as soon as the trip_id changes, so a
@@ -255,7 +255,7 @@ def _accumulate_edges(
         operating_day_mask = operating_day_masks.get(trip_service.get(trip_id, ""), 0)
         if mode is None or operating_day_mask == 0:
             return
-        stations = [bpuic for _sequence, bpuic in sorted(ordered)]
+        stations = [didok for _sequence, didok in sorted(ordered)]
         traffic.add_trip(stations, mode, operating_day_mask)
 
     with open(gtfs_dir / "stop_times.txt", encoding="utf-8-sig", newline="") as feed:
@@ -275,9 +275,9 @@ def _accumulate_edges(
                     record_trip(current, ordered)
                 current = trip_id
                 ordered = []
-            bpuic = stop_bpuic.get(row[stop_at])
-            if bpuic is not None:
-                ordered.append((int(row[sequence_at]), bpuic))
+            didok = stop_didok.get(row[stop_at])
+            if didok is not None:
+                ordered.append((int(row[sequence_at]), didok))
         if current is not None:
             record_trip(current, ordered)
     return traffic
@@ -289,9 +289,9 @@ def scan_regular_edges(
 ) -> RegularEdges:
     trip_mode, trip_service = _trip_modes_and_services(gtfs_dir)
     operating_day_masks = _operating_day_masks(gtfs_dir, set(trip_service.values()))
-    stop_bpuic = _swiss_stop_bpuic(gtfs_dir)
+    stop_didok = _swiss_stop_didok(gtfs_dir)
     traffic = _accumulate_edges(
-        gtfs_dir, trip_mode, trip_service, operating_day_masks, stop_bpuic
+        gtfs_dir, trip_mode, trip_service, operating_day_masks, stop_didok
     )
     return RegularEdges(traffic.regular(thresholds))
 

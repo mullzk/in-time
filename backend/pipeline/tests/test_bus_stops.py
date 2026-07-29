@@ -22,7 +22,7 @@ def write_stops(directory: Path, rows: str) -> None:
     (directory / "stops.txt").write_text(STOPS_HEADER + rows, encoding="utf-8")
 
 
-def test_platforms_collapse_to_one_station_per_bpuic(tmp_path: Path) -> None:
+def test_platforms_collapse_to_one_station_per_didok(tmp_path: Path) -> None:
     write_stops(
         tmp_path,
         f'"Parent8500001","Bern","{BERN_LAT}","{BERN_LON}","1","","","","8500001"\n'
@@ -65,7 +65,7 @@ def test_real_bus_stops_are_plausible() -> None:
     stops = load_bus_stops(Path(GTFS_DIR))
 
     assert len(stops) > 20_000
-    assert all(str(bpuic).startswith("85") for bpuic in stops)
+    assert all(str(didok).startswith("85") for didok in stops)
     for stop in stops.values():
         east, north = stop.location
         assert 2_480_000 < east < 2_840_000

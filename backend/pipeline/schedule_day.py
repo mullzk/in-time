@@ -33,7 +33,7 @@ from pipeline.gtfs import (
     StopCall,
     active_rail_trips,
     active_trips,
-    is_swiss_bpuic,
+    is_swiss_didok,
     stop_sequences,
 )
 from pipeline.network.rail import Point, RailGraph, RailRouter
@@ -82,36 +82,36 @@ class ScheduleBuild:
 
 
 class StationSource(Protocol):
-    def location(self, station: int) -> Point: ...
+    def location(self, didok: int) -> Point: ...
 
-    def name(self, station: int) -> str: ...
+    def name(self, didok: int) -> str: ...
 
 
 class RailStationSource:
     def __init__(self, rail_graph: RailGraph) -> None:
         self._rail_graph = rail_graph
 
-    def location(self, station: int) -> Point:
-        node = self._rail_graph.station_to_node[station]
+    def location(self, didok: int) -> Point:
+        node = self._rail_graph.station_to_node[didok]
         return self._rail_graph.node_point[node]
 
-    def name(self, station: int) -> str:
-        node = self._rail_graph.station_to_node.get(station)
+    def name(self, didok: int) -> str:
+        node = self._rail_graph.station_to_node.get(didok)
         if node is None:
-            return str(station)
-        return self._rail_graph.node_name.get(node, str(station))
+            return str(didok)
+        return self._rail_graph.node_name.get(node, str(didok))
 
 
 class BusStationSource:
     def __init__(self, bus_stops: dict[int, BusStop]) -> None:
         self._bus_stops = bus_stops
 
-    def location(self, station: int) -> Point:
-        return self._bus_stops[station].location
+    def location(self, didok: int) -> Point:
+        return self._bus_stops[didok].location
 
-    def name(self, station: int) -> str:
-        stop = self._bus_stops.get(station)
-        return stop.name if stop is not None else str(station)
+    def name(self, didok: int) -> str:
+        stop = self._bus_stops.get(didok)
+        return stop.name if stop is not None else str(didok)
 
 
 class _StationCatalog:
@@ -121,16 +121,16 @@ class _StationCatalog:
         self.coordinates: list[Point] = []
         self.entries: list[StationEntry] = []
 
-    def register(self, station: int, category: int) -> int:
-        if station not in self._index:
-            self._index[station] = len(self.coordinates)
-            self.coordinates.append(self._source.location(station))
-            self.entries.append(StationEntry(station, self._source.name(station)))
-        self.entries[self._index[station]].modes.add(station_mode_of_category(category))
-        return self._index[station]
+    def register(self, didok: int, category: int) -> int:
+        if didok not in self._index:
+            self._index[didok] = len(self.coordinates)
+            self.coordinates.append(self._source.location(didok))
+            self.entries.append(StationEntry(didok, self._source.name(didok)))
+        self.entries[self._index[didok]].modes.add(station_mode_of_category(category))
+        return self._index[didok]
 
-    def name_of(self, station: int) -> str:
-        return self._source.name(station)
+    def name_of(self, didok: int) -> str:
+        return self._source.name(didok)
 
 
 def _kept_calls(sequence: list[StopCall], placeable: Set[int]) -> list[StopCall]:
@@ -140,7 +140,7 @@ def _kept_calls(sequence: list[StopCall], placeable: Set[int]) -> list[StopCall]
 def _swiss_stations_and_mode(
     sequence: list[StopCall], category: int
 ) -> tuple[list[int], int]:
-    swiss_stations = [call.didok for call in sequence if is_swiss_bpuic(call.didok)]
+    swiss_stations = [call.didok for call in sequence if is_swiss_didok(call.didok)]
     return swiss_stations, frequency_mode_of_category(category)
 
 

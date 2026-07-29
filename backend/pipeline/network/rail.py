@@ -121,21 +121,21 @@ class RailRouter:
         fallbacks.sort(key=lambda item: item.distance_metres, reverse=True)
         return fallbacks
 
-    def _location(self, station: int) -> Point | None:
-        node = self._station_to_node.get(station)
+    def _location(self, didok: int) -> Point | None:
+        node = self._station_to_node.get(didok)
         return self._node_point[node] if node is not None else None
 
-    def _entry_node(self, station: int) -> str | None:
-        node = self._station_to_node.get(station)
+    def _entry_node(self, didok: int) -> str | None:
+        node = self._station_to_node.get(didok)
         return node if node in self._routable_set else None
 
-    def _entry_candidates(self, station: int) -> list[str]:
-        if station not in self._candidate_cache:
-            self._candidate_cache[station] = self._resolve_candidates(station)
-        return self._candidate_cache[station]
+    def _entry_candidates(self, didok: int) -> list[str]:
+        if didok not in self._candidate_cache:
+            self._candidate_cache[didok] = self._resolve_candidates(didok)
+        return self._candidate_cache[didok]
 
-    def _resolve_candidates(self, station: int) -> list[str]:
-        location = self._location(station)
+    def _resolve_candidates(self, didok: int) -> list[str]:
+        location = self._location(didok)
         if location is None:
             return []
         radius = self._thresholds.entry_candidate_radius_metres

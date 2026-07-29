@@ -1,14 +1,14 @@
 """Groups stops that GTFS transfers.txt ties together into one physical
 interchange, so the sonification can treat a rail station and its neighbouring
-tram and bus stops -- distinct BPUICs at the same place, e.g. "Bern" and "Bern,
+tram and bus stops -- distinct DiDoks at the same place, e.g. "Bern" and "Bern,
 Bahnhof" -- as a single sonified station. It is a union-find over the transfer
-edges in BPUIC (didok) space: platforms already share their station's BPUIC, so
+edges in DiDok space: platforms already share their station's DiDok, so
 no parent-station step is needed. Each cluster is named by its smallest didok."""
 
 import csv
 from pathlib import Path
 
-from pipeline.gtfs import is_swiss_bpuic_text
+from pipeline.gtfs import is_swiss_didok_text
 
 
 class _UnionFind:
@@ -33,7 +33,7 @@ def _read_stop_didoks(gtfs_dir: Path) -> dict[str, int]:
     with open(gtfs_dir / "stops.txt", encoding="utf-8-sig", newline="") as feed:
         for row in csv.DictReader(feed):
             didok_text = (row.get("didok") or "").strip()
-            if is_swiss_bpuic_text(didok_text):
+            if is_swiss_didok_text(didok_text):
                 stop_to_didok[row["stop_id"]] = int(didok_text)
     return stop_to_didok
 

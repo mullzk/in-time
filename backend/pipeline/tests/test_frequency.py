@@ -47,14 +47,14 @@ def write_feed(directory: Path, files: dict[str, str]) -> None:
         (directory / name).write_text(content, encoding="utf-8")
 
 
-def stops_txt(*bpuics: int) -> str:
+def stops_txt(*didoks: int) -> str:
     header = (
         "stop_id,stop_name,stop_lat,stop_lon,location_type,parent_station,"
         "platform_code,original_stop_id,didok\n"
     )
     rows = "".join(
-        f'"{bpuic}","S{bpuic}","47.0","8.0","1","","","","{bpuic}"\n'
-        for bpuic in bpuics
+        f'"{didok}","S{didok}","47.0","8.0","1","","","","{didok}"\n'
+        for didok in didoks
     )
     return header + rows
 
@@ -70,8 +70,8 @@ def stop_times(*trips: tuple[str, list[int]]) -> str:
     header = "trip_id,arrival_time,departure_time,stop_id,stop_sequence\n"
     rows = ""
     for trip_id, sequence in trips:
-        for position, bpuic in enumerate(sequence):
-            rows += f'"{trip_id}","08:00:00","08:00:00","{bpuic}","{position}"\n'
+        for position, didok in enumerate(sequence):
+            rows += f'"{trip_id}","08:00:00","08:00:00","{didok}","{position}"\n'
     return header + rows
 
 
