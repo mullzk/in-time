@@ -38,6 +38,7 @@ export class Sonifier {
     this.instrumentation = null;
     this.station = null;
     this.events = [];
+    this.wasActive = false;
     this.cursor = 0;
     this.lastSimTime = 0;
     this.lastSeekGeneration = timeModel.seekGeneration;
@@ -67,7 +68,14 @@ export class Sonifier {
       this.station === null ||
       !this.audioBridge.started
     ) {
+      this.wasActive = false;
       return;
+    }
+    // While inactive the cursor stood still as the clock ran on, so the events
+    // that elapsed meanwhile would now fire at once. Skip past them on resuming.
+    if (!this.wasActive) {
+      this.#resync();
+      this.wasActive = true;
     }
     const audioNow = this.audioBridge.currentTime;
     const hiddenGroups = this.panel.hiddenTransportGroups();
