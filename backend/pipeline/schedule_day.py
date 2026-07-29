@@ -121,7 +121,7 @@ class _StationCatalog:
         self.coordinates: list[Point] = []
         self.entries: list[StationEntry] = []
 
-    def index_of(self, station: int, category: int) -> int:
+    def register(self, station: int, category: int) -> int:
         if station not in self._index:
             self._index[station] = len(self.coordinates)
             self.coordinates.append(self._source.location(station))
@@ -196,7 +196,7 @@ def assemble_schedule_day(
                 leg_edges = leg.signed_path if leg is not None else []
             events.append(
                 Event(
-                    catalog.index_of(call.didok, category),
+                    catalog.register(call.didok, category),
                     call.arrival,
                     call.departure,
                     leg_edges,
@@ -277,7 +277,7 @@ def assemble_straight_line_day(
             continue
         events = [
             Event(
-                catalog.index_of(call.didok, category), call.arrival, call.departure, []
+                catalog.register(call.didok, category), call.arrival, call.departure, []
             )
             for call in calls
         ]
