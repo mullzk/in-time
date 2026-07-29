@@ -91,8 +91,8 @@ class RailRouter:
     def signed_length(self, signed_path: list[int]) -> float:
         return self._edges.length_of(signed_path)
 
-    def signed_path(self, node_a: str, node_b: str) -> list[int] | None:
-        return self._edges.signed_between(node_a, node_b)
+    def signed_path(self, from_node: str, to_node: str) -> list[int] | None:
+        return self._edges.signed_between(from_node, to_node)
 
     def route(
         self, pairs: Iterable[tuple[int, int]]
