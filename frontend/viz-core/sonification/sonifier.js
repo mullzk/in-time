@@ -24,6 +24,12 @@ import {
   TRANSPORT_GROUPS,
 } from './scheduling.js';
 
+// A rendered frame this far apart in real time is a rendering stall (a
+// backgrounded tab), not the steady advance: the sim clock leaped over a stretch
+// of events while the audio clock ran on, so we resync past them rather than
+// schedule the whole backlog at once.
+const STALL_RESYNC_SECONDS = 0.5;
+
 // A fixed master level (no slider); the per-sound gains and the density damping
 // do the balancing, system volume does the rest.
 const MASTER_GAIN = 0.9;
@@ -110,19 +116,23 @@ export class Sonifier {
     this.dwellVoices = [];
   }
 
-  // A scrub bumps the seek generation; the loop wrap steps time backwards.
-  // Either way the cursor and dwell voices belong to the old timeline.
-  #timelineJumped(simTime) {
+  // A scrub bumps the seek generation; the loop wrap steps time backwards; a
+  // rendering stall leaps the clock far forward in one frame. Either way the
+  // cursor and dwell voices belong to a timeline the lookahead can no longer
+  // bridge, so we treat it as a jump and resync.
+  #timelineJumped(simTime, timeScale) {
+    const realSecondsSinceLastFrame = (simTime - this.lastSimTime) / timeScale;
     return (
       this.timeModel.seekGeneration !== this.lastSeekGeneration ||
-      simTime < this.lastSimTime
+      simTime < this.lastSimTime ||
+      realSecondsSinceLastFrame > STALL_RESYNC_SECONDS
     );
   }
 
   #scheduleUpcoming(audioNow, hiddenGroups) {
     const simTime = this.timeModel.current;
     const timeScale = this.timeModel.tempo;
-    if (this.#timelineJumped(simTime)) {
+    if (this.#timelineJumped(simTime, timeScale)) {
       this.#resync();
     }
     this.lastSimTime = simTime;

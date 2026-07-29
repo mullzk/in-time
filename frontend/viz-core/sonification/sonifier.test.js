@@ -72,6 +72,28 @@ test('resuming after an inactive preset does not replay elapsed events', () => {
   assert.equal(bridge.plays.length, 1);
 });
 
+test('a rendering stall skips the elapsed backlog instead of bursting', () => {
+  const { bridge, timeModel, sonifier } = makeHarness(pastEvents);
+  bridge.started = true;
+  timeModel.current = 90;
+  sonifier.setInstrumentation(instrumentation);
+  sonifier.setStation('station');
+  sonifier.onFrameRendered();
+  assert.equal(bridge.plays.length, 0);
+
+  // A backgrounded tab: the audio clock ran on while rendering stalled, so the
+  // sim clock leaps far forward in a single frame. The events elapsed in the
+  // gap must be skipped, not all scheduled at once.
+  timeModel.current = 350;
+  bridge.currentTime = 260;
+  sonifier.onFrameRendered();
+  assert.equal(bridge.plays.length, 0);
+
+  timeModel.current = 350.1;
+  sonifier.onFrameRendered();
+  assert.equal(bridge.plays.length, 0);
+});
+
 test('events elapsed while audio was loading do not burst on first frame', () => {
   const { bridge, timeModel, sonifier } = makeHarness(pastEvents);
   timeModel.current = 90;
