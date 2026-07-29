@@ -1,6 +1,22 @@
 import { Popover } from './popover.js';
 import { TapInteraction } from './tapInteraction.js';
 
+// Double-tap identity for a pick. Stations are stable objects, but vehicleAt
+// rebuilds its picks every frame, so vehicles compare by their engine and trip
+// index instead of reference.
+export function sameSelectionTarget(first, second) {
+  if (first.kind !== second.kind) {
+    return false;
+  }
+  if (first.kind === 'station') {
+    return first.station === second.station;
+  }
+  return (
+    first.vehicle.engineIndex === second.vehicle.engineIndex &&
+    first.vehicle.tripIndex === second.vehicle.tripIndex
+  );
+}
+
 // Tap-to-select on the map: a station shows a static popover, a vehicle one that
 // follows it each frame until its trip ends. Wires the canvas tap interaction to
 // the popover and the panel's pickers so the app entry point stays declarative.
@@ -20,10 +36,7 @@ export class MapSelection {
   attachTo(canvasElement) {
     new TapInteraction(canvasElement, {
       pick: (x, y) => this.#pick(x, y),
-      sameTarget: (first, second) =>
-        first.kind === 'station' &&
-        second.kind === 'station' &&
-        first.station === second.station,
+      sameTarget: sameSelectionTarget,
       onSelect: (target) => this.#select(target),
       onActivate: (target) => this.#activate(target),
       onMiss: () => this.clear(),
