@@ -65,8 +65,12 @@ async function bootstrap() {
         sonifier.setInstrumentation(instrumentation),
     }),
   );
+  let stationSearch = null;
   const selection = new MapSelection(root, panel, context, {
-    onStationChosen: (station) => sonifier.setStation(station),
+    onStationChosen: (station) => {
+      sonifier.setStation(station);
+      stationSearch?.showSelection(station);
+    },
   });
   const infoModal = new InfoModal(
     root,
@@ -87,7 +91,7 @@ async function bootstrap() {
     i: () => infoModal.toggle(),
   };
   if (panel.capabilities.stationSearch) {
-    const stationSearch = new StationSearch(root, panel.stationCatalog(), {
+    stationSearch = new StationSearch(root, panel.stationCatalog(), {
       onSelect: revealSearchedStation,
     });
     bindings.g = () => stationSearch.focus();
