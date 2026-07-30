@@ -66,9 +66,10 @@ irregular. Local run, Apple Silicon.
 
 ## Day build — `build_schedule_day` + `write_day_artifacts`
 
-Two blobs per day: `schedule.itsb` (rail + tram routed over the BAV network) and
-`schedule-road.itsb` (buses drawn as straight lines between stops, no geometry).
-GTFS feed 2026 + rail network GDB, day 2026-07-17. Local run, Apple Silicon.
+Two blobs per day: `schedule-rail.itsb` (rail + tram routed over the BAV
+network) and `schedule-road.itsb` (buses drawn as straight lines between stops,
+no geometry). GTFS feed 2026 + rail network GDB, day 2026-07-17. Local run,
+Apple Silicon.
 
 | metric                                | rail (rail+tram)    | road (bus)      |
 | ------------------------------------- | ------------------- | --------------- |
