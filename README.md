@@ -53,10 +53,10 @@ blobs and the map tiles load without the reverse proxy.
 The browser-facing app (`web`) exposes a small surface; everything else the
 client needs is served directly by the reverse proxy.
 
-- `GET /` — the entry point, redirecting to the current default view. The paths
-  of the individual panel pages are internal: they are reached through this
-  redirect or, later, through the in-app view chooser, and their names may
-  change.
+- `GET /` — the entry point, redirecting to the current default view. Each panel
+  has its own page below it, reached through the redirect or the in-app view
+  chooser; those paths are not listed here because their names are still
+  settling.
 - `GET /api/config` — JSON
   `{ serviceDate, railScheduleBlobUrl, roadScheduleBlobUrl, railStationsUrl, roadStationsUrl }`.
   The service day is read from the `current` artifact symlink. Returns `503`
