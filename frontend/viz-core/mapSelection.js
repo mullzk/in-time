@@ -1,3 +1,4 @@
+import { HoverInteraction } from './hoverInteraction.js';
 import { Popover } from './popover.js';
 import { TapInteraction } from './tapInteraction.js';
 
@@ -26,14 +27,21 @@ export function sameSelectionTarget(first, second) {
 // picking and, for vehicles, describeVehicle (category and route names) and
 // vehiclePosition (live location).
 export class MapSelection {
-  constructor(container, panel, context, { onStationChosen, popover } = {}) {
+  constructor(
+    container,
+    panel,
+    context,
+    { onStationChosen, popover, hoverPopover } = {},
+  ) {
     this.panel = panel;
     this.context = context;
     this.camera = context.camera;
     this.time = context.time;
     this.popover = popover ?? new Popover(container);
+    this.hoverPopover = hoverPopover ?? new Popover(container);
     this.followedVehicle = null;
     this.selectedStation = null;
+    this.hoveredStation = null;
     this.onStationChosen = onStationChosen;
   }
 
@@ -45,6 +53,10 @@ export class MapSelection {
       onActivate: (target) => this.#activate(target),
       onMiss: () => this.clear(),
     });
+    new HoverInteraction(canvasElement, {
+      pick: (x, y) => this.panel.stationAt(x, y),
+      onHover: (station) => this.#hover(station),
+    });
   }
 
   onFrameRendered() {
@@ -53,6 +65,24 @@ export class MapSelection {
     } else if (this.selectedStation !== null) {
       this.#anchorTo(this.selectedStation.east, this.selectedStation.north);
     }
+    if (this.hoveredStation !== null) {
+      const [x, y] = this.camera.worldToScreen(
+        this.hoveredStation.east,
+        this.hoveredStation.north,
+      );
+      this.hoverPopover.moveTo(x, y);
+    }
+  }
+
+  #hover(station) {
+    if (station === null || station === this.selectedStation) {
+      this.hoveredStation = null;
+      this.hoverPopover.hide();
+      return;
+    }
+    this.hoveredStation = station;
+    const [x, y] = this.camera.worldToScreen(station.east, station.north);
+    this.hoverPopover.showAt(x, y, station.name);
   }
 
   #followVehicle() {
@@ -77,6 +107,10 @@ export class MapSelection {
     this.selectedStation = station;
     const [x, y] = this.camera.worldToScreen(station.east, station.north);
     this.popover.showAt(x, y, station.name);
+    if (station === this.hoveredStation) {
+      this.hoveredStation = null;
+      this.hoverPopover.hide();
+    }
     this.onStationChosen?.(station);
   }
 
