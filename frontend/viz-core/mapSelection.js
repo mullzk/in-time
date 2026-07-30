@@ -1,6 +1,7 @@
 import { HoverInteraction } from './hoverInteraction.js';
 import { Popover } from './popover.js';
 import { TapInteraction } from './tapInteraction.js';
+import { TrackedPopover } from './trackedPopover.js';
 
 // Double-tap identity for a pick. Stations are stable objects, but vehicleAt
 // rebuilds its picks every frame, so vehicles compare by their engine and trip
@@ -18,14 +19,12 @@ export function sameSelectionTarget(first, second) {
   );
 }
 
-// Tap-to-select on the map: a station shows a popover pinned to its node, a
-// vehicle one that follows the vehicle until its trip ends. Both are re-anchored
-// to the moving camera every frame, so any camera change -- wheel, pinch,
-// keyboard zoom, the sidebar slider or a focus jump -- keeps them on target.
-// Wires the canvas tap interaction to the popover and the panel's pickers so the
-// app entry point stays declarative. The panel supplies stationAt/vehicleAt for
-// picking and, for vehicles, describeVehicle (category and route names) and
-// vehiclePosition (live location).
+// Tap- and hover-to-select on the map, sharing one ranked picker so a hover
+// previews exactly what a click would take: a rail station wins, then a vehicle,
+// then a tram or bus stop. The committed selection and the hover each drive their
+// own tracked popover -- the hover's drawn weaker and beneath -- and both follow
+// the moving camera every frame. The panel supplies the pickers and, for
+// vehicles, describeVehicle and vehiclePosition.
 export class MapSelection {
   constructor(
     container,
@@ -37,121 +36,80 @@ export class MapSelection {
     this.context = context;
     this.camera = context.camera;
     this.time = context.time;
-    this.popover = popover ?? new Popover(container);
-    this.hoverPopover = hoverPopover ?? new Popover(container);
-    this.followedVehicle = null;
-    this.selectedStation = null;
-    this.hoveredStation = null;
+    this.selection = new TrackedPopover(
+      popover ?? new Popover(container),
+      panel,
+      this.camera,
+      this.time,
+    );
+    this.hover = new TrackedPopover(
+      hoverPopover ?? new Popover(container, 'popover-hover'),
+      panel,
+      this.camera,
+      this.time,
+    );
     this.onStationChosen = onStationChosen;
   }
 
   attachTo(canvasElement) {
+    const pick = (x, y) => this.#pick(x, y);
     new TapInteraction(canvasElement, {
-      pick: (x, y) => this.#pick(x, y),
+      pick,
       sameTarget: sameSelectionTarget,
       onSelect: (target) => this.#select(target),
       onActivate: (target) => this.#activate(target),
       onMiss: () => this.clear(),
     });
     new HoverInteraction(canvasElement, {
-      pick: (x, y) => this.panel.stationAt(x, y),
-      onHover: (station) => this.#hover(station),
+      pick,
+      sameTarget: sameSelectionTarget,
+      onHover: (target) => this.#hover(target),
     });
   }
 
   onFrameRendered() {
-    if (this.followedVehicle !== null) {
-      this.#followVehicle();
-    } else if (this.selectedStation !== null) {
-      this.#anchorTo(this.selectedStation.east, this.selectedStation.north);
-    }
-    if (this.hoveredStation !== null) {
-      const [x, y] = this.camera.worldToScreen(
-        this.hoveredStation.east,
-        this.hoveredStation.north,
-      );
-      this.hoverPopover.moveTo(x, y);
-    }
+    this.selection.reanchor();
+    this.hover.reanchor();
   }
 
-  #hover(station) {
-    if (station === null || station === this.selectedStation) {
-      this.hoveredStation = null;
-      this.hoverPopover.hide();
-      return;
-    }
-    this.hoveredStation = station;
-    const [x, y] = this.camera.worldToScreen(station.east, station.north);
-    this.hoverPopover.showAt(x, y, station.name);
-  }
-
-  #followVehicle() {
-    const position = this.panel.vehiclePosition(
-      this.followedVehicle,
-      this.time.current,
-    );
-    if (position === null) {
-      this.clear();
-      return;
-    }
-    this.#anchorTo(position.east, position.north);
-  }
-
-  #anchorTo(east, north) {
-    const [x, y] = this.camera.worldToScreen(east, north);
-    this.popover.moveTo(x, y);
+  revealStation(station) {
+    this.panel.revealStation(station);
+    this.context.focusStation(station.east, station.north);
+    this.selectStation(station);
   }
 
   selectStation(station) {
-    this.followedVehicle = null;
-    this.selectedStation = station;
-    const [x, y] = this.camera.worldToScreen(station.east, station.north);
-    this.popover.showAt(x, y, station.name);
-    if (station === this.hoveredStation) {
-      this.hoveredStation = null;
-      this.hoverPopover.hide();
-    }
+    this.selection.showStation(station);
+    this.#suppressHover({ kind: 'station', station });
     this.onStationChosen?.(station);
   }
 
   clear() {
-    this.followedVehicle = null;
-    this.selectedStation = null;
-    this.popover.hide();
+    this.selection.clear();
   }
 
-  #pick(screenX, screenY) {
-    const station = this.panel.stationAt(screenX, screenY);
-    if (station !== null) {
-      return { kind: 'station', station };
+  #hover(target) {
+    if (target === null || this.#isSelected(target)) {
+      this.hover.clear();
+    } else if (target.kind === 'station') {
+      this.hover.showStation(target.station);
+    } else {
+      this.hover.showVehicle(target.vehicle);
     }
-    const vehicle = this.panel.vehicleAt(screenX, screenY);
-    return vehicle === null ? null : { kind: 'vehicle', vehicle };
   }
 
   #select(target) {
     if (target.kind === 'station') {
-      this.selectStation(target.station);
+      this.revealStation(target.station);
     } else {
-      this.#selectVehicle(target.vehicle);
+      this.selection.showVehicle(target.vehicle);
+      this.#suppressHover(target);
     }
-  }
-
-  #selectVehicle(vehicle) {
-    this.selectedStation = null;
-    this.followedVehicle = vehicle;
-    const { label, origin, destination } = this.panel.describeVehicle(vehicle);
-    const [x, y] = this.camera.worldToScreen(vehicle.east, vehicle.north);
-    this.popover.showLines(x, y, [
-      label,
-      `${origin ?? '?'} → ${destination ?? '?'}`,
-    ]);
   }
 
   #activate(target) {
     if (target.kind === 'station') {
-      this.context.focusStation(target.station.east, target.station.north);
-      this.onStationChosen?.(target.station);
+      this.revealStation(target.station);
       return;
     }
     const position = this.panel.vehiclePosition(
@@ -160,6 +118,31 @@ export class MapSelection {
     );
     if (position !== null) {
       this.context.focusStation(position.east, position.north);
+    }
+  }
+
+  #pick(screenX, screenY) {
+    const railStation = this.panel.railStationNear(screenX, screenY);
+    if (railStation !== null) {
+      return { kind: 'station', station: railStation };
+    }
+    const vehicle = this.panel.vehicleAt(screenX, screenY);
+    if (vehicle !== null) {
+      return { kind: 'vehicle', vehicle };
+    }
+    const station = this.panel.minorStationNear(screenX, screenY);
+    return station === null ? null : { kind: 'station', station };
+  }
+
+  #isSelected(target) {
+    const selected = this.selection.target();
+    return selected !== null && sameSelectionTarget(selected, target);
+  }
+
+  #suppressHover(selected) {
+    const hovered = this.hover.target();
+    if (hovered !== null && sameSelectionTarget(hovered, selected)) {
+      this.hover.clear();
     }
   }
 }

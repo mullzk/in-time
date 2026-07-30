@@ -2,14 +2,15 @@
 // moves it picks whatever lies under it and reports the change through onHover,
 // passing null when nothing is hit or the pointer leaves. Mouse only -- touch
 // has no hover -- and quiet while a button is held so it never fires during a
-// camera drag. It reports only when the hovered target changes, so a still or
-// repeating pointer costs nothing downstream. Picks must be stable objects, so a
-// station lingered over stays the same target rather than re-firing every move.
+// camera drag. sameTarget(a, b) decides when two picks are the same target, so a
+// vehicle rebuilt each frame is not reported as a fresh hover on every move; only
+// a real change reaches onHover.
 export class HoverInteraction {
-  constructor(canvasElement, { pick, onHover }) {
+  constructor(canvasElement, { pick, onHover, sameTarget }) {
     this.canvas = canvasElement;
     this.pick = pick;
     this.onHover = onHover;
+    this.sameTarget = sameTarget ?? ((first, second) => first === second);
     this.hovered = null;
     this.#bind();
   }
@@ -33,10 +34,20 @@ export class HoverInteraction {
   }
 
   #update(target) {
-    if (target === this.hovered) {
+    if (this.#isSame(target, this.hovered)) {
       return;
     }
     this.hovered = target;
     this.onHover(target);
+  }
+
+  #isSame(first, second) {
+    if (first === second) {
+      return true;
+    }
+    if (first === null || second === null) {
+      return false;
+    }
+    return this.sameTarget(first, second);
   }
 }

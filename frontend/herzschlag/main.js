@@ -77,14 +77,6 @@ async function bootstrap() {
     buildInfoContent({ stationSearch: panel.capabilities.stationSearch }),
   );
 
-  // A search pick reveals the station: switch on the layers that surface it,
-  // centre on it, and name it with a popover anchored to its node.
-  const revealSearchedStation = (station) => {
-    panel.revealStation(station);
-    context.focusStation(station.east, station.north);
-    selection.selectStation(station);
-  };
-
   const bindings = {
     h: () => panel.toggleStops(),
     s: () => sidebar.toggle(),
@@ -92,7 +84,7 @@ async function bootstrap() {
   };
   if (panel.capabilities.stationSearch) {
     stationSearch = new StationSearch(root, panel.stationCatalog(), {
-      onSelect: revealSearchedStation,
+      onSelect: (station) => selection.revealStation(station),
     });
     bindings.g = () => stationSearch.focus();
   }
