@@ -44,3 +44,9 @@
 .station-search-suggestion:hover {
   background: var(--color-control);
 }
+
+@media (max-width: 640px) {
+  .station-search {
+    top: calc(var(--space-m) + 34px + var(--space-s));
+  }
+}
