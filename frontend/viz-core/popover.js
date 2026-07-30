@@ -6,8 +6,11 @@ import { element } from './dom.js';
 // vehicle passes several lines (category and route) and is repositioned each
 // frame through moveTo as it travels.
 export class Popover {
-  constructor(container) {
+  constructor(container, modifierClass = null) {
     this.root = element('div', 'popover');
+    if (modifierClass !== null) {
+      this.root.classList.add(modifierClass);
+    }
     this.root.setAttribute('role', 'status');
     container.appendChild(this.root);
     this.hide();

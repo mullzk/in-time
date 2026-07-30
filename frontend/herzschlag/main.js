@@ -65,21 +65,17 @@ async function bootstrap() {
         sonifier.setInstrumentation(instrumentation),
     }),
   );
+  let stationSearch = null;
   const selection = new MapSelection(root, panel, context, {
-    onStationChosen: (station) => sonifier.setStation(station),
+    onStationChosen: (station) => {
+      sonifier.setStation(station);
+      stationSearch?.showSelection(station);
+    },
   });
   const infoModal = new InfoModal(
     root,
     buildInfoContent({ stationSearch: panel.capabilities.stationSearch }),
   );
-
-  // A search pick reveals the station: switch on the layers that surface it,
-  // centre on it, and name it with a popover anchored to its node.
-  const revealSearchedStation = (station) => {
-    panel.revealStation(station);
-    context.focusStation(station.east, station.north);
-    selection.selectStation(station);
-  };
 
   const bindings = {
     h: () => panel.toggleStops(),
@@ -87,8 +83,8 @@ async function bootstrap() {
     i: () => infoModal.toggle(),
   };
   if (panel.capabilities.stationSearch) {
-    const stationSearch = new StationSearch(root, panel.stationCatalog(), {
-      onSelect: revealSearchedStation,
+    stationSearch = new StationSearch(root, panel.stationCatalog(), {
+      onSelect: (station) => selection.revealStation(station),
     });
     bindings.g = () => stationSearch.focus();
   }

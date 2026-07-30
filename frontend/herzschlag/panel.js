@@ -93,6 +93,10 @@ const STATION_STROKE_BY_MODE = new Map([
 const STATION_STROKE_WIDTH_PIXELS = 1;
 // A generous tap target so small nodes stay hittable on touch.
 const STATION_HIT_RADIUS_PIXELS = 12;
+// Zoomed out, the full-catalogue pick would swallow every click and the hover
+// label would never rest, so its reach shrinks towards this floor as the view
+// pulls back, leaving room to aim at a vehicle.
+const STATION_NEAR_MIN_RADIUS_PIXELS = 5;
 // Vehicles are smaller and denser than station nodes, so keep their tap target
 // tighter to avoid grabbing a neighbour.
 const VEHICLE_HIT_RADIUS_PIXELS = 10;
@@ -411,6 +415,40 @@ export class HerzschlagPanel extends Panel {
       screenY,
       STATION_HIT_RADIUS_PIXELS,
     );
+  }
+
+  stationNear(screenX, screenY) {
+    return this.#nearestCatalogStation(screenX, screenY, null);
+  }
+
+  railStationNear(screenX, screenY) {
+    return this.#nearestCatalogStation(
+      screenX,
+      screenY,
+      (station) => dominantStationMode(station.modes) === 'rail',
+    );
+  }
+
+  minorStationNear(screenX, screenY) {
+    return this.#nearestCatalogStation(
+      screenX,
+      screenY,
+      (station) => dominantStationMode(station.modes) !== 'rail',
+    );
+  }
+
+  #nearestCatalogStation(screenX, screenY, accept) {
+    if (this.camera === null) {
+      return null;
+    }
+    const radius =
+      STATION_NEAR_MIN_RADIUS_PIXELS +
+      (STATION_HIT_RADIUS_PIXELS - STATION_NEAR_MIN_RADIUS_PIXELS) *
+        this.camera.zoomFraction();
+    const candidates = accept
+      ? this.catalog.entries.filter(accept)
+      : this.catalog.entries;
+    return nearestStation(candidates, this.camera, screenX, screenY, radius);
   }
 
   // Only vehicles whose layer is visible are pickable; nearestStation reads the
