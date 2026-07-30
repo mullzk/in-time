@@ -36,6 +36,11 @@ export class StationSearch {
     this.input.select();
   }
 
+  showSelection(station) {
+    this.input.value = station.name;
+    this.#close();
+  }
+
   #refresh() {
     this.suggestions = this.catalog.matching(this.input.value);
     this.activeIndex = this.suggestions.length > 0 ? 0 : -1;

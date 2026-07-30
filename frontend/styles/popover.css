@@ -1,5 +1,6 @@
-/* SMACSS Module: the map popover — a small label anchored above a tapped station
-   node or vehicle. Positioned by the script; it never intercepts pointer events. */
+/* SMACSS Module: the map popover — a small label anchored above a tapped or
+   hovered station node or vehicle. Positioned by the script; it never intercepts
+   pointer events. */
 .popover {
   position: absolute;
   z-index: 10;
@@ -16,6 +17,13 @@
 
 .popover.is-visible {
   display: block;
+}
+
+/* The hover preview reads quieter than a committed selection and sits beneath it,
+   so the two never compete when both point at the same place. */
+.popover-hover {
+  z-index: 9;
+  opacity: 0.6;
 }
 
 /* A vehicle popover stacks several lines; its leading line (category) reads as a
