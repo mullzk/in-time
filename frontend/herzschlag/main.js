@@ -40,12 +40,7 @@ async function bootstrap() {
   );
   time.seekToTime(PLAYBACK_START_SECONDS);
   const camera = new Camera(root.clientWidth, root.clientHeight);
-  const panel = new HerzschlagPanel(
-    result.railBuffer,
-    result.roadBuffer,
-    result.railStations,
-    result.roadStations,
-  );
+  const panel = new HerzschlagPanel(result.railBuffer, result.railStations);
   const context = new PanelContext({
     camera,
     projection: wgs84ToLv95,
@@ -98,6 +93,15 @@ async function bootstrap() {
     onCanvasReady: (canvasElement) => selection.attachTo(canvasElement),
   });
   time.play();
+
+  result.roadBuffer
+    .then((roadBuffer) => {
+      panel.adoptSchedule(roadBuffer, result.roadStations);
+      sonifier.refreshStation();
+    })
+    .catch((error) => {
+      console.error('the road schedule stays unavailable', error);
+    });
 }
 
 bootstrap();

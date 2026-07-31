@@ -122,18 +122,14 @@ export class HerzschlagPanel extends Panel {
     sonification: true,
   };
 
-  constructor(railBuffer, roadBuffer, railStations, roadStations) {
+  constructor(railBuffer, railStations) {
     super();
-    this.railBuffer = railBuffer;
-    this.roadBuffer = roadBuffer;
-    this.railStations = railStations;
-    this.roadStations = roadStations;
-    this.catalog = StationCatalog.fromPublished(
-      railStations,
-      readStationPoints(railBuffer),
-      roadStations,
-      readStationPoints(roadBuffer),
-    );
+    this.catalog = new StationCatalog([]);
+    this.engineViews = [];
+    this.engines = [];
+    this.soundEngines = [];
+    this.clusterToDidoks = new Map();
+    this.adoptSchedule(railBuffer, railStations);
     this.activeVehicles = [];
     this.layers = {
       network: true,
@@ -157,27 +153,29 @@ export class HerzschlagPanel extends Panel {
 
   init(context) {
     this.camera = context.camera;
+  }
+
+  // Takes a further schedule blob into the running panel: its stations join the
+  // catalog, its trips gain an engine and, for sonification, a station-indexed
+  // sound engine. The road blob arrives this way after the first picture.
+  adoptSchedule(buffer, stations) {
+    const points = readStationPoints(buffer);
+    this.catalog.addPublished(stations, points);
     // Each engine is paired with the station names its trips index into, so a
     // clicked vehicle resolves to its origin and destination stop names.
-    this.engineViews = [
-      {
-        engine: new VehiclePositionEngine(this.railBuffer),
-        stations: this.railStations,
-      },
-      {
-        engine: new VehiclePositionEngine(this.roadBuffer),
-        stations: this.roadStations,
-      },
-    ];
-    this.engines = this.engineViews.map((view) => view.engine);
-    // For sonification each blob is also indexed by station, with a didok lookup
-    // so a selected station resolves to its events in whichever blobs serve it.
-    this.soundEngines = this.engineViews.map((view) => ({
-      engine: new SonificationEngine(view.engine.trips),
+    const engine = new VehiclePositionEngine(buffer);
+    this.engineViews.push({ engine, stations });
+    this.engines.push(engine);
+    this.soundEngines.push({
+      engine: new SonificationEngine(engine.trips),
       didokToIndex: new Map(
-        view.stations.map((station, index) => [station.didok, index]),
+        stations.map((station, index) => [station.didok, index]),
       ),
-    }));
+    });
+    this.#indexClusters();
+  }
+
+  #indexClusters() {
     this.clusterToDidoks = new Map();
     this.catalog.entries.forEach((entry) => {
       if (entry.cluster !== null) {
