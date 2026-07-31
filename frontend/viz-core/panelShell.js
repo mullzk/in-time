@@ -25,7 +25,7 @@ const isExhibition = () =>
   new URLSearchParams(window.location.search).get('mode') === 'exhibition';
 
 // The frame every panel runs in: it owns the camera, the render core and all
-// global controls (background, zoom, info, search, cockpit), and
+// global controls (background, zoom, info, fullscreen, search, cockpit), and
 // mounts the sections the panel supplies. The panel is asked for its own
 // controls, its key bindings and its info text, and is told when a global choice
 // has a consequence only it can decide.
@@ -66,6 +66,7 @@ export class PanelShell {
       },
     });
     this.infoModal = new InfoModal(this.root, this.panel.infoContent());
+    this.root.appendChild(this.#fullscreenToggle());
 
     new KeyboardControls(window, {
       time: this.time,
@@ -191,5 +192,20 @@ export class PanelShell {
     text.textContent = label;
     option.append(input, text);
     return option;
+  }
+
+  #fullscreenToggle() {
+    const button = element('button', 'panel-shell-fullscreen');
+    button.type = 'button';
+    button.textContent = '⛶';
+    button.setAttribute('aria-label', 'Vollbild');
+    button.addEventListener('click', () => {
+      if (document.fullscreenElement) {
+        document.exitFullscreen();
+      } else {
+        this.root.requestFullscreen();
+      }
+    });
+    return button;
   }
 }
