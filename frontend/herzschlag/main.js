@@ -75,7 +75,6 @@ async function bootstrap() {
   const bindings = {
     h: () => panel.toggleStops(),
     s: () => sidebar.toggle(),
-    i: () => infoModal.toggle(),
   };
   if (panel.capabilities.stationSearch) {
     stationSearch = new StationSearch(root, panel.stationCatalog(), {
@@ -83,7 +82,13 @@ async function bootstrap() {
     });
     bindings.g = () => stationSearch.focus();
   }
-  new KeyboardControls(window, { time, camera, bindings });
+  new KeyboardControls(window, {
+    time,
+    camera,
+    bindings,
+    modalSafeBindings: { i: () => infoModal.toggle() },
+    isModalOpen: () => infoModal.isOpen,
+  });
   new VizCore(root, panel, context, {
     onFrameRendered: () => {
       cockpit.sync();

@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { isTypingElement, normalizedBindingKey } from './keyboardControls.js';
+import {
+  isTypingElement,
+  KeyboardControls,
+  normalizedBindingKey,
+} from './keyboardControls.js';
 
 test('a text field is a typing target so shortcuts yield to it', () => {
   assert.equal(isTypingElement('INPUT', 'text', false), true);
@@ -26,4 +30,40 @@ test('normalizedBindingKey folds letters so Shift and Caps Lock still bind', () 
   // Named and symbol keys pass through untouched.
   assert.equal(normalizedBindingKey(' '), ' ');
   assert.equal(normalizedBindingKey('ArrowUp'), 'ArrowUp');
+});
+
+const controlsWithModal = (isModalOpen) => {
+  const fired = [];
+  let listener = null;
+  new KeyboardControls(
+    { addEventListener: (_type, handler) => (listener = handler) },
+    {
+      time: { togglePlay: () => fired.push('play') },
+      camera: { fit: () => fired.push('fit') },
+      bindings: { h: () => fired.push('stops') },
+      modalSafeBindings: { i: () => fired.push('info') },
+      isModalOpen,
+    },
+  );
+  const press = (key) =>
+    listener({ key, target: null, preventDefault: () => {} });
+  return { press, fired };
+};
+
+test('panel shortcuts work while no modal dialog is open', () => {
+  const { press, fired } = controlsWithModal(() => false);
+  ['h', ' ', 'f', 'i'].forEach(press);
+  assert.deepEqual(fired, ['stops', 'play', 'fit', 'info']);
+});
+
+test('an open modal dialog silences the panel and playback shortcuts', () => {
+  const { press, fired } = controlsWithModal(() => true);
+  ['h', ' ', 'f', '+'].forEach(press);
+  assert.deepEqual(fired, []);
+});
+
+test('an open modal dialog keeps its own shortcut working', () => {
+  const { press, fired } = controlsWithModal(() => true);
+  press('i');
+  assert.deepEqual(fired, ['info']);
 });

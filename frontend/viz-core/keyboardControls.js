@@ -35,12 +35,26 @@ export function normalizedBindingKey(key) {
 // Document-level keyboard shortcuts for playback and camera, plus panel-supplied
 // bindings (key -> handler) for panel-specific toggles. Bound to a target
 // (window) so they work regardless of focus; modifier combinations are left to
-// the browser. Reserved for later: n (network toggle), l (labels layer).
+// the browser. `modalSafeBindings` are the shortcuts a modal dialog owns and
+// keeps while it is open, `isModalOpen` reports that state -- everything else
+// stays silent then, so keys do not act on the view behind the dialog.
+// Reserved for later: n (network toggle), l (labels layer).
 export class KeyboardControls {
-  constructor(target, { time, camera, bindings = {} }) {
+  constructor(
+    target,
+    {
+      time,
+      camera,
+      bindings = {},
+      modalSafeBindings = {},
+      isModalOpen = () => false,
+    },
+  ) {
     this.time = time;
     this.camera = camera;
     this.bindings = bindings;
+    this.modalSafeBindings = modalSafeBindings;
+    this.isModalOpen = isModalOpen;
     target.addEventListener('keydown', (event) => this.#onKeyDown(event));
   }
 
@@ -51,7 +65,17 @@ export class KeyboardControls {
     if (this.#isTypingInto(event.target)) {
       return;
     }
-    const binding = this.bindings[normalizedBindingKey(event.key)];
+    const key = normalizedBindingKey(event.key);
+    const modalSafe = this.modalSafeBindings[key];
+    if (modalSafe) {
+      modalSafe();
+      event.preventDefault();
+      return;
+    }
+    if (this.isModalOpen()) {
+      return;
+    }
+    const binding = this.bindings[key];
     if (binding) {
       binding();
       event.preventDefault();
@@ -83,7 +107,7 @@ export class KeyboardControls {
 
   #isTypingInto(target) {
     return (
-      target instanceof HTMLElement &&
+      target != null &&
       isTypingElement(target.tagName, target.type, target.isContentEditable)
     );
   }
