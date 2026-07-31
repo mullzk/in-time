@@ -6,14 +6,23 @@ build it.
 
 ## Repository structure
 
-- `backend/` — the Django project (apps: `pipeline`, `travel`, `hotspots`,
-  `web`). The browser-facing delivery app is `web`, not `frontend`, so its name
-  does not collide with the `frontend/` client tree below.
+- `backend/` — the Django project. Built: `pipeline` (build jobs, `BuildRun`)
+  and `web` (pages + config/station endpoints). Planned: `travel` (live routing)
+  and `hotspots` (aggregation). The browser-facing delivery app is `web`, not
+  `frontend`, so its name does not collide with the `frontend/` client tree
+  below.
 - `frontend/` — `viz-core` + the five panels: static ES modules, **no bundler**,
   **p5 instance mode**. Node/npm is a dev-time tool only; the runtime stays
-  bundler-free.
-- `plan/` — the build plan and per-step specifications. **Local only**
-  (git-ignored); it is working material, may be in German.
+  bundler-free. `frontend/vendor/` holds vendored runtime dependencies (see
+  _Vendoring_).
+- `tooling/` — the dev-time scripts: `check.sh` (format + lint), `test.sh` (both
+  test suites), the vendoring scripts.
+- `docs/` — documentation that ships with the repo, e.g. `performance.md`.
+- `data/` — the local data directory (git-ignored): source archives and the
+  published day artifacts.
+- `plan/` — the build plan and per-step specifications, including `debt.md` for
+  consciously accepted debt. **Local only** (git-ignored); it is working
+  material, may be in German.
 
 ## Working model
 
@@ -33,6 +42,8 @@ Work is organised into packages (P0–P6) across three phases; see
 
 - **Everything checked into the repo is always English** — code, comments,
   filenames, README, docs.
+- **Exception: user-visible text is German** — UI labels, messages, the info
+  modal. Follow the existing wording rather than translating anything.
 - **PRs and commit messages: always English.** GitHub issues may be German
   (English is fine too).
 - Only local-only, git-ignored material (`plan/`) may be German.
@@ -102,6 +113,17 @@ Work is organised into packages (P0–P6) across three phases; see
   so the reverse proxy serves it pre-compressed (gzip/brotli static), never
   recompressing per request. Keep this when adding artifacts (e.g. per-mode
   blobs). Rationale in the README.
+- Every **pipeline feature is logged in `docs/performance.md`** on real data —
+  input size, processing time, output size. Update it when a feature lands and
+  when its numbers move.
+
+### Vendoring
+
+- The client loads from **no third-party host**, so every runtime dependency is
+  vendored under `frontend/vendor/` by a script in `tooling/`, pinned in
+  `package.json` and regenerated with `npm run vendor`. CI verifies the
+  checked-in copies with `npm run vendor:check` — never hand-edit a vendored
+  file.
 
 ### git commit messages
 
@@ -115,13 +137,23 @@ Work is organised into packages (P0–P6) across three phases; see
 
 - **Backend:** ruff (format + lint) · mypy strict + django-stubs · pytest +
   pytest-django. Python via mise, dependencies via uv.
-- **Frontend:** prettier + eslint · `node:test`. Tests target pure logic
-  (projection, tile math, camera, sorting, time model); rendering is verified
-  manually/visually.
+- **Frontend:** biome (format + lint for js/json/css) · prettier (markdown, yaml
+  and the Django templates, whose tag syntax biome cannot parse) · `node:test`.
+- **One command per job:** `tooling/check.sh` runs every formatter and linter
+  (`--fix` applies), `tooling/test.sh` runs both test suites.
 - **Githooks:** `pre-commit` runs format + lint on every commit; **tests run in
   CI**, not in the hook.
-- **Tests must be runnable with one argument-less command per language**; if
-  several test kinds exist, a wrapper script combines them.
+
+### Testing
+
+- Tests target **pure logic** (projection, tile math, camera, search ranking,
+  time model, blob reading); rendering is verified manually/visually.
+- **Two tiers for pipeline features:** synthetic fixtures run everywhere and in
+  CI; tests on the real GDB/GTFS carry `@pytest.mark.realdata` and are skipped
+  unless their path env is set.
+- **Cross-language formats are pinned by golden fixtures:** the Python blob
+  writer generates them, the JS reader's tests consume them, so writer and
+  reader cannot drift apart unnoticed.
 
 ## Git workflow
 
