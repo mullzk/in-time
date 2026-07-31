@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
+  activeShortcuts,
   isTypingElement,
   KeyboardControls,
   normalizedBindingKey,
@@ -41,8 +42,14 @@ const controlsWithModal = (isModalOpen) => {
       time: { togglePlay: () => fired.push('play') },
       camera: { fit: () => fired.push('fit') },
       bindings: { h: () => fired.push('stops') },
-      modalSafeBindings: { i: () => fired.push('info') },
-      isModalOpen,
+      overlays: [
+        {
+          get isOpen() {
+            return isModalOpen();
+          },
+          bindings: { i: () => fired.push('info') },
+        },
+      ],
     },
   );
   const press = (key) =>
@@ -66,4 +73,40 @@ test('an open modal dialog keeps its own shortcut working', () => {
   const { press, fired } = controlsWithModal(() => true);
   press('i');
   assert.deepEqual(fired, ['info']);
+});
+
+const PANEL_BINDINGS = { h: 'stops', s: 'sidebar' };
+const overlay = (isOpen, bindings) => ({ isOpen, bindings });
+const info = (isOpen) => overlay(isOpen, { i: 'info' });
+const drawer = (isOpen) => overlay(isOpen, { s: 'drawer' });
+
+test('with every overlay closed the panel keeps its shortcuts', () => {
+  const active = activeShortcuts(PANEL_BINDINGS, [info(false)]);
+  assert.deepEqual(active.bindings, { h: 'stops', s: 'sidebar', i: 'info' });
+  assert.equal(active.viewControlsActive, true);
+});
+
+test('an open overlay leaves only the overlays own shortcuts', () => {
+  const active = activeShortcuts(PANEL_BINDINGS, [info(true)]);
+  assert.deepEqual(active.bindings, { i: 'info' });
+  assert.equal(active.viewControlsActive, false);
+});
+
+// Modal is a state, not a component: whichever overlay is open silences the
+// panel, and the small-viewport sidebar will be one of them.
+test('any open overlay silences the panel, not just the first', () => {
+  const active = activeShortcuts(PANEL_BINDINGS, [info(false), drawer(true)]);
+  assert.deepEqual(active.bindings, { i: 'info', s: 'drawer' });
+  assert.equal(active.viewControlsActive, false);
+});
+
+test('a closed overlay still owns its key against the panel', () => {
+  const active = activeShortcuts(PANEL_BINDINGS, [drawer(false)]);
+  assert.equal(active.bindings.s, 'drawer');
+});
+
+test('without overlays the panel bindings stand alone', () => {
+  const active = activeShortcuts(PANEL_BINDINGS, []);
+  assert.deepEqual(active.bindings, PANEL_BINDINGS);
+  assert.equal(active.viewControlsActive, true);
 });

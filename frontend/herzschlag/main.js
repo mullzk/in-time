@@ -86,8 +86,7 @@ async function bootstrap() {
     time,
     camera,
     bindings,
-    modalSafeBindings: { i: () => infoModal.toggle() },
-    isModalOpen: () => infoModal.isOpen,
+    overlays: [infoModal],
   });
   new VizCore(root, panel, context, {
     onFrameRendered: () => {
