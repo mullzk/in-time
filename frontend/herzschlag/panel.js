@@ -31,8 +31,6 @@ const CATEGORY_COLORS = [
 ];
 const FALLBACK_COLOR = [200, 200, 200];
 
-const lerp = (from, to, fraction) => from + (to - from) * fraction;
-
 const CATEGORY_INTERCITY = 0;
 const CATEGORY_TRAM = 5;
 const CATEGORY_BUS = 6;
@@ -105,13 +103,7 @@ const trailShownOn = (background) =>
 // length on screen is the distance actually covered: a fast train smears long,
 // a stopping one contracts to its head.
 const TRAIL_PARTICLE_PIXELS = 3.4;
-// Additive light clips per channel, so the head's alpha decides where a train's
-// colour gives way to white. Zoomed out, a trail packs its whole length into a
-// few pixels and every particle lands on its neighbours, which saturates all
-// three channels; close in nothing overlaps and the same alpha only looks pale.
-// So the alpha follows the zoom: faint in the far view, full punch nearby.
-const TRAIL_HEAD_ALPHA_FAR = 60;
-const TRAIL_HEAD_ALPHA_NEAR = 230;
+const TRAIL_HEAD_ALPHA = 230;
 const TRAIL_TAIL_ALPHA = 12;
 
 // How far back a service reaches beyond the plain schedule distance: the trail
@@ -142,17 +134,17 @@ const trailSampleCount = (category) =>
       TRAIL_LENGTH_FACTOR_BY_LAYER.get(layerOfCategory(category))) /
       trailSpacingSeconds(category),
   );
-const trailHeadAlpha = (zoomFraction) =>
-  lerp(TRAIL_HEAD_ALPHA_FAR, TRAIL_HEAD_ALPHA_NEAR, zoomFraction);
-const trailAlpha = (sample, sampleCount, headAlpha) =>
-  lerp(headAlpha, TRAIL_TAIL_ALPHA, sample / (sampleCount - 1));
+const trailAlpha = (sample, sampleCount) =>
+  TRAIL_HEAD_ALPHA +
+  ((TRAIL_TAIL_ALPHA - TRAIL_HEAD_ALPHA) * sample) / (sampleCount - 1);
 // Behind a trail the head only has to mark where the vehicle is, so it shrinks
 // -- and further still in the far view, where full-size heads would close into a
 // carpet of dots and swallow the trails they belong to.
 const TRAIL_HEAD_FACTOR_NEAR = 0.55;
 const TRAIL_HEAD_FACTOR_FAR = 0.28;
 const trailHeadFactor = (zoomFraction) =>
-  lerp(TRAIL_HEAD_FACTOR_FAR, TRAIL_HEAD_FACTOR_NEAR, zoomFraction);
+  TRAIL_HEAD_FACTOR_FAR +
+  (TRAIL_HEAD_FACTOR_NEAR - TRAIL_HEAD_FACTOR_FAR) * zoomFraction;
 
 // Long-distance trains standing at a station beat as a red node: its size grows
 // with the eased count, its opacity saturates at about two trains present.
@@ -240,7 +232,7 @@ export class HerzschlagPanel extends Panel {
     this.pulseMode = false;
     this.longDistancePulse = null;
     this.currentTimeSeconds = 0;
-    this.background = BACKGROUNDS[0];
+    this.background = BLACK_BACKGROUND;
     this.zoomSlider = null;
     this.zoomScrubbing = false;
     this.previousZoomFraction = null;
@@ -394,13 +386,13 @@ export class HerzschlagPanel extends Panel {
     });
   }
 
+  // Plain alpha, not additive light: additive clips channel by channel, so where
+  // a trail's own particles overlap -- densest in the far view, where its whole
+  // length falls on a few pixels -- the strongest channel saturates first and the
+  // colour drifts to white. Blended, the overlap converges on the vehicle's own
+  // colour instead.
   #drawVehicleTrails(p, context, vehicles) {
     const size = TRAIL_PARTICLE_PIXELS * context.camera.worldPerPixel();
-    const headAlpha = trailHeadAlpha(context.camera.zoomFraction());
-    // Overlapping trails glowing into each other is the point of the smear, but
-    // additive light over a raster map washes out to white, so only the dark
-    // background gets it.
-    p.blendMode(this.background.source === null ? p.ADD : p.BLEND);
     vehicles.forEach((vehicle) => {
       const [r, g, b] = this.#vehicleColor(vehicle.category);
       const sampleCount = trailSampleCount(vehicle.category);
@@ -412,11 +404,10 @@ export class HerzschlagPanel extends Panel {
           trailSpacingSeconds(vehicle.category),
         )
         .forEach(({ east, north }, sample) => {
-          p.fill(r, g, b, trailAlpha(sample, sampleCount, headAlpha));
+          p.fill(r, g, b, trailAlpha(sample, sampleCount));
           p.square(east - size / 2, north - size / 2, size);
         });
     });
-    p.blendMode(p.BLEND);
   }
 
   #drawLongDistancePulse(p, context) {
@@ -692,11 +683,11 @@ export class HerzschlagPanel extends Panel {
 
   #backgroundControl() {
     const group = element('div', 'sidebar-options');
-    BACKGROUNDS.forEach((background, index) => {
+    BACKGROUNDS.forEach((background) => {
       const input = element('input');
       input.type = 'radio';
       input.name = 'background';
-      input.checked = index === 0;
+      input.checked = background === this.background;
       input.addEventListener('change', () =>
         this.#selectBackground(background),
       );

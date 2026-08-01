@@ -53,6 +53,9 @@ async function bootstrap() {
     tileLayer: new TileLayer(RELIEF_TILE_SOURCE),
   });
 
+  // Which background the view opens on is the panel's choice, so the context and
+  // the credit follow it rather than the tile layer's own default.
+  context.setBackground(panel.background.source);
   const cockpit = new Cockpit(root, panel, time);
   const attribution = new Attribution(root);
   attribution.set(panel.background.attribution);
