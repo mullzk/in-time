@@ -6,8 +6,8 @@ import { element } from './dom.js';
 // the panel's. The open state is a class on the container so siblings (the
 // cockpit) can shift out of the panel's way with it.
 export class Sidebar {
-  // `sections` is a list of { title, element }; element is the panel's own
-  // control DOM, rendered under a heading.
+  // `sections` is a list of { id, title, element } already selected by the
+  // shell; element is the section's own control DOM, rendered under a heading.
   constructor(container, sections) {
     this.container = container;
 
@@ -31,8 +31,9 @@ export class Sidebar {
     this.#setOpen(!this.open);
   }
 
-  #section({ title, element: content }) {
+  #section({ id, title, element: content }) {
     const section = element('section', 'sidebar-section');
+    section.dataset.section = id;
     const heading = element('h2', 'sidebar-heading');
     heading.textContent = title;
     section.append(heading, content);

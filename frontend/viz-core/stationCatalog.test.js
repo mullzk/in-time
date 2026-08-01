@@ -72,17 +72,26 @@ test('the suggestion count is capped', () => {
   assert.equal(wide.matching('bahnhof').length, 5);
 });
 
-test('fromPublished merges by didok, preferring the rail coordinate', () => {
-  const merged = StationCatalog.fromPublished(
-    [{ didok: 1, name: 'Bern' }],
-    [[2_600_000, 1_200_000]],
+const published = (...sets) => {
+  const catalog = new StationCatalog([]);
+  sets.forEach(([stations, points]) => {
+    catalog.addPublished(stations, points);
+  });
+  return catalog;
+};
+
+test('addPublished merges by didok, keeping the coordinate added first', () => {
+  const merged = published(
+    [[{ didok: 1, name: 'Bern' }], [[2_600_000, 1_200_000]]],
     [
-      { didok: 1, name: 'Bern' },
-      { didok: 9, name: 'Busdorf' },
-    ],
-    [
-      [2_600_050, 1_200_050],
-      [2_610_000, 1_210_000],
+      [
+        { didok: 1, name: 'Bern' },
+        { didok: 9, name: 'Busdorf' },
+      ],
+      [
+        [2_600_050, 1_200_050],
+        [2_610_000, 1_210_000],
+      ],
     ],
   );
 
@@ -95,23 +104,27 @@ test('fromPublished merges by didok, preferring the rail coordinate', () => {
   assert.equal(busdorf[0].didok, 9);
 });
 
-test('fromPublished unions the modes of a didok across both sets', () => {
-  const catalog = StationCatalog.fromPublished(
+test('addPublished unions the modes of a didok across both sets', () => {
+  const catalog = published(
     [
-      { didok: 1, name: 'Bahnhof', modes: ['rail'] },
-      { didok: 2, name: 'Umsteige', modes: ['tram'] },
+      [
+        { didok: 1, name: 'Bahnhof', modes: ['rail'] },
+        { didok: 2, name: 'Umsteige', modes: ['tram'] },
+      ],
+      [
+        [1, 1],
+        [2, 2],
+      ],
     ],
     [
-      [1, 1],
-      [2, 2],
-    ],
-    [
-      { didok: 2, name: 'Umsteige', modes: ['bus'] },
-      { didok: 3, name: 'Bushalt', modes: ['bus'] },
-    ],
-    [
-      [2, 2],
-      [3, 3],
+      [
+        { didok: 2, name: 'Umsteige', modes: ['bus'] },
+        { didok: 3, name: 'Bushalt', modes: ['bus'] },
+      ],
+      [
+        [2, 2],
+        [3, 3],
+      ],
     ],
   );
   const only = (name) => catalog.matching(name)[0];
@@ -120,21 +133,46 @@ test('fromPublished unions the modes of a didok across both sets', () => {
   assert.deepEqual(only('bushalt').modes, ['bus']);
 });
 
-test('fromPublished carries a stations cluster and adopts it across sets', () => {
-  const catalog = StationCatalog.fromPublished(
+test('addPublished carries a stations cluster and adopts it across sets', () => {
+  const catalog = published(
     [
-      { didok: 1, name: 'Bahnhof', modes: ['rail'], cluster: 1 },
-      { didok: 4, name: 'Alleine', modes: ['rail'] },
+      [
+        { didok: 1, name: 'Bahnhof', modes: ['rail'], cluster: 1 },
+        { didok: 4, name: 'Alleine', modes: ['rail'] },
+      ],
+      [
+        [1, 1],
+        [4, 4],
+      ],
     ],
-    [
-      [1, 1],
-      [4, 4],
-    ],
-    [{ didok: 2, name: 'Bushalt', modes: ['bus'], cluster: 1 }],
-    [[2, 2]],
+    [[{ didok: 2, name: 'Bushalt', modes: ['bus'], cluster: 1 }], [[2, 2]]],
   );
   const only = (name) => catalog.matching(name)[0];
   assert.equal(only('bahnhof').cluster, 1);
   assert.equal(only('bushalt').cluster, 1);
   assert.equal(only('alleine').cluster, null);
+});
+
+test('a set added after the first searches merges and indexes just the same', () => {
+  const catalog = published([
+    [{ didok: 1, name: 'Bahnhof', modes: ['rail'], cluster: 1 }],
+    [[2_600_000, 1_200_000]],
+  ]);
+  assert.deepEqual(catalog.matching('bushalt'), []);
+
+  catalog.addPublished(
+    [
+      { didok: 1, name: 'Bahnhof', modes: ['bus'], cluster: 1 },
+      { didok: 7, name: 'Bushalt', modes: ['bus'], cluster: 1 },
+    ],
+    [
+      [2_600_050, 1_200_050],
+      [2_600_090, 1_200_090],
+    ],
+  );
+
+  const bahnhof = catalog.matching('bahnhof')[0];
+  assert.deepEqual([...bahnhof.modes].sort(), ['bus', 'rail']);
+  assert.deepEqual([bahnhof.east, bahnhof.north], [2_600_000, 1_200_000]);
+  assert.equal(catalog.matching('bushalt')[0].didok, 7);
 });

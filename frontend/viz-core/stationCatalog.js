@@ -59,46 +59,51 @@ function rankOf(searchKey, query) {
 export class StationCatalog {
   constructor(entries, { maxSuggestions = DEFAULT_MAX_SUGGESTIONS } = {}) {
     this.maxSuggestions = maxSuggestions;
-    this.entries = entries;
-    this._indexed = entries.map((entry) => ({
-      entry,
-      searchKey: normalizeForSearch(entry.name),
-    }));
+    this.entries = [];
+    this._byDidok = new Map();
+    this._indexed = [];
+    this.#absorb(entries);
   }
 
-  // Merge the rail/tram and bus station sets by didok, unioning the modes each
-  // side reports. A station present in both keeps its rail coordinate (the
-  // network node), since the rail set is absorbed first.
-  static fromPublished(railStations, railPoints, roadStations, roadPoints) {
-    const byDidok = new Map();
-    const absorb = (stations, points) => {
-      stations.forEach((station, index) => {
+  // Merges a published station set in by didok, unioning the modes each side
+  // reports. A didok already present keeps the coordinate it came with, so the
+  // rail set added first wins the network node over its bus stop. Sets may
+  // arrive at any time -- the road blob is adopted after the first picture.
+  addPublished(stations, points) {
+    this.#absorb(
+      stations.flatMap((station, index) => {
         const point = points[index];
-        if (!point) {
-          return;
-        }
-        const existing = byDidok.get(station.didok);
-        if (existing === undefined) {
-          byDidok.set(
-            station.didok,
-            new StationEntry(
-              station.didok,
-              station.name,
-              point[0],
-              point[1],
-              station.modes ?? [],
-              station.cluster ?? null,
-            ),
-          );
-        } else {
-          existing.addModes(station.modes ?? []);
-          existing.adoptCluster(station.cluster ?? null);
-        }
-      });
-    };
-    absorb(railStations, railPoints);
-    absorb(roadStations, roadPoints);
-    return new StationCatalog([...byDidok.values()]);
+        return point
+          ? [
+              new StationEntry(
+                station.didok,
+                station.name,
+                point[0],
+                point[1],
+                station.modes ?? [],
+                station.cluster ?? null,
+              ),
+            ]
+          : [];
+      }),
+    );
+  }
+
+  #absorb(entries) {
+    entries.forEach((entry) => {
+      const existing = this._byDidok.get(entry.didok);
+      if (existing === undefined) {
+        this._byDidok.set(entry.didok, entry);
+        this.entries.push(entry);
+        this._indexed.push({
+          entry,
+          searchKey: normalizeForSearch(entry.name),
+        });
+      } else {
+        existing.addModes(entry.modes);
+        existing.adoptCluster(entry.cluster);
+      }
+    });
   }
 
   matching(query) {

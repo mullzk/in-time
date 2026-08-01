@@ -1,7 +1,6 @@
 // The four instrumentations the sidebar dropdown offers. Each maps the four
 // transport groups to a sound type; the merged rail groups take their flagship's
-// voice (Fernverkehr the IC/EC tone, Regionalverkehr the Regio/RE tone). Ported
-// and condensed from the prototype's seven-group presets.
+// voice (Fernverkehr the IC/EC tone, Regionalverkehr the Regio/RE tone).
 
 import { Instrumentation } from './instrumentation.js';
 import { PercussiveSoundType, PitchedSoundType } from './soundType.js';

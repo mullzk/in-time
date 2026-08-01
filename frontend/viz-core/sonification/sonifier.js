@@ -68,6 +68,14 @@ export class Sonifier {
     this.#ensureAudio();
   }
 
+  // Re-reads the chosen station's events after the panel gained a schedule, so a
+  // station picked before the buses arrived starts sounding them too.
+  refreshStation() {
+    if (this.station !== null) {
+      this.setStation(this.station);
+    }
+  }
+
   onFrameRendered() {
     if (
       this.instrumentation === null ||

@@ -16,6 +16,7 @@ import {
 } from '../viz-core/stationNodes.js';
 import { BACKGROUNDS } from '../viz-core/tiles/tileSource.js';
 import { VehiclePositionEngine } from '../viz-core/vehiclePositionEngine.js';
+import { buildInfoContent } from './infoContent.js';
 
 // Colours by blob category: rail 0-4 (Fernverkehr, IR, Regio/RE, S-Bahn, other),
 // tram 5, bus 6.
@@ -66,10 +67,6 @@ const DRAW_PRIORITY_BY_CATEGORY = new Map([
   [CATEGORY_TRAM, 1],
 ]);
 const drawPriority = (category) => DRAW_PRIORITY_BY_CATEGORY.get(category) ?? 2;
-
-// Fixed, countable zoom stops for the sidebar slider; the wheel and pinch stay
-// continuous and the slider snaps to the nearest stop.
-const ZOOM_STEPS = 7;
 
 // Trains read poorly against the colour pixel map, so draw them larger and the
 // far more numerous trams and buses smaller.
@@ -122,18 +119,14 @@ export class HerzschlagPanel extends Panel {
     sonification: true,
   };
 
-  constructor(railBuffer, roadBuffer, railStations, roadStations) {
+  constructor(railBuffer, railStations) {
     super();
-    this.railBuffer = railBuffer;
-    this.roadBuffer = roadBuffer;
-    this.railStations = railStations;
-    this.roadStations = roadStations;
-    this.catalog = StationCatalog.fromPublished(
-      railStations,
-      readStationPoints(railBuffer),
-      roadStations,
-      readStationPoints(roadBuffer),
-    );
+    this.catalog = new StationCatalog([]);
+    this.engineViews = [];
+    this.engines = [];
+    this.soundEngines = [];
+    this.clusterToDidoks = new Map();
+    this.adoptSchedule(railBuffer, railStations);
     this.activeVehicles = [];
     this.layers = {
       network: true,
@@ -144,8 +137,6 @@ export class HerzschlagPanel extends Panel {
       bus: false,
     };
     this.background = BACKGROUNDS[0];
-    this.zoomSlider = null;
-    this.zoomScrubbing = false;
     this.previousZoomFraction = null;
     this.layerOptions = {};
     this.camera = null;
@@ -157,27 +148,29 @@ export class HerzschlagPanel extends Panel {
 
   init(context) {
     this.camera = context.camera;
+  }
+
+  // Takes a further schedule blob into the running panel: its stations join the
+  // catalog, its trips gain an engine and, for sonification, a station-indexed
+  // sound engine. The road blob arrives this way after the first picture.
+  adoptSchedule(buffer, stations) {
+    const points = readStationPoints(buffer);
+    this.catalog.addPublished(stations, points);
     // Each engine is paired with the station names its trips index into, so a
     // clicked vehicle resolves to its origin and destination stop names.
-    this.engineViews = [
-      {
-        engine: new VehiclePositionEngine(this.railBuffer),
-        stations: this.railStations,
-      },
-      {
-        engine: new VehiclePositionEngine(this.roadBuffer),
-        stations: this.roadStations,
-      },
-    ];
-    this.engines = this.engineViews.map((view) => view.engine);
-    // For sonification each blob is also indexed by station, with a didok lookup
-    // so a selected station resolves to its events in whichever blobs serve it.
-    this.soundEngines = this.engineViews.map((view) => ({
-      engine: new SonificationEngine(view.engine.trips),
+    const engine = new VehiclePositionEngine(buffer);
+    this.engineViews.push({ engine, stations });
+    this.engines.push(engine);
+    this.soundEngines.push({
+      engine: new SonificationEngine(engine.trips),
       didokToIndex: new Map(
-        view.stations.map((station, index) => [station.didok, index]),
+        stations.map((station, index) => [station.didok, index]),
       ),
-    }));
+    });
+    this.#indexClusters();
+  }
+
+  #indexClusters() {
     this.clusterToDidoks = new Map();
     this.catalog.entries.forEach((entry) => {
       if (entry.cluster !== null) {
@@ -233,7 +226,6 @@ export class HerzschlagPanel extends Panel {
           drawPriority(first.category) - drawPriority(second.category),
       );
     this.#syncStopsOnZoomCross();
-    this.#syncZoomSlider();
     this.#syncLayerOptions();
   }
 
@@ -260,30 +252,49 @@ export class HerzschlagPanel extends Panel {
     });
   }
 
-  buildSidebarSections(
-    context,
-    { onBackgroundChange, onInstrumentationChange } = {},
-  ) {
+  sidebarSections({ setInstrumentation } = {}) {
     const sections = [
       {
-        title: 'Hintergrund',
-        element: this.#backgroundControl(context, onBackgroundChange),
+        id: 'layers',
+        title: 'Ebenen',
+        element: this.#layerControl(),
+        keepInExhibition: true,
       },
-      { title: 'Ebenen', element: this.#layerControl() },
-      { title: 'Zoom', element: this.#zoomControl(context) },
     ];
     if (this.capabilities.sonification) {
       sections.push({
+        id: 'sound',
         title: 'Sound',
-        element: this.#soundControl(onInstrumentationChange),
+        element: this.#soundControl(setInstrumentation),
+        keepInExhibition: true,
       });
     }
     return sections;
   }
 
+  keyBindings() {
+    return { h: () => this.toggleStops() };
+  }
+
+  infoContent() {
+    return buildInfoContent({
+      stationSearch: this.capabilities.stationSearch,
+    });
+  }
+
+  // The shell owns the background chooser; switching one has a consequence only
+  // the panel can decide: the pixel maps draw the rail network themselves, so
+  // the overlay would only double it.
+  onBackgroundChange(background) {
+    this.background = background;
+    if (background.showsRailwayLines) {
+      this.layers.network = false;
+    }
+  }
+
   // A single dropdown selects the instrumentation; "Kein Sound" is silence. The
   // sonified station, tempo and per-group mutes come from the existing controls.
-  #soundControl(onInstrumentationChange) {
+  #soundControl(setInstrumentation) {
     const group = element('div', 'sidebar-options');
     const select = element('select', 'sidebar-select');
     const silent = element('option');
@@ -297,7 +308,7 @@ export class HerzschlagPanel extends Panel {
       select.appendChild(option);
     });
     select.addEventListener('change', () => {
-      onInstrumentationChange?.(
+      setInstrumentation?.(
         select.value === '' ? null : INSTRUMENTATIONS.get(select.value),
       );
     });
@@ -490,58 +501,6 @@ export class HerzschlagPanel extends Panel {
 
   toggleStops() {
     this.#setStops(!this.layers.stops);
-  }
-
-  #backgroundControl(context, onBackgroundChange) {
-    const group = element('div', 'sidebar-options');
-    BACKGROUNDS.forEach((background, index) => {
-      const input = element('input');
-      input.type = 'radio';
-      input.name = 'background';
-      input.checked = index === 0;
-      input.addEventListener('change', () => {
-        context.setBackground(background.source);
-        this.background = background;
-        // The pixel maps draw the rail network themselves, so the overlay would
-        // only double it: switch it off on selection (the user may re-enable it).
-        if (background.showsRailwayLines) {
-          this.layers.network = false;
-        }
-        onBackgroundChange?.();
-      });
-      group.appendChild(this.#option(input, background.label));
-    });
-    return group;
-  }
-
-  #zoomControl(context) {
-    const group = element('div', 'sidebar-options');
-    const slider = element('input', 'sidebar-zoom');
-    slider.type = 'range';
-    slider.min = '0';
-    slider.max = String(ZOOM_STEPS - 1);
-    slider.step = '1';
-    slider.value = String(this.#zoomSliderPosition(context.camera));
-    slider.addEventListener('input', () => {
-      this.zoomScrubbing = true;
-      context.camera.setZoomFraction(Number(slider.value) / (ZOOM_STEPS - 1));
-    });
-    slider.addEventListener('change', () => {
-      this.zoomScrubbing = false;
-    });
-    this.zoomSlider = slider;
-    group.appendChild(slider);
-    return group;
-  }
-
-  #zoomSliderPosition(camera) {
-    return Math.round(camera.zoomFraction() * (ZOOM_STEPS - 1));
-  }
-
-  #syncZoomSlider() {
-    if (this.zoomSlider && !this.zoomScrubbing && this.camera) {
-      this.zoomSlider.value = String(this.#zoomSliderPosition(this.camera));
-    }
   }
 
   #layerControl() {
