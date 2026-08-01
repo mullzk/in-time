@@ -717,7 +717,7 @@ export class HerzschlagPanel extends Panel {
     input.type = 'checkbox';
     input.checked = this.pulseMode;
     input.addEventListener('change', () => this.#setPulseMode(input.checked));
-    group.appendChild(this.#option(input, 'Puls zeigen'));
+    group.appendChild(this.#option(input, 'Basistakt zeigen'));
     return group;
   }
 
