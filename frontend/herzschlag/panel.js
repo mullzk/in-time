@@ -1,5 +1,6 @@
 import { readStationPoints } from '../viz-core/blobStations.js';
 import { element } from '../viz-core/dom.js';
+import { LongDistancePulse } from '../viz-core/longDistancePulse.js';
 import { Panel } from '../viz-core/panel.js';
 import { INSTRUMENTATIONS } from '../viz-core/sonification/presets.js';
 import { TRANSPORT_GROUPS } from '../viz-core/sonification/scheduling.js';
@@ -32,6 +33,7 @@ const FALLBACK_COLOR = [200, 200, 200];
 
 const lerp = (from, to, fraction) => from + (to - from) * fraction;
 
+const CATEGORY_INTERCITY = 0;
 const CATEGORY_TRAM = 5;
 const CATEGORY_BUS = 6;
 
@@ -52,7 +54,7 @@ const categoryLabel = (category) => CATEGORY_LABELS[category] ?? 'Fahrt';
 // display groups used for the sounds: Fernverkehr (categories 0-1) and
 // Regionalverkehr (2-4), plus the tram and bus layers.
 const LAYER_BY_CATEGORY = new Map([
-  [0, 'fernverkehr'],
+  [CATEGORY_INTERCITY, 'fernverkehr'],
   [1, 'fernverkehr'],
   [2, 'regionalverkehr'],
   [3, 'regionalverkehr'],
@@ -63,6 +65,11 @@ const LAYER_BY_CATEGORY = new Map([
 
 const layerOfCategory = (category) =>
   LAYER_BY_CATEGORY.get(category) ?? 'regionalverkehr';
+
+// The pulse beats for IC and EC alone. InterRegio stops nearly everywhere, so
+// counting it would leave half the network glowing and the interchanges would
+// stop standing out.
+const PULSE_CATEGORIES = new Set([CATEGORY_INTERCITY]);
 
 // Stacking order where points overlap: buses at the bottom, trams above,
 // trains on top, so the far more numerous buses never hide the trains.
@@ -108,8 +115,9 @@ const TRAIL_HEAD_ALPHA_NEAR = 230;
 const TRAIL_TAIL_ALPHA = 12;
 
 // How far back a service reaches beyond the plain schedule distance: the trail
-// length is the second thing after colour that tells the services apart. The
-// dense tram and bus traffic stays shortest so it does not blur into one field.
+// length is the second thing after colour that tells the services apart, and the
+// only one left once the pulse turns every train white. The dense tram and bus
+// traffic stays shortest so it does not blur into one field.
 const TRAIL_BASE_LENGTH_SECONDS = 84;
 const TRAIL_LENGTH_FACTOR_BY_LAYER = new Map([
   ['fernverkehr', 1.25],
@@ -146,6 +154,19 @@ const TRAIL_HEAD_FACTOR_FAR = 0.28;
 const trailHeadFactor = (zoomFraction) =>
   lerp(TRAIL_HEAD_FACTOR_FAR, TRAIL_HEAD_FACTOR_NEAR, zoomFraction);
 
+// Long-distance trains standing at a station beat as a red node: its size grows
+// with the eased count, its opacity saturates at about two trains present.
+const PULSE_COLOR = [255, 60, 60];
+const PULSE_BASE_DIAMETER_PIXELS = 6;
+const PULSE_GROWTH_PIXELS = 10.5;
+const PULSE_FULL_OPACITY_INTENSITY = 1.5;
+const PULSE_MINIMUM_ALPHA = 60;
+
+// With the pulse on, every train gives up its category colour so the red nodes
+// are the only colour left on the map; the trail length still tells the services
+// apart.
+const PULSE_MODE_VEHICLE_COLOR = [255, 255, 255];
+
 const STATION_NODE_FILL = [255, 255, 255];
 // Over a raster background a white node needs an outline; its colour marks the
 // station's mode, using the same hues the tram and bus vehicles carry (rail
@@ -179,6 +200,14 @@ const LAYER_LABELS = [
   ['bus', 'Bus'],
 ];
 
+// The pulse mode is a picture, not a layer: the red nodes only read once nothing
+// competes with them, so it clears the map down to trains on black and holds the
+// controls that would undo that.
+const PULSE_MODE_SUPPRESSED_LAYERS = ['tram', 'bus'];
+const BLACK_BACKGROUND = BACKGROUNDS.find(
+  (background) => background.source === null,
+);
+
 export class HerzschlagPanel extends Panel {
   capabilities = {
     simulationSpeed: true,
@@ -208,13 +237,18 @@ export class HerzschlagPanel extends Panel {
       tram: false,
       bus: false,
     };
+    this.pulseMode = false;
+    this.longDistancePulse = null;
     this.currentTimeSeconds = 0;
     this.background = BACKGROUNDS[0];
     this.zoomSlider = null;
     this.zoomScrubbing = false;
     this.previousZoomFraction = null;
     this.layerOptions = {};
+    this.backgroundOptions = [];
     this.camera = null;
+    this.context = null;
+    this.onBackgroundChange = null;
   }
 
   stationCatalog() {
@@ -236,6 +270,13 @@ export class HerzschlagPanel extends Panel {
       },
     ];
     this.engines = this.engineViews.map((view) => view.engine);
+    // Only the rail blob carries long-distance trips, so the pulse reads it.
+    const railEngine = this.engineViews[0].engine;
+    this.longDistancePulse = new LongDistancePulse(
+      railEngine.trips,
+      railEngine.stations,
+      PULSE_CATEGORIES,
+    );
     // For sonification each blob is also indexed by station, with a didok lookup
     // so a selected station resolves to its events in whichever blobs serve it.
     this.soundEngines = this.engineViews.map((view) => ({
@@ -286,7 +327,7 @@ export class HerzschlagPanel extends Panel {
     return TRANSPORT_GROUPS.filter((group) => !this.layers[group]);
   }
 
-  update(currentTimeSeconds, _deltaSeconds) {
+  update(currentTimeSeconds, deltaSeconds) {
     this.currentTimeSeconds = currentTimeSeconds;
     this.activeVehicles = this.engineViews
       .flatMap((view, engineIndex) =>
@@ -299,6 +340,9 @@ export class HerzschlagPanel extends Panel {
         (first, second) =>
           drawPriority(first.category) - drawPriority(second.category),
       );
+    if (this.pulseMode) {
+      this.longDistancePulse.update(currentTimeSeconds, deltaSeconds);
+    }
     this.#syncStopsOnZoomCross();
     this.#syncZoomSlider();
     this.#syncLayerOptions();
@@ -312,6 +356,9 @@ export class HerzschlagPanel extends Panel {
       });
     }
     this.#drawStationNodes(p, context);
+    if (this.pulseMode) {
+      this.#drawLongDistancePulse(p, context);
+    }
     this.#drawVehicles(p, context);
   }
 
@@ -372,16 +419,42 @@ export class HerzschlagPanel extends Panel {
     p.blendMode(p.BLEND);
   }
 
+  #drawLongDistancePulse(p, context) {
+    const worldPerPixel = context.camera.worldPerPixel();
+    p.noStroke();
+    this.longDistancePulse
+      .visiblePulses()
+      .forEach(({ east, north, intensity }) => {
+        const opacity = Math.min(1, intensity / PULSE_FULL_OPACITY_INTENSITY);
+        p.fill(
+          PULSE_COLOR[0],
+          PULSE_COLOR[1],
+          PULSE_COLOR[2],
+          PULSE_MINIMUM_ALPHA + (255 - PULSE_MINIMUM_ALPHA) * opacity,
+        );
+        p.circle(
+          east,
+          north,
+          (PULSE_BASE_DIAMETER_PIXELS + PULSE_GROWTH_PIXELS * intensity) *
+            worldPerPixel,
+        );
+      });
+  }
+
   buildSidebarSections(
     context,
     { onBackgroundChange, onInstrumentationChange } = {},
   ) {
+    this.context = context;
+    this.onBackgroundChange = onBackgroundChange;
     const sections = [
-      {
-        title: 'Hintergrund',
-        element: this.#backgroundControl(context, onBackgroundChange),
-      },
+      { title: 'Hintergrund', element: this.#backgroundControl() },
       { title: 'Ebenen', element: this.#layerControl() },
+      {
+        title: 'Fernverkehr-Puls',
+        element: this.#pulseModeControl(),
+        standout: true,
+      },
       { title: 'Zoom', element: this.#zoomControl(context) },
     ];
     if (this.capabilities.sonification) {
@@ -418,11 +491,20 @@ export class HerzschlagPanel extends Panel {
   }
 
   #vehicleColor(category) {
-    return CATEGORY_COLORS[category] ?? FALLBACK_COLOR;
+    return this.pulseMode
+      ? PULSE_MODE_VEHICLE_COLOR
+      : (CATEGORY_COLORS[category] ?? FALLBACK_COLOR);
   }
 
   #categoryVisible(category) {
-    return this.layers[layerOfCategory(category)];
+    const layer = layerOfCategory(category);
+    return !this.#suppressedByPulseMode(layer) && this.layers[layer];
+  }
+
+  // The pulse mode's rule about which layers may show, kept in one place so a
+  // station search cannot switch a suppressed layer back on behind its back.
+  #suppressedByPulseMode(layer) {
+    return this.pulseMode && PULSE_MODE_SUPPRESSED_LAYERS.includes(layer);
   }
 
   // Zooming past the threshold switches the stops layer for the user; a manual
@@ -450,7 +532,7 @@ export class HerzschlagPanel extends Panel {
   // layer so its node draws and stays tappable.
   revealStation(station) {
     const layer = layerToRevealStation(station.modes, this.layers);
-    if (layer) {
+    if (layer && !this.#suppressedByPulseMode(layer)) {
       this.layers[layer] = true;
     }
     this.#setStops(true);
@@ -608,26 +690,71 @@ export class HerzschlagPanel extends Panel {
     this.#setStops(!this.layers.stops);
   }
 
-  #backgroundControl(context, onBackgroundChange) {
+  #backgroundControl() {
     const group = element('div', 'sidebar-options');
     BACKGROUNDS.forEach((background, index) => {
       const input = element('input');
       input.type = 'radio';
       input.name = 'background';
       input.checked = index === 0;
-      input.addEventListener('change', () => {
-        context.setBackground(background.source);
-        this.background = background;
-        // The pixel maps draw the rail network themselves, so the overlay would
-        // only double it: switch it off on selection (the user may re-enable it).
-        if (background.showsRailwayLines) {
-          this.layers.network = false;
-        }
-        onBackgroundChange?.();
-      });
+      input.addEventListener('change', () =>
+        this.#selectBackground(background),
+      );
+      this.backgroundOptions.push({ input, background });
       group.appendChild(this.#option(input, background.label));
     });
     return group;
+  }
+
+  #selectBackground(background) {
+    this.context.setBackground(background.source);
+    this.background = background;
+    // The pixel maps draw the rail network themselves, so the overlay would only
+    // double it: switch it off on selection (the user may re-enable it).
+    if (background.showsRailwayLines) {
+      this.layers.network = false;
+    }
+    this.onBackgroundChange?.();
+  }
+
+  #pulseModeControl() {
+    const group = element('div', 'sidebar-options');
+    const input = element('input');
+    input.type = 'checkbox';
+    input.checked = this.pulseMode;
+    input.addEventListener('change', () => this.#setPulseMode(input.checked));
+    group.appendChild(this.#option(input, 'Puls zeigen'));
+    return group;
+  }
+
+  // Entering the mode clears the picture down to trains on black -- which brings
+  // the trail with it, the black background's own style. Leaving it hands the
+  // controls back without undoing the choice, so the view stays where the user
+  // was looking.
+  #setPulseMode(on) {
+    this.pulseMode = on;
+    if (on) {
+      this.#selectBackground(BLACK_BACKGROUND);
+      PULSE_MODE_SUPPRESSED_LAYERS.forEach((layer) => {
+        this.layers[layer] = false;
+      });
+    }
+    this.#syncPulseModeControls();
+  }
+
+  #syncPulseModeControls() {
+    this.backgroundOptions.forEach(({ input, background }) => {
+      input.disabled = this.pulseMode;
+      if (this.pulseMode) {
+        input.checked = background === this.background;
+      }
+    });
+    PULSE_MODE_SUPPRESSED_LAYERS.forEach((layer) => {
+      const input = this.layerOptions[layer];
+      if (input) {
+        input.disabled = this.pulseMode;
+      }
+    });
   }
 
   #zoomControl(context) {
