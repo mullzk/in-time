@@ -30,6 +30,8 @@ const CATEGORY_COLORS = [
 ];
 const FALLBACK_COLOR = [200, 200, 200];
 
+const lerp = (from, to, fraction) => from + (to - from) * fraction;
+
 const CATEGORY_TRAM = 5;
 const CATEGORY_BUS = 6;
 
@@ -59,6 +61,9 @@ const LAYER_BY_CATEGORY = new Map([
   [CATEGORY_BUS, 'bus'],
 ]);
 
+const layerOfCategory = (category) =>
+  LAYER_BY_CATEGORY.get(category) ?? 'regionalverkehr';
+
 // Stacking order where points overlap: buses at the bottom, trams above,
 // trains on top, so the far more numerous buses never hide the trains.
 const DRAW_PRIORITY_BY_CATEGORY = new Map([
@@ -80,6 +85,66 @@ const DIAMETER_FACTOR_BY_CATEGORY = new Map([
 ]);
 const diameterFactor = (category) =>
   DIAMETER_FACTOR_BY_CATEGORY.get(category) ?? 1.5;
+
+// Whether a vehicle trails the stretch of schedule it has just covered follows
+// from the ground it draws on, so it needs no switch of its own: the pixel maps
+// carry their own lines and labels, where a smear only adds mud, while relief
+// and black leave it room.
+const POINT_ONLY_BACKGROUND_IDS = ['pixel-color', 'pixel-grey'];
+const trailShownOn = (background) =>
+  !POINT_ONLY_BACKGROUND_IDS.includes(background.id);
+
+// The trail samples the vehicle's own trip backwards in schedule time, so its
+// length on screen is the distance actually covered: a fast train smears long,
+// a stopping one contracts to its head.
+const TRAIL_PARTICLE_PIXELS = 3.4;
+// Additive light clips per channel, so the head's alpha decides where a train's
+// colour gives way to white. Zoomed out, a trail packs its whole length into a
+// few pixels and every particle lands on its neighbours, which saturates all
+// three channels; close in nothing overlaps and the same alpha only looks pale.
+// So the alpha follows the zoom: faint in the far view, full punch nearby.
+const TRAIL_HEAD_ALPHA_FAR = 60;
+const TRAIL_HEAD_ALPHA_NEAR = 230;
+const TRAIL_TAIL_ALPHA = 12;
+
+// How far back a service reaches beyond the plain schedule distance: the trail
+// length is the second thing after colour that tells the services apart. The
+// dense tram and bus traffic stays shortest so it does not blur into one field.
+const TRAIL_BASE_LENGTH_SECONDS = 84;
+const TRAIL_LENGTH_FACTOR_BY_LAYER = new Map([
+  ['fernverkehr', 1.25],
+  ['regionalverkehr', 2 / 3],
+  ['tram', 0.5],
+  ['bus', 0.5],
+]);
+
+// The gap between samples, in schedule seconds. Long-distance trains both reach
+// furthest and move fastest, so at close zoom the same gap tears their trail
+// into separate dots; they get a tighter one. The slower, shorter services read
+// as a smear at the wide gap and would only cost samples at a tighter one.
+const TRAIL_DEFAULT_SPACING_SECONDS = 7;
+const TRAIL_SPACING_SECONDS_BY_LAYER = new Map([['fernverkehr', 3]]);
+
+const trailSpacingSeconds = (category) =>
+  TRAIL_SPACING_SECONDS_BY_LAYER.get(layerOfCategory(category)) ??
+  TRAIL_DEFAULT_SPACING_SECONDS;
+const trailSampleCount = (category) =>
+  Math.round(
+    (TRAIL_BASE_LENGTH_SECONDS *
+      TRAIL_LENGTH_FACTOR_BY_LAYER.get(layerOfCategory(category))) /
+      trailSpacingSeconds(category),
+  );
+const trailHeadAlpha = (zoomFraction) =>
+  lerp(TRAIL_HEAD_ALPHA_FAR, TRAIL_HEAD_ALPHA_NEAR, zoomFraction);
+const trailAlpha = (sample, sampleCount, headAlpha) =>
+  lerp(headAlpha, TRAIL_TAIL_ALPHA, sample / (sampleCount - 1));
+// Behind a trail the head only has to mark where the vehicle is, so it shrinks
+// -- and further still in the far view, where full-size heads would close into a
+// carpet of dots and swallow the trails they belong to.
+const TRAIL_HEAD_FACTOR_NEAR = 0.55;
+const TRAIL_HEAD_FACTOR_FAR = 0.28;
+const trailHeadFactor = (zoomFraction) =>
+  lerp(TRAIL_HEAD_FACTOR_FAR, TRAIL_HEAD_FACTOR_NEAR, zoomFraction);
 
 const STATION_NODE_FILL = [255, 255, 255];
 // Over a raster background a white node needs an outline; its colour marks the
@@ -143,6 +208,7 @@ export class HerzschlagPanel extends Panel {
       tram: false,
       bus: false,
     };
+    this.currentTimeSeconds = 0;
     this.background = BACKGROUNDS[0];
     this.zoomSlider = null;
     this.zoomScrubbing = false;
@@ -221,6 +287,7 @@ export class HerzschlagPanel extends Panel {
   }
 
   update(currentTimeSeconds, _deltaSeconds) {
+    this.currentTimeSeconds = currentTimeSeconds;
     this.activeVehicles = this.engineViews
       .flatMap((view, engineIndex) =>
         view.engine.activeAt(currentTimeSeconds).map((vehicle) => {
@@ -245,19 +312,64 @@ export class HerzschlagPanel extends Panel {
       });
     }
     this.#drawStationNodes(p, context);
+    this.#drawVehicles(p, context);
+  }
 
-    const worldPerPixel = context.camera.worldPerPixel();
+  #drawVehicles(p, context) {
     p.noStroke();
-    this.activeVehicles.forEach((vehicle) => {
-      if (!this.#categoryVisible(vehicle.category)) {
-        return;
-      }
-      const [r, g, b] = CATEGORY_COLORS[vehicle.category] ?? FALLBACK_COLOR;
+    const visible = this.activeVehicles.filter((vehicle) =>
+      this.#categoryVisible(vehicle.category),
+    );
+    if (this.#trailShown()) {
+      this.#drawVehicleTrails(p, context, visible);
+    }
+    this.#drawVehicleHeads(p, context, visible);
+  }
+
+  #trailShown() {
+    return trailShownOn(this.background);
+  }
+
+  #drawVehicleHeads(p, context, vehicles) {
+    const worldPerPixel = context.camera.worldPerPixel();
+    const styleFactor = this.#trailShown()
+      ? trailHeadFactor(context.camera.zoomFraction())
+      : 1;
+    vehicles.forEach((vehicle) => {
+      const [r, g, b] = this.#vehicleColor(vehicle.category);
       p.fill(r, g, b);
       const diameter =
-        BASE_DIAMETER_PIXELS * diameterFactor(vehicle.category) * worldPerPixel;
+        BASE_DIAMETER_PIXELS *
+        diameterFactor(vehicle.category) *
+        styleFactor *
+        worldPerPixel;
       p.circle(vehicle.east, vehicle.north, diameter);
     });
+  }
+
+  #drawVehicleTrails(p, context, vehicles) {
+    const size = TRAIL_PARTICLE_PIXELS * context.camera.worldPerPixel();
+    const headAlpha = trailHeadAlpha(context.camera.zoomFraction());
+    // Overlapping trails glowing into each other is the point of the smear, but
+    // additive light over a raster map washes out to white, so only the dark
+    // background gets it.
+    p.blendMode(this.background.source === null ? p.ADD : p.BLEND);
+    vehicles.forEach((vehicle) => {
+      const [r, g, b] = this.#vehicleColor(vehicle.category);
+      const sampleCount = trailSampleCount(vehicle.category);
+      this.engineViews[vehicle.engineIndex].engine
+        .trailPositions(
+          vehicle.tripIndex,
+          this.currentTimeSeconds,
+          sampleCount,
+          trailSpacingSeconds(vehicle.category),
+        )
+        .forEach(({ east, north }, sample) => {
+          p.fill(r, g, b, trailAlpha(sample, sampleCount, headAlpha));
+          p.square(east - size / 2, north - size / 2, size);
+        });
+    });
+    p.blendMode(p.BLEND);
   }
 
   buildSidebarSections(
@@ -305,8 +417,12 @@ export class HerzschlagPanel extends Panel {
     return group;
   }
 
+  #vehicleColor(category) {
+    return CATEGORY_COLORS[category] ?? FALLBACK_COLOR;
+  }
+
   #categoryVisible(category) {
-    return this.layers[LAYER_BY_CATEGORY.get(category) ?? 'regionalverkehr'];
+    return this.layers[layerOfCategory(category)];
   }
 
   // Zooming past the threshold switches the stops layer for the user; a manual
