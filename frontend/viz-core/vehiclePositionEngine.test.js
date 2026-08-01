@@ -151,6 +151,25 @@ test('tripEndpoints reports the first and last stop of a trip', () => {
   });
 });
 
+test('trailPositions samples the trip backwards in schedule time', () => {
+  const trail = engine.trailPositions(0, 36_300, 3, 150);
+  assert.equal(trail.length, 3);
+  trail.forEach((position, sample) => {
+    const expected = engine.positionAt(0, 36_300 - sample * 150);
+    assert.ok(closeTo(position.east, expected.east, 1e-6));
+    assert.ok(closeTo(position.north, expected.north, 1e-6));
+  });
+});
+
+test('a trail ends where the trip had not yet departed', () => {
+  const trail = engine.trailPositions(0, 36_300, 4, 200);
+  assert.equal(engine.positionAt(0, 35_900), null);
+  assert.equal(trail.length, 2);
+  const last = engine.positionAt(0, 36_100);
+  assert.ok(closeTo(trail[1].east, last.east, 1e-6));
+  assert.ok(closeTo(trail[1].north, last.north, 1e-6));
+});
+
 test('positionAt matches activeAt inside the window and is null outside', () => {
   assert.equal(engine.positionAt(0, 35_000), null);
   assert.equal(engine.positionAt(0, 41_000), null);

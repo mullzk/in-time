@@ -32,15 +32,35 @@ export function normalizedBindingKey(key) {
   return key.length === 1 ? key.toLowerCase() : key;
 }
 
+// Which shortcuts are in effect right now. An overlay owns its own keys at all
+// times -- the info modal is opened with the same key that closes it -- while the
+// panel's keys and the built-in view controls fall silent as soon as any overlay
+// is open, so nothing acts on the view behind it. Modal is a state, not a
+// component: the small-viewport sidebar becomes one of these overlays too.
+export function activeShortcuts(panelBindings, overlays) {
+  const overlayBindings = Object.assign({}, ...overlays.map((o) => o.bindings));
+  const anyOverlayOpen = overlays.some((overlay) => overlay.isOpen);
+  return {
+    bindings: anyOverlayOpen
+      ? overlayBindings
+      : { ...panelBindings, ...overlayBindings },
+    viewControlsActive: !anyOverlayOpen,
+  };
+}
+
 // Document-level keyboard shortcuts for playback and camera, plus panel-supplied
-// bindings (key -> handler) for panel-specific toggles. Bound to a target
-// (window) so they work regardless of focus; modifier combinations are left to
-// the browser. Reserved for later: n (network toggle), l (labels layer).
+// bindings (key -> handler) for panel-specific toggles and the overlays that
+// claim keys of their own. Bound to a target (window) so they work regardless of
+// focus; modifier combinations are left to the browser. Reserved for later:
+// n (network toggle), l (labels layer).
 export class KeyboardControls {
-  constructor(target, { time, camera, bindings = {} }) {
+  // `overlays` is a list of { isOpen, bindings }; isOpen is read at each key
+  // press, so an overlay may open and close over the shell's lifetime.
+  constructor(target, { time, camera, bindings = {}, overlays = [] }) {
     this.time = time;
     this.camera = camera;
     this.bindings = bindings;
+    this.overlays = overlays;
     target.addEventListener('keydown', (event) => this.#onKeyDown(event));
   }
 
@@ -51,10 +71,14 @@ export class KeyboardControls {
     if (this.#isTypingInto(event.target)) {
       return;
     }
-    const binding = this.bindings[normalizedBindingKey(event.key)];
+    const active = activeShortcuts(this.bindings, this.overlays);
+    const binding = active.bindings[normalizedBindingKey(event.key)];
     if (binding) {
       binding();
       event.preventDefault();
+      return;
+    }
+    if (!active.viewControlsActive) {
       return;
     }
     switch (event.key) {
@@ -83,7 +107,7 @@ export class KeyboardControls {
 
   #isTypingInto(target) {
     return (
-      target instanceof HTMLElement &&
+      target != null &&
       isTypingElement(target.tagName, target.type, target.isContentEditable)
     );
   }

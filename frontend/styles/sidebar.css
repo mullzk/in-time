@@ -63,6 +63,33 @@
   opacity: 0.7;
 }
 
+/* A section whose switch reshapes the whole view rather than toggling one part
+   of it, set apart by a rule from the plain switches above. */
+.sidebar-section-standout {
+  padding-top: var(--space-m);
+  border-top: 1px solid var(--color-border);
+}
+
+/* A note under a control, shown only while the control cannot yet do its job. */
+.sidebar-hint {
+  display: none;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  opacity: 0.6;
+}
+
+.sidebar-hint.is-visible {
+  display: block;
+}
+
+/* A control the current view holds fixed: it stays readable but shows it cannot
+   be moved. */
+.sidebar-option:has(:disabled) {
+  opacity: 0.45;
+  cursor: default;
+}
+
 .sidebar-options {
   display: flex;
   flex-direction: column;

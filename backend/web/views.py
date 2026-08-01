@@ -88,5 +88,5 @@ def stations_road(request: HttpRequest) -> HttpResponse:
     return _revalidated(HttpResponse(payload, content_type="application/json"))
 
 
-def herzschlag(request: HttpRequest) -> HttpResponse:
-    return render(request, "web/herzschlag.html")
+def takt(request: HttpRequest) -> HttpResponse:
+    return render(request, "web/takt.html")

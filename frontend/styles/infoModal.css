@@ -79,6 +79,15 @@
   line-height: 1.5;
 }
 
+.info-modal-link {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.info-modal-link:hover {
+  color: var(--color-control-text);
+}
+
 .info-modal-section {
   margin-top: var(--space-l);
 }
