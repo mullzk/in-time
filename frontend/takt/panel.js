@@ -196,6 +196,9 @@ const LAYER_LABELS = [
 // competes with them, so it clears the map down to trains on black and holds the
 // controls that would undo that.
 const PULSE_MODE_SUPPRESSED_LAYERS = ['tram', 'bus'];
+
+const SOUND_STATION_HINT =
+  'Sound erklingt erst, wenn eine Station gewählt ist.';
 const BLACK_BACKGROUND = BACKGROUNDS.find(
   (background) => background.source === null,
 );
@@ -233,6 +236,8 @@ export class TaktPanel extends Panel {
       bus: false,
     };
     this.pulseMode = false;
+    this.sonifiedStation = null;
+    this.soundHint = null;
     this.longDistancePulse = null;
     this.currentTimeSeconds = 0;
     this.background = DEFAULT_BACKGROUND;
@@ -480,8 +485,25 @@ export class TaktPanel extends Panel {
         select.value === '' ? null : INSTRUMENTATIONS.get(select.value),
       );
     });
-    group.appendChild(select);
+    this.soundHint = element('p', 'sidebar-hint');
+    this.soundHint.textContent = SOUND_STATION_HINT;
+    this.#syncSoundHint();
+    group.append(select, this.soundHint);
     return group;
+  }
+
+  // An instrument on its own stays silent: the sonifier voices one chosen
+  // station, so until there is one the dropdown looks broken.
+  setSonifiedStation(station) {
+    this.sonifiedStation = station;
+    this.#syncSoundHint();
+  }
+
+  #syncSoundHint() {
+    this.soundHint?.classList.toggle(
+      'is-visible',
+      this.sonifiedStation === null,
+    );
   }
 
   #vehicleColor(category) {
@@ -717,7 +739,7 @@ export class TaktPanel extends Panel {
     input.type = 'checkbox';
     input.checked = this.pulseMode;
     input.addEventListener('change', () => this.#setPulseMode(input.checked));
-    group.appendChild(this.#option(input, 'IC-Takt zeigen'));
+    group.appendChild(this.#option(input, 'Puls Knotenpunkte'));
     return group;
   }
 

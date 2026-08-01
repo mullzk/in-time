@@ -72,6 +72,7 @@ async function bootstrap() {
   const selection = new MapSelection(root, panel, context, {
     onStationChosen: (station) => {
       sonifier.setStation(station);
+      panel.setSonifiedStation(station);
       stationSearch?.showSelection(station);
     },
   });

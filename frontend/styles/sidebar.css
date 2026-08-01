@@ -70,6 +70,19 @@
   border-top: 1px solid var(--color-border);
 }
 
+/* A note under a control, shown only while the control cannot yet do its job. */
+.sidebar-hint {
+  display: none;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  opacity: 0.6;
+}
+
+.sidebar-hint.is-visible {
+  display: block;
+}
+
 /* A control the current view holds fixed: it stays readable but shows it cannot
    be moved. */
 .sidebar-option:has(:disabled) {
