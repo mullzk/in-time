@@ -92,12 +92,12 @@ const diameterFactor = (category) =>
   DIAMETER_FACTOR_BY_CATEGORY.get(category) ?? 1.5;
 
 // Whether a vehicle trails the stretch of schedule it has just covered follows
-// from the ground it draws on, so it needs no switch of its own: the pixel maps
-// carry their own lines and labels, where a smear only adds mud, while relief
-// and black leave it room.
-const POINT_ONLY_BACKGROUND_IDS = ['pixel-color', 'pixel-grey'];
+// from the ground it draws on, so it needs no switch of its own: a smear only
+// reads over empty ground. Every map underneath brings its own texture, against
+// which the trail turns to mud, so the vehicles stay plain points there.
+const TRAIL_BACKGROUND_IDS = ['black'];
 const trailShownOn = (background) =>
-  !POINT_ONLY_BACKGROUND_IDS.includes(background.id);
+  TRAIL_BACKGROUND_IDS.includes(background.id);
 
 // The trail samples the vehicle's own trip backwards in schedule time, so its
 // length on screen is the distance actually covered: a fast train smears long,
