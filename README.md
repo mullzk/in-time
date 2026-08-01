@@ -1,9 +1,9 @@
-# In Time
+# All in Time
 
 Mapping Public Transportation Data
 
-Working title. _In Time_ visualises — and makes audible — the rhythm of the
-Swiss clock-face timetable (Taktfahrplan): the heartbeat of the country's base
+_All in Time_ visualises — and makes audible — the rhythm of the Swiss
+clock-face timetable (Taktfahrplan): the heartbeat of the country's base
 infrastructure. The name carries the double sense of _in time_ (musical, in
 tempo) and _on time_ (Swiss punctuality).
 
@@ -112,7 +112,7 @@ panel plugs into it:
 
 ## Expectations toward the infrastructure
 
-_In Time_ expects of its runtime environment:
+_All in Time_ expects of its runtime environment:
 
 - **A Python application server** behind a **reverse proxy**. The proxy serves
   static files and large artifacts directly (not through the app server), so

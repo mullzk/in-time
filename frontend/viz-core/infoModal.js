@@ -5,8 +5,9 @@ const TITLE_ID = 'info-modal-title';
 // A centred overlay describing the project and its controls, with its own toggle
 // button placed next to the sidebar's. The content (title, intro, control help,
 // keyboard shortcuts) is supplied by the caller so the shell stays panel-
-// agnostic. The open state lives as `is-open` on the overlay; a click on the
-// backdrop or Escape closes it.
+// agnostic. An intro paragraph is a list of parts: a string is plain text, an
+// object of label and href becomes a link. The open state lives as `is-open` on
+// the overlay; a click on the backdrop or Escape closes it.
 export class InfoModal {
   constructor(container, content) {
     this.isOpen = false;
@@ -14,7 +15,7 @@ export class InfoModal {
     this.toggleButton = element('button', 'info-toggle');
     this.toggleButton.type = 'button';
     this.toggleButton.textContent = 'ⓘ';
-    this.toggleButton.setAttribute('aria-label', 'Über In Time');
+    this.toggleButton.setAttribute('aria-label', `Über ${content.title}`);
     this.toggleButton.addEventListener('click', () => this.toggle());
 
     this.overlay = element('div', 'info-modal');
@@ -60,12 +61,33 @@ export class InfoModal {
 
     dialog.append(close, title);
     content.intro.forEach((paragraph) => {
-      const text = element('p', 'info-modal-intro');
-      text.textContent = paragraph;
-      dialog.appendChild(text);
+      dialog.appendChild(this.#paragraph(paragraph));
     });
     dialog.appendChild(this.#controls(content));
     return dialog;
+  }
+
+  #paragraph(parts) {
+    const text = element('p', 'info-modal-intro');
+    parts.forEach((part) => {
+      text.appendChild(
+        typeof part === 'string'
+          ? document.createTextNode(part)
+          : this.#link(part),
+      );
+    });
+    return text;
+  }
+
+  // The links leave the app, so they open in a new tab: a running visualisation
+  // is a place the user should not lose by reading its credits.
+  #link({ label, href }) {
+    const anchor = element('a', 'info-modal-link');
+    anchor.textContent = label;
+    anchor.href = href;
+    anchor.target = '_blank';
+    anchor.rel = 'noopener';
+    return anchor;
   }
 
   #controls(content) {

@@ -1,8 +1,8 @@
-# In Time — project instructions
+# All in Time — project instructions
 
-_In Time_ visualises and sonifies the rhythm of the Swiss clock-face timetable
-(Taktfahrplan). See `README.md` for the product vision. This file governs how we
-build it.
+_All in Time_ visualises and sonifies the rhythm of the Swiss clock-face
+timetable (Taktfahrplan). See `README.md` for the product vision. This file
+governs how we build it.
 
 ## Repository structure
 
