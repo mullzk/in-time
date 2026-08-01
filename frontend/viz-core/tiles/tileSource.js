@@ -44,14 +44,14 @@ export const BACKGROUNDS = [
   },
   {
     id: 'pixel-color',
-    label: 'Pixelkarte farbig',
+    label: 'Landeskarte farbig',
     source: PIXELKARTE_COLOR_TILE_SOURCE,
     showsRailwayLines: true,
     attribution: SWISSTOPO_ATTRIBUTION,
   },
   {
     id: 'pixel-grey',
-    label: 'Pixelkarte grau',
+    label: 'Landeskarte grau',
     source: PIXELKARTE_GREY_TILE_SOURCE,
     showsRailwayLines: true,
     attribution: SWISSTOPO_ATTRIBUTION,

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { BACKGROUNDS } from '../viz-core/tiles/tileSource.js';
-import { HerzschlagPanel } from './panel.js';
+import { TaktPanel } from './panel.js';
 
 const fixture = (name) => {
   const bytes = readFileSync(
@@ -45,7 +45,7 @@ const describeState = (panel) => ({
 });
 
 test('a panel without the road blob knows only the rail stations', () => {
-  const panel = new HerzschlagPanel(RAIL_BUFFER, RAIL_STATIONS);
+  const panel = new TaktPanel(RAIL_BUFFER, RAIL_STATIONS);
   panel.init(context);
 
   assert.equal(panel.engines.length, 1);
@@ -54,11 +54,11 @@ test('a panel without the road blob knows only the rail stations', () => {
 });
 
 test('adopting the road schedule after init matches adopting it before', () => {
-  const afterInit = new HerzschlagPanel(RAIL_BUFFER, RAIL_STATIONS);
+  const afterInit = new TaktPanel(RAIL_BUFFER, RAIL_STATIONS);
   afterInit.init(context);
   afterInit.adoptSchedule(ROAD_BUFFER, ROAD_STATIONS);
 
-  const beforeInit = new HerzschlagPanel(RAIL_BUFFER, RAIL_STATIONS);
+  const beforeInit = new TaktPanel(RAIL_BUFFER, RAIL_STATIONS);
   beforeInit.adoptSchedule(ROAD_BUFFER, ROAD_STATIONS);
   beforeInit.init(context);
 
@@ -69,16 +69,20 @@ test('adopting the road schedule after init matches adopting it before', () => {
 
 const backgroundNamed = (id) => BACKGROUNDS.find((entry) => entry.id === id);
 
+// The view opens without the overlay, so these start by switching it on, the
+// way a user would before choosing a background.
 test('a raster drawing the rails itself switches the network overlay off', () => {
-  const panel = new HerzschlagPanel(RAIL_BUFFER, RAIL_STATIONS);
-  assert.equal(panel.layers.network, true);
+  const panel = new TaktPanel(RAIL_BUFFER, RAIL_STATIONS);
+  panel.layers.network = true;
 
   panel.onBackgroundChange(backgroundNamed('pixel-color'));
   assert.equal(panel.layers.network, false);
 });
 
 test('a background without rails leaves the network overlay alone', () => {
-  const panel = new HerzschlagPanel(RAIL_BUFFER, RAIL_STATIONS);
+  const panel = new TaktPanel(RAIL_BUFFER, RAIL_STATIONS);
+  panel.layers.network = true;
+
   panel.onBackgroundChange(backgroundNamed('black'));
   assert.equal(panel.layers.network, true);
 
@@ -87,7 +91,7 @@ test('a background without rails leaves the network overlay alone', () => {
 });
 
 test('the network overlay stays off once the user switched it back on', () => {
-  const panel = new HerzschlagPanel(RAIL_BUFFER, RAIL_STATIONS);
+  const panel = new TaktPanel(RAIL_BUFFER, RAIL_STATIONS);
   panel.onBackgroundChange(backgroundNamed('pixel-color'));
   panel.layers.network = true;
 
@@ -96,7 +100,7 @@ test('the network overlay stays off once the user switched it back on', () => {
 });
 
 test('an adopted interchange sounds its rail and bus stops as one place', () => {
-  const panel = new HerzschlagPanel(RAIL_BUFFER, RAIL_STATIONS);
+  const panel = new TaktPanel(RAIL_BUFFER, RAIL_STATIONS);
   panel.init(context);
   const railOnly = panel.stationSoundEvents(
     panel.stationCatalog().matching('bahnhof')[0],

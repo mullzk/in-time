@@ -1,7 +1,7 @@
 import { loadSchedule } from '../viz-core/loader.js';
 import { PanelShell } from '../viz-core/panelShell.js';
 import { SECONDS_PER_DAY, TimeModel } from '../viz-core/timeModel.js';
-import { HerzschlagPanel } from './panel.js';
+import { TaktPanel } from './panel.js';
 
 // A service day's trips span more than 24 h (trains running past midnight). We
 // loop a fixed 24-hour window whose seam sits in the pre-dawn lull (~03:00,
@@ -25,7 +25,7 @@ async function bootstrap() {
   );
   time.seekToTime(PLAYBACK_START_SECONDS);
 
-  const panel = new HerzschlagPanel(result.railBuffer, result.railStations);
+  const panel = new TaktPanel(result.railBuffer, result.railStations);
   const shell = new PanelShell(root, panel, time);
   shell.start();
   time.play();

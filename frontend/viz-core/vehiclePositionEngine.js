@@ -348,6 +348,18 @@ export class VehiclePositionEngine {
     return { east, north };
   }
 
+  // The same trip at receding schedule times — the smear a moving vehicle drags
+  // behind it. Ordered head first and cut short where the trip had not yet
+  // departed, so a just-started trip carries a short trail rather than a stub at
+  // its origin.
+  trailPositions(tripIndex, t, sampleCount, spacingSeconds) {
+    const samples = Array.from({ length: sampleCount }, (_, sample) =>
+      this.positionAt(tripIndex, t - sample * spacingSeconds),
+    );
+    const firstMissing = samples.indexOf(null);
+    return firstMissing === -1 ? samples : samples.slice(0, firstMissing);
+  }
+
   activeAt(t) {
     const active = [];
     this.trips.forEach((trip, tripIndex) => {

@@ -1,9 +1,9 @@
-# In Time
+# All in Time
 
 Mapping Public Transportation Data
 
-Working title. _In Time_ visualises — and makes audible — the rhythm of the
-Swiss clock-face timetable (Taktfahrplan): the heartbeat of the country's base
+_All in Time_ visualises — and makes audible — the rhythm of the Swiss
+clock-face timetable (Taktfahrplan): the heartbeat of the country's base
 infrastructure. The name carries the double sense of _in time_ (musical, in
 tempo) and _on time_ (Swiss punctuality).
 
@@ -15,7 +15,7 @@ each a distinct perspective:
 1. **Spread** — how reachability spreads out from a location over time
    (wildfire).
 2. **Travel-time graph** — a radial still image of travel times from a location.
-3. **Heartbeat** — the day's timetable as a pulsing motion; also **sonified**.
+3. **Takt** — the day's timetable as a pulsing motion; also **sonified**.
 4. **Delays** — the delays actually measured on a past day.
 5. **Hotspots** — aggregated delay hotspots over a freely chosen time range.
 
@@ -80,8 +80,8 @@ server stands in for the proxy under `DEBUG`).
 ## Frontend (viz-core)
 
 The client lives in `frontend/` as static ES modules with **no bundler**; the
-runtime stays bundler-free. `viz-core` is a small framework and the Heartbeat
-panel plugs into it:
+runtime stays bundler-free. `viz-core` is a small framework and the Takt panel
+plugs into it:
 
 - **`VizCore`** owns the single [p5.js](https://p5js.org/) instance-mode render
   loop (vendored as `frontend/vendor/p5.esm.min.js`, pinned in `package.json`
@@ -112,7 +112,7 @@ panel plugs into it:
 
 ## Expectations toward the infrastructure
 
-_In Time_ expects of its runtime environment:
+_All in Time_ expects of its runtime environment:
 
 - **A Python application server** behind a **reverse proxy**. The proxy serves
   static files and large artifacts directly (not through the app server), so
@@ -161,4 +161,4 @@ Domain abbreviations and special terms used across the code and docs.
   geometry stored once as a shared edge list, each trip a reference into it). A
   day is published as one blob per network — rail (rail and tram, routed over
   the BAV network) and road (buses, straight lines, hence no edges) — with the
-  network type in the header. Consumed by the Heartbeat panel.
+  network type in the header. Consumed by the Takt panel.

@@ -135,8 +135,8 @@ def test_rail_and_road_stations_have_distinct_etags(
     assert rail_etag != road_etag
 
 
-def test_herzschlag_serves_the_html_shell(client: Client, published: Path) -> None:
-    response = client.get("/herzschlag")
+def test_takt_serves_the_html_shell(client: Client, published: Path) -> None:
+    response = client.get("/takt")
 
     assert response.status_code == 200
     assert response["Content-Type"].startswith("text/html")

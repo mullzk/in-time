@@ -1,6 +1,9 @@
-// The Herzschlag panel's info-modal content. Kept apart from the modal shell so
+// The Takt panel's info-modal content. Kept apart from the modal shell so
 // the copy lives in one place and the conditional shortcut (station search is a
 // panel capability) stays a pure, testable decision.
+
+const link = (label, href) => ({ label, href });
+
 export function buildInfoContent({ stationSearch }) {
   const shortcuts = [
     { keys: 'Leertaste', description: 'Wiedergabe starten und pausieren' },
@@ -19,12 +22,30 @@ export function buildInfoContent({ stationSearch }) {
   });
 
   return {
-    title: 'In Time',
+    title: 'All in Time',
     intro: [
-      'In Time macht den Rhythmus des Schweizer Taktfahrplans sicht- und ' +
-        'hörbar. Dieser Text ist vorläufig und wird später durch die ' +
-        'endgültige Projektbeschreibung ersetzt. Er umfasst rund vier Zeilen ' +
-        'und dient vorerst nur der Vorschau des Layouts.',
+      [
+        'All in Time macht den Schweizer Taktfahrplan sicht- und hörbar. ' +
+          'Entstanden im Rahmen des stets inspirierenden ',
+        link(
+          'CAS Generative Data Design',
+          'https://www.hkb.bfh.ch/de/weiterbildung/cas/generative-data-design/',
+        ),
+        ' der ',
+        link('HKB', 'https://www.hkb.bfh.ch/de/'),
+        ', wird der Fahrplan des heutigen Tages gemäss ',
+        link('opentransportdata.swiss', 'https://opentransportdata.swiss'),
+        ' angezeigt. Weitere Quellen: ',
+        link('Bundesamt für Verkehr', 'https://www.bav.admin.ch/de/eisenbahn'),
+        ' und ',
+        link('swisstopo', 'https://www.swisstopo.admin.ch/de'),
+        '. Quellcode: ',
+        link(
+          'github.com/mullzk/in-time/',
+          'https://github.com/mullzk/in-time/',
+        ),
+        '.',
+      ],
     ],
     controlHelp:
       'In der Seitenleiste (☰ oben links) lassen sich verschiedene ' +
