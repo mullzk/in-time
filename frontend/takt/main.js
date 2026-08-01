@@ -16,7 +16,7 @@ import { RELIEF_TILE_SOURCE } from '../viz-core/tiles/tileSource.js';
 import { SECONDS_PER_DAY, TimeModel } from '../viz-core/timeModel.js';
 import { VizCore } from '../viz-core/vizCore.js';
 import { buildInfoContent } from './infoContent.js';
-import { HerzschlagPanel } from './panel.js';
+import { TaktPanel } from './panel.js';
 
 // A service day's trips span more than 24 h (trains running past midnight). We
 // loop a fixed 24-hour window whose seam sits in the pre-dawn lull (~03:00,
@@ -40,7 +40,7 @@ async function bootstrap() {
   );
   time.seekToTime(PLAYBACK_START_SECONDS);
   const camera = new Camera(root.clientWidth, root.clientHeight);
-  const panel = new HerzschlagPanel(
+  const panel = new TaktPanel(
     result.railBuffer,
     result.roadBuffer,
     result.railStations,

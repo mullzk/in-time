@@ -1,4 +1,4 @@
-// The Herzschlag panel's info-modal content. Kept apart from the modal shell so
+// The Takt panel's info-modal content. Kept apart from the modal shell so
 // the copy lives in one place and the conditional shortcut (station search is a
 // panel capability) stays a pure, testable decision.
 

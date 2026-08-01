@@ -203,7 +203,7 @@ const DEFAULT_BACKGROUND = BACKGROUNDS.find(
   (background) => background.id === 'relief',
 );
 
-export class HerzschlagPanel extends Panel {
+export class TaktPanel extends Panel {
   capabilities = {
     simulationSpeed: true,
     fullDayScrubber: true,
@@ -445,7 +445,7 @@ export class HerzschlagPanel extends Panel {
       { title: 'Hintergrund', element: this.#backgroundControl() },
       { title: 'Ebenen', element: this.#layerControl() },
       {
-        title: 'Fernverkehr-Puls',
+        title: 'Basis-Takt',
         element: this.#pulseModeControl(),
         standout: true,
       },
@@ -717,7 +717,7 @@ export class HerzschlagPanel extends Panel {
     input.type = 'checkbox';
     input.checked = this.pulseMode;
     input.addEventListener('change', () => this.#setPulseMode(input.checked));
-    group.appendChild(this.#option(input, 'Basistakt zeigen'));
+    group.appendChild(this.#option(input, 'IC-Takt zeigen'));
     return group;
   }
 

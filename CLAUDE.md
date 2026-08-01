@@ -35,8 +35,8 @@ Work is organised into packages (P0–P6) across three phases; see
 - Each work step has a spec under `plan/phase-*/` (preconditions, what to do,
   where it is expanded later). Background lives in `plan/referenz/`
   (architecture, data, UI).
-- Phase 1 is a **vertical slice** (Herzschlag panel, rail-only, visual) that
-  proves the whole stack early; Phase 2 broadens each package.
+- Phase 1 is a **vertical slice** (Takt panel, rail-only, visual) that proves
+  the whole stack early; Phase 2 broadens each package.
 
 ## Language
 
