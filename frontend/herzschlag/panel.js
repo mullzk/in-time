@@ -199,6 +199,9 @@ const PULSE_MODE_SUPPRESSED_LAYERS = ['tram', 'bus'];
 const BLACK_BACKGROUND = BACKGROUNDS.find(
   (background) => background.source === null,
 );
+const DEFAULT_BACKGROUND = BACKGROUNDS.find(
+  (background) => background.id === 'relief',
+);
 
 export class HerzschlagPanel extends Panel {
   capabilities = {
@@ -222,7 +225,7 @@ export class HerzschlagPanel extends Panel {
     );
     this.activeVehicles = [];
     this.layers = {
-      network: true,
+      network: false,
       stops: false,
       fernverkehr: true,
       regionalverkehr: true,
@@ -232,7 +235,7 @@ export class HerzschlagPanel extends Panel {
     this.pulseMode = false;
     this.longDistancePulse = null;
     this.currentTimeSeconds = 0;
-    this.background = BLACK_BACKGROUND;
+    this.background = DEFAULT_BACKGROUND;
     this.zoomSlider = null;
     this.zoomScrubbing = false;
     this.previousZoomFraction = null;
