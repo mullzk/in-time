@@ -17,6 +17,7 @@ import {
 } from '../viz-core/stationNodes.js';
 import { BACKGROUNDS } from '../viz-core/tiles/tileSource.js';
 import { VehiclePositionEngine } from '../viz-core/vehiclePositionEngine.js';
+import { buildInfoContent } from './infoContent.js';
 
 // Colours by blob category: rail 0-4 (Fernverkehr, IR, Regio/RE, S-Bahn, other),
 // tram 5, bus 6.
@@ -76,10 +77,6 @@ const DRAW_PRIORITY_BY_CATEGORY = new Map([
   [CATEGORY_TRAM, 1],
 ]);
 const drawPriority = (category) => DRAW_PRIORITY_BY_CATEGORY.get(category) ?? 2;
-
-// Fixed, countable zoom stops for the sidebar slider; the wheel and pinch stay
-// continuous and the slider snaps to the nearest stop.
-const ZOOM_STEPS = 7;
 
 // Trains read poorly against the colour pixel map, so draw them larger and the
 // far more numerous trams and buses smaller.
@@ -196,15 +193,10 @@ const LAYER_LABELS = [
 // competes with them, so it clears the map down to trains on black and holds the
 // controls that would undo that.
 const PULSE_MODE_SUPPRESSED_LAYERS = ['tram', 'bus'];
+const BLACK_BACKGROUND_ID = 'black';
 
 const SOUND_STATION_HINT =
   'Sound erklingt erst, wenn eine Station gewählt ist.';
-const BLACK_BACKGROUND = BACKGROUNDS.find(
-  (background) => background.source === null,
-);
-const DEFAULT_BACKGROUND = BACKGROUNDS.find(
-  (background) => background.id === 'relief',
-);
 
 export class TaktPanel extends Panel {
   capabilities = {
@@ -214,18 +206,14 @@ export class TaktPanel extends Panel {
     sonification: true,
   };
 
-  constructor(railBuffer, roadBuffer, railStations, roadStations) {
+  constructor(railBuffer, railStations) {
     super();
-    this.railBuffer = railBuffer;
-    this.roadBuffer = roadBuffer;
-    this.railStations = railStations;
-    this.roadStations = roadStations;
-    this.catalog = StationCatalog.fromPublished(
-      railStations,
-      readStationPoints(railBuffer),
-      roadStations,
-      readStationPoints(roadBuffer),
-    );
+    this.catalog = new StationCatalog([]);
+    this.engineViews = [];
+    this.engines = [];
+    this.soundEngines = [];
+    this.clusterToDidoks = new Map();
+    this.adoptSchedule(railBuffer, railStations);
     this.activeVehicles = [];
     this.layers = {
       network: false,
@@ -236,19 +224,15 @@ export class TaktPanel extends Panel {
       bus: false,
     };
     this.pulseMode = false;
-    this.sonifiedStation = null;
-    this.soundHint = null;
     this.longDistancePulse = null;
     this.currentTimeSeconds = 0;
-    this.background = DEFAULT_BACKGROUND;
-    this.zoomSlider = null;
-    this.zoomScrubbing = false;
+    this.sonifiedStation = null;
+    this.soundHint = null;
+    this.holdBackground = null;
+    this.background = BACKGROUNDS[0];
     this.previousZoomFraction = null;
     this.layerOptions = {};
-    this.backgroundOptions = [];
     this.camera = null;
-    this.context = null;
-    this.onBackgroundChange = null;
   }
 
   stationCatalog() {
@@ -257,34 +241,38 @@ export class TaktPanel extends Panel {
 
   init(context) {
     this.camera = context.camera;
+  }
+
+  // Takes a further schedule blob into the running panel: its stations join the
+  // catalog, its trips gain an engine and, for sonification, a station-indexed
+  // sound engine. The road blob arrives this way after the first picture.
+  adoptSchedule(buffer, stations) {
+    const points = readStationPoints(buffer);
+    this.catalog.addPublished(stations, points);
     // Each engine is paired with the station names its trips index into, so a
     // clicked vehicle resolves to its origin and destination stop names.
-    this.engineViews = [
-      {
-        engine: new VehiclePositionEngine(this.railBuffer),
-        stations: this.railStations,
-      },
-      {
-        engine: new VehiclePositionEngine(this.roadBuffer),
-        stations: this.roadStations,
-      },
-    ];
-    this.engines = this.engineViews.map((view) => view.engine);
-    // Only the rail blob carries long-distance trips, so the pulse reads it.
-    const railEngine = this.engineViews[0].engine;
-    this.longDistancePulse = new LongDistancePulse(
-      railEngine.trips,
-      railEngine.stations,
-      PULSE_CATEGORIES,
-    );
-    // For sonification each blob is also indexed by station, with a didok lookup
-    // so a selected station resolves to its events in whichever blobs serve it.
-    this.soundEngines = this.engineViews.map((view) => ({
-      engine: new SonificationEngine(view.engine.trips),
+    const engine = new VehiclePositionEngine(buffer);
+    this.engineViews.push({ engine, stations });
+    this.engines.push(engine);
+    this.soundEngines.push({
+      engine: new SonificationEngine(engine.trips),
       didokToIndex: new Map(
-        view.stations.map((station, index) => [station.didok, index]),
+        stations.map((station, index) => [station.didok, index]),
       ),
-    }));
+    });
+    // The rail blob is the one the panel is constructed with, and the only one
+    // carrying long-distance trips, so the pulse reads the first engine adopted.
+    if (this.longDistancePulse === null) {
+      this.longDistancePulse = new LongDistancePulse(
+        engine.trips,
+        engine.stations,
+        PULSE_CATEGORIES,
+      );
+    }
+    this.#indexClusters();
+  }
+
+  #indexClusters() {
     this.clusterToDidoks = new Map();
     this.catalog.entries.forEach((entry) => {
       if (entry.cluster !== null) {
@@ -344,7 +332,6 @@ export class TaktPanel extends Panel {
       this.longDistancePulse.update(currentTimeSeconds, deltaSeconds);
     }
     this.#syncStopsOnZoomCross();
-    this.#syncZoomSlider();
     this.#syncLayerOptions();
   }
 
@@ -440,34 +427,93 @@ export class TaktPanel extends Panel {
       });
   }
 
-  buildSidebarSections(
-    context,
-    { onBackgroundChange, onInstrumentationChange } = {},
-  ) {
-    this.context = context;
-    this.onBackgroundChange = onBackgroundChange;
+  #vehicleColor(category) {
+    return this.pulseMode
+      ? PULSE_MODE_VEHICLE_COLOR
+      : (CATEGORY_COLORS[category] ?? FALLBACK_COLOR);
+  }
+
+  sidebarSections({ setInstrumentation, holdBackground } = {}) {
+    this.holdBackground = holdBackground;
     const sections = [
-      { title: 'Hintergrund', element: this.#backgroundControl() },
-      { title: 'Ebenen', element: this.#layerControl() },
       {
-        title: 'Basis-Takt',
+        id: 'layers',
+        title: 'Ebenen',
+        element: this.#layerControl(),
+        keepInExhibition: true,
+      },
+      {
+        id: 'pulse',
+        title: 'Fernverkehr-Puls',
         element: this.#pulseModeControl(),
+        keepInExhibition: true,
         standout: true,
       },
-      { title: 'Zoom', element: this.#zoomControl(context) },
     ];
     if (this.capabilities.sonification) {
       sections.push({
+        id: 'sound',
         title: 'Sound',
-        element: this.#soundControl(onInstrumentationChange),
+        element: this.#soundControl(setInstrumentation),
+        keepInExhibition: true,
       });
     }
     return sections;
   }
 
+  #pulseModeControl() {
+    const group = element('div', 'sidebar-options');
+    const input = element('input');
+    input.type = 'checkbox';
+    input.checked = this.pulseMode;
+    input.addEventListener('change', () => this.#setPulseMode(input.checked));
+    group.appendChild(this.#option(input, 'Basistakt zeigen'));
+    return group;
+  }
+
+  // Entering the mode clears the picture down to trains on black -- which brings
+  // the trail with it, the black background's own style. Leaving it hands the
+  // controls back without undoing the choice, so the view stays where the user
+  // was looking.
+  #setPulseMode(on) {
+    this.pulseMode = on;
+    if (on) {
+      PULSE_MODE_SUPPRESSED_LAYERS.forEach((layer) => {
+        this.layers[layer] = false;
+      });
+    }
+    this.holdBackground?.(on ? BLACK_BACKGROUND_ID : null);
+    PULSE_MODE_SUPPRESSED_LAYERS.forEach((layer) => {
+      const input = this.layerOptions[layer];
+      if (input) {
+        input.disabled = on;
+      }
+    });
+  }
+
+  keyBindings() {
+    return { h: () => this.toggleStops() };
+  }
+
+  infoContent() {
+    return buildInfoContent({
+      stationSearch: this.capabilities.stationSearch,
+    });
+  }
+
+  // The shell owns the background chooser; switching one has a consequence only
+  // the panel can decide: the pixel maps draw the rail network themselves, so
+  // the overlay would only double it.
+  onBackgroundChange(background) {
+    this.background = background;
+    if (background.showsRailwayLines) {
+      this.layers.network = false;
+    }
+  }
+
   // A single dropdown selects the instrumentation; "Kein Sound" is silence. The
   // sonified station, tempo and per-group mutes come from the existing controls.
-  #soundControl(onInstrumentationChange) {
+  #soundControl(setInstrumentation) {
     const group = element('div', 'sidebar-options');
     const select = element('select', 'sidebar-select');
     const silent = element('option');
@@ -481,7 +527,7 @@ export class TaktPanel extends Panel {
       select.appendChild(option);
     });
     select.addEventListener('change', () => {
-      onInstrumentationChange?.(
+      setInstrumentation?.(
         select.value === '' ? null : INSTRUMENTATIONS.get(select.value),
       );
     });
@@ -504,12 +550,6 @@ export class TaktPanel extends Panel {
       'is-visible',
       this.sonifiedStation === null,
     );
-  }
-
-  #vehicleColor(category) {
-    return this.pulseMode
-      ? PULSE_MODE_VEHICLE_COLOR
-      : (CATEGORY_COLORS[category] ?? FALLBACK_COLOR);
   }
 
   #categoryVisible(category) {
@@ -704,103 +744,6 @@ export class TaktPanel extends Panel {
 
   toggleStops() {
     this.#setStops(!this.layers.stops);
-  }
-
-  #backgroundControl() {
-    const group = element('div', 'sidebar-options');
-    BACKGROUNDS.forEach((background) => {
-      const input = element('input');
-      input.type = 'radio';
-      input.name = 'background';
-      input.checked = background === this.background;
-      input.addEventListener('change', () =>
-        this.#selectBackground(background),
-      );
-      this.backgroundOptions.push({ input, background });
-      group.appendChild(this.#option(input, background.label));
-    });
-    return group;
-  }
-
-  #selectBackground(background) {
-    this.context.setBackground(background.source);
-    this.background = background;
-    // The pixel maps draw the rail network themselves, so the overlay would only
-    // double it: switch it off on selection (the user may re-enable it).
-    if (background.showsRailwayLines) {
-      this.layers.network = false;
-    }
-    this.onBackgroundChange?.();
-  }
-
-  #pulseModeControl() {
-    const group = element('div', 'sidebar-options');
-    const input = element('input');
-    input.type = 'checkbox';
-    input.checked = this.pulseMode;
-    input.addEventListener('change', () => this.#setPulseMode(input.checked));
-    group.appendChild(this.#option(input, 'Puls Knotenpunkte'));
-    return group;
-  }
-
-  // Entering the mode clears the picture down to trains on black -- which brings
-  // the trail with it, the black background's own style. Leaving it hands the
-  // controls back without undoing the choice, so the view stays where the user
-  // was looking.
-  #setPulseMode(on) {
-    this.pulseMode = on;
-    if (on) {
-      this.#selectBackground(BLACK_BACKGROUND);
-      PULSE_MODE_SUPPRESSED_LAYERS.forEach((layer) => {
-        this.layers[layer] = false;
-      });
-    }
-    this.#syncPulseModeControls();
-  }
-
-  #syncPulseModeControls() {
-    this.backgroundOptions.forEach(({ input, background }) => {
-      input.disabled = this.pulseMode;
-      if (this.pulseMode) {
-        input.checked = background === this.background;
-      }
-    });
-    PULSE_MODE_SUPPRESSED_LAYERS.forEach((layer) => {
-      const input = this.layerOptions[layer];
-      if (input) {
-        input.disabled = this.pulseMode;
-      }
-    });
-  }
-
-  #zoomControl(context) {
-    const group = element('div', 'sidebar-options');
-    const slider = element('input', 'sidebar-zoom');
-    slider.type = 'range';
-    slider.min = '0';
-    slider.max = String(ZOOM_STEPS - 1);
-    slider.step = '1';
-    slider.value = String(this.#zoomSliderPosition(context.camera));
-    slider.addEventListener('input', () => {
-      this.zoomScrubbing = true;
-      context.camera.setZoomFraction(Number(slider.value) / (ZOOM_STEPS - 1));
-    });
-    slider.addEventListener('change', () => {
-      this.zoomScrubbing = false;
-    });
-    this.zoomSlider = slider;
-    group.appendChild(slider);
-    return group;
-  }
-
-  #zoomSliderPosition(camera) {
-    return Math.round(camera.zoomFraction() * (ZOOM_STEPS - 1));
-  }
-
-  #syncZoomSlider() {
-    if (this.zoomSlider && !this.zoomScrubbing && this.camera) {
-      this.zoomSlider.value = String(this.#zoomSliderPosition(this.camera));
-    }
   }
 
   #layerControl() {

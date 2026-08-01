@@ -11,6 +11,9 @@ const TITLE_ID = 'info-modal-title';
 export class InfoModal {
   constructor(container, content) {
     this.isOpen = false;
+    // The key that opens the dialog is the key that closes it, so it belongs to
+    // the dialog and stays in effect while everything else falls silent.
+    this.bindings = { i: () => this.toggle() };
 
     this.toggleButton = element('button', 'info-toggle');
     this.toggleButton.type = 'button';
