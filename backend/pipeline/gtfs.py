@@ -62,29 +62,38 @@ def seconds_since_midnight(clock: str) -> int:
     return hours * 3600 + minutes * 60 + seconds
 
 
-def active_services(gtfs_dir: Path, service_date: datetime.date) -> set[str]:
+def _services_by_calendar(gtfs_dir: Path, service_date: datetime.date) -> set[str]:
     weekday_column = WEEKDAY_COLUMNS[service_date.weekday()]
-    date_str = service_date.strftime("%Y%m%d")
-
-    regular: set[str] = set()
+    date_text = service_date.strftime("%Y%m%d")
     with open(gtfs_dir / "calendar.txt", encoding="utf-8-sig", newline="") as feed:
-        for row in csv.DictReader(feed):
-            if row[weekday_column] == "1" and (
-                row["start_date"] <= date_str <= row["end_date"]
-            ):
-                regular.add(row["service_id"])
+        return {
+            row["service_id"]
+            for row in csv.DictReader(feed)
+            if row[weekday_column] == "1"
+            and row["start_date"] <= date_text <= row["end_date"]
+        }
 
+
+def _service_exceptions_on(
+    gtfs_dir: Path, service_date: datetime.date
+) -> tuple[set[str], set[str]]:
+    date_text = service_date.strftime("%Y%m%d")
     added: set[str] = set()
     removed: set[str] = set()
     exceptions = gtfs_dir / "calendar_dates.txt"
-    if exceptions.exists():
-        with open(exceptions, encoding="utf-8-sig", newline="") as feed:
-            for row in csv.DictReader(feed):
-                if row["date"] != date_str:
-                    continue
-                (added if row["exception_type"] == "1" else removed).add(
-                    row["service_id"]
-                )
+    if not exceptions.exists():
+        return added, removed
+    with open(exceptions, encoding="utf-8-sig", newline="") as feed:
+        for row in csv.DictReader(feed):
+            if row["date"] != date_text:
+                continue
+            (added if row["exception_type"] == "1" else removed).add(row["service_id"])
+    return added, removed
+
+
+def active_services(gtfs_dir: Path, service_date: datetime.date) -> set[str]:
+    regular = _services_by_calendar(gtfs_dir, service_date)
+    added, removed = _service_exceptions_on(gtfs_dir, service_date)
     return (regular | added) - removed
 
 

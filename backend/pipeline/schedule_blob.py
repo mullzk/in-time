@@ -91,75 +91,118 @@ def _offset_north(value: float) -> int:
     return round(value - LV95_ORIGIN_NORTH)
 
 
-def create_schedule_blob(day: ScheduleDay, network_type: NetworkType) -> bytes:
-    station_east = [_offset_east(east) for east, _ in day.stations]
-    station_north = [_offset_north(north) for _, north in day.stations]
+@dataclass
+class _EdgeGeometryColumns:
+    point_start: list[int]
+    point_len: list[int]
+    point_east: list[int]
+    point_north: list[int]
 
-    edge_point_start: list[int] = []
-    edge_point_len: list[int] = []
-    point_east: list[int] = []
-    point_north: list[int] = []
-    for edge in day.edges:
-        edge_point_start.append(len(point_east))
-        edge_point_len.append(len(edge))
+
+@dataclass
+class _TripColumns:
+    category: list[int]
+    first_departure: list[int]
+    last_arrival: list[int]
+    event_start: list[int]
+    event_len: list[int]
+    path_start: list[int]
+    path_len: list[int]
+    event_station: list[int]
+    event_arrival: list[int]
+    event_departure: list[int]
+    event_leg_edge_count: list[int]
+    path: list[int]
+
+
+def _station_columns(
+    stations: list[tuple[float, float]],
+) -> tuple[list[int], list[int]]:
+    return (
+        [_offset_east(east) for east, _ in stations],
+        [_offset_north(north) for _, north in stations],
+    )
+
+
+def _edge_geometry_columns(
+    edges: list[list[tuple[float, float]]],
+) -> _EdgeGeometryColumns:
+    columns = _EdgeGeometryColumns([], [], [], [])
+    for edge in edges:
+        columns.point_start.append(len(columns.point_east))
+        columns.point_len.append(len(edge))
         for east, north in edge:
-            point_east.append(_offset_east(east))
-            point_north.append(_offset_north(north))
+            columns.point_east.append(_offset_east(east))
+            columns.point_north.append(_offset_north(north))
+    return columns
 
-    trip_category: list[int] = []
-    trip_first_departure: list[int] = []
-    trip_last_arrival: list[int] = []
-    trip_event_start: list[int] = []
-    trip_event_len: list[int] = []
-    trip_path_start: list[int] = []
-    trip_path_len: list[int] = []
-    event_station: list[int] = []
-    event_arrival: list[int] = []
-    event_departure: list[int] = []
-    event_leg_edge_count: list[int] = []
-    path: list[int] = []
-    for trip in day.trips:
-        trip_category.append(trip.category)
-        trip_first_departure.append(trip.events[0].departure)
-        trip_last_arrival.append(trip.events[-1].arrival)
-        trip_event_start.append(len(event_station))
-        trip_event_len.append(len(trip.events))
-        trip_path_start.append(len(path))
+
+def _trip_columns(trips: list[Trip]) -> _TripColumns:
+    columns = _TripColumns([], [], [], [], [], [], [], [], [], [], [], [])
+    for trip in trips:
+        columns.category.append(trip.category)
+        columns.first_departure.append(trip.events[0].departure)
+        columns.last_arrival.append(trip.events[-1].arrival)
+        columns.event_start.append(len(columns.event_station))
+        columns.event_len.append(len(trip.events))
+        columns.path_start.append(len(columns.path))
         for event in trip.events:
-            event_station.append(event.station)
-            event_arrival.append(event.arrival)
-            event_departure.append(event.departure)
-            event_leg_edge_count.append(len(event.leg_edges))
-            path.extend(event.leg_edges)
-        trip_path_len.append(len(path) - trip_path_start[-1])
+            columns.event_station.append(event.station)
+            columns.event_arrival.append(event.arrival)
+            columns.event_departure.append(event.departure)
+            columns.event_leg_edge_count.append(len(event.leg_edges))
+            columns.path.extend(event.leg_edges)
+        columns.path_len.append(len(columns.path) - columns.path_start[-1])
+    return columns
 
-    sections = [
+
+def _sections(
+    station_east: list[int],
+    station_north: list[int],
+    geometry: _EdgeGeometryColumns,
+    trips: _TripColumns,
+) -> list[bytes]:
+    return [
         _pad_to_four(_column("I", station_east) + _column("I", station_north)),
-        _pad_to_four(_column("I", edge_point_start) + _column("H", edge_point_len)),
-        _pad_to_four(_column("I", point_east) + _column("I", point_north)),
         _pad_to_four(
-            _column("B", trip_category)
-            + _column("I", trip_first_departure)
-            + _column("I", trip_last_arrival)
-            + _column("I", trip_event_start)
-            + _column("H", trip_event_len)
-            + _column("I", trip_path_start)
-            + _column("I", trip_path_len)
+            _column("I", geometry.point_start) + _column("H", geometry.point_len)
         ),
         _pad_to_four(
-            _column("I", event_station)
-            + _column("I", event_arrival)
-            + _column("I", event_departure)
-            + _column("H", event_leg_edge_count)
+            _column("I", geometry.point_east) + _column("I", geometry.point_north)
         ),
-        _pad_to_four(_column("i", path)),
+        _pad_to_four(
+            _column("B", trips.category)
+            + _column("I", trips.first_departure)
+            + _column("I", trips.last_arrival)
+            + _column("I", trips.event_start)
+            + _column("H", trips.event_len)
+            + _column("I", trips.path_start)
+            + _column("I", trips.path_len)
+        ),
+        _pad_to_four(
+            _column("I", trips.event_station)
+            + _column("I", trips.event_arrival)
+            + _column("I", trips.event_departure)
+            + _column("H", trips.event_leg_edge_count)
+        ),
+        _pad_to_four(_column("i", trips.path)),
     ]
 
+
+def _section_offsets(sections: list[bytes]) -> list[int]:
     offsets = []
     running = HEADER_SIZE
     for section in sections:
         offsets.append(running)
         running += len(section)
+    return offsets
+
+
+def create_schedule_blob(day: ScheduleDay, network_type: NetworkType) -> bytes:
+    station_east, station_north = _station_columns(day.stations)
+    geometry = _edge_geometry_columns(day.edges)
+    trips = _trip_columns(day.trips)
+    sections = _sections(station_east, station_north, geometry, trips)
 
     header = struct.pack(
         _HEADER_FORMAT,
@@ -173,11 +216,11 @@ def create_schedule_blob(day: ScheduleDay, network_type: NetworkType) -> bytes:
         0,
         len(day.stations),
         len(day.edges),
-        len(point_east),
+        len(geometry.point_east),
         len(day.trips),
-        len(event_station),
-        len(path),
-        *offsets,
+        len(trips.event_station),
+        len(trips.path),
+        *_section_offsets(sections),
         0,
         0,
         0,
