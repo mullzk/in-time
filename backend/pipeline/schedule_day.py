@@ -140,8 +140,10 @@ class _StationCatalog:
         return self._source.name(didok)
 
 
-def _kept_calls(sequence: list[StopCall], placeable: Set[int]) -> list[StopCall]:
-    return [call for call in sequence if call.didok in placeable]
+def _calls_at_locatable_stations(
+    sequence: list[StopCall], stations_with_known_location: Set[int]
+) -> list[StopCall]:
+    return [call for call in sequence if call.didok in stations_with_known_location]
 
 
 def _swiss_stations_and_mode(
@@ -171,7 +173,7 @@ def assemble_schedule_day(
     sequences: dict[str, list[StopCall]],
     router: RailRouter,
     source: StationSource,
-    placeable: Set[int],
+    stations_with_known_location: Set[int],
     regular_connections: RegularConnections | None = None,
 ) -> ScheduleBuild:
     kept: dict[str, list[StopCall]] = {}
@@ -182,7 +184,7 @@ def assemble_schedule_day(
             sequence, category, regular_connections
         ):
             continue
-        calls = _kept_calls(sequence, placeable)
+        calls = _calls_at_locatable_stations(sequence, stations_with_known_location)
         if len(calls) < 2:
             continue
         kept[trip_id] = calls
@@ -232,10 +234,11 @@ def assemble_schedule_day(
 def _rail_inputs(
     rail_graph: RailGraph,
 ) -> tuple[RailRouter, RailStationSource, set[int]]:
+    stations_with_known_location = set(rail_graph.station_to_node)
     return (
         RailRouter(rail_graph),
         RailStationSource(rail_graph),
-        set(rail_graph.station_to_node),
+        stations_with_known_location,
     )
 
 
@@ -247,14 +250,14 @@ def build_rail_schedule_day(
 ) -> ScheduleBuild:
     trips = active_rail_trips(gtfs_dir, service_date)
     sequences = stop_sequences(gtfs_dir, set(trips))
-    router, source, placeable = _rail_inputs(rail_graph)
+    router, source, stations_with_known_location = _rail_inputs(rail_graph)
     return assemble_schedule_day(
         service_date,
         trips,
         sequences,
         router,
         source,
-        placeable,
+        stations_with_known_location,
         regular_connections,
     )
 
@@ -267,13 +270,13 @@ def assemble_straight_line_day(
     regular_connections: RegularConnections,
 ) -> ScheduleBuild:
     catalog = _StationCatalog(BusStationSource(bus_stops))
-    placeable = set(bus_stops)
+    stations_with_known_location = set(bus_stops)
     assembled: list[Trip] = []
     for trip_id, category in trips.items():
         sequence = sequences.get(trip_id, [])
         if _bus_trip_is_droppable(sequence, category, regular_connections):
             continue
-        calls = _kept_calls(sequence, placeable)
+        calls = _calls_at_locatable_stations(sequence, stations_with_known_location)
         if len(calls) < 2:
             continue
         events = [
@@ -310,14 +313,14 @@ def build_schedule_day(
         trip: category for trip, category in trips.items() if category == CATEGORY_BUS
     }
 
-    router, source, placeable = _rail_inputs(rail_graph)
+    router, source, stations_with_known_location = _rail_inputs(rail_graph)
     rail = assemble_schedule_day(
         service_date,
         rail_trips,
         sequences,
         router,
         source,
-        placeable,
+        stations_with_known_location,
         regular_connections,
     )
     road = assemble_straight_line_day(
