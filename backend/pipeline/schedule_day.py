@@ -22,9 +22,10 @@ nothing extra to show — they are the same straight lines every bus leg already
 is."""
 
 from collections import Counter
-from collections.abc import Set
+from collections.abc import Callable, Set
 from dataclasses import dataclass, field
 from datetime import date
+from functools import partial
 from pathlib import Path
 from typing import Protocol
 
@@ -42,7 +43,7 @@ from pipeline.gtfs import (
     is_swiss_didok,
     stop_sequences,
 )
-from pipeline.network import Point, RailGraph, RailRouter
+from pipeline.network import Point, RailGraph, RailRouter, RoutedLeg
 from pipeline.schedule_blob import Event, ScheduleDay, Trip
 
 _RAILBOUND_CATEGORIES = RAIL_CATEGORIES | {CATEGORY_TRAM}
@@ -158,7 +159,7 @@ def _swiss_stations_and_mode(
     return swiss_stations, frequency_mode_of_category(category)
 
 
-def _rail_trip_is_droppable(
+def _railbound_trip_is_droppable(
     sequence: list[StopCall], category: int, regular_connections: RegularConnections
 ) -> bool:
     swiss_stations, mode = _swiss_stations_and_mode(sequence, category)
@@ -172,60 +173,82 @@ def _bus_trip_is_droppable(
     return not regular_connections.trip_has_regular_connection(swiss_stations, mode)
 
 
-def assemble_railbound_schedule_day(
-    service_date: date,
+def _kept_calls_by_trip(
     trips: dict[str, int],
     sequences: dict[str, list[StopCall]],
-    router: RailRouter,
-    source: StationSource,
     stations_with_known_location: Set[int],
-    regular_connections: RegularConnections | None = None,
-) -> ScheduleBuild:
+    trip_is_droppable: Callable[[list[StopCall], int], bool],
+) -> dict[str, list[StopCall]]:
     kept: dict[str, list[StopCall]] = {}
-    pairs: set[tuple[int, int]] = set()
     for trip_id, category in trips.items():
         sequence = sequences.get(trip_id, [])
-        if regular_connections is not None and _rail_trip_is_droppable(
-            sequence, category, regular_connections
-        ):
+        if trip_is_droppable(sequence, category):
             continue
         calls = _calls_at_locatable_stations(sequence, stations_with_known_location)
-        if len(calls) < 2:
-            continue
-        kept[trip_id] = calls
-        for call, next_call in zip(calls, calls[1:], strict=False):
-            pairs.add((call.didok, next_call.didok))
+        if len(calls) >= 2:
+            kept[trip_id] = calls
+    return kept
 
-    routed = router.route(pairs)
 
-    catalog = _StationCatalog(source)
-    assembled: list[Trip] = []
-    for trip_id, calls in kept.items():
-        category = trips[trip_id]
-        events: list[Event] = []
-        for position, call in enumerate(calls):
-            leg_edges: list[int] = []
-            if position < len(calls) - 1:
-                leg = routed.get((call.didok, calls[position + 1].didok))
-                leg_edges = leg.signed_path if leg is not None else []
-            events.append(
-                Event(
-                    catalog.register(call.didok, category),
-                    call.arrival,
-                    call.departure,
-                    leg_edges,
-                )
-            )
-        assembled.append(Trip(category=category, events=events))
+def _connections_of(kept_calls: dict[str, list[StopCall]]) -> set[tuple[int, int]]:
+    return {
+        (call.didok, next_call.didok)
+        for calls in kept_calls.values()
+        for call, next_call in zip(calls, calls[1:], strict=False)
+    }
 
-    day = ScheduleDay(
-        service_date=service_date,
-        stations=catalog.coordinates,
-        edges=router.edges,
-        trips=assembled,
-    )
-    method_counts = dict(Counter(leg.method for leg in routed.values()))
-    straight = [
+
+def _leg_edges_between(
+    routed: dict[tuple[int, int], RoutedLeg], call: StopCall, next_call: StopCall
+) -> list[int]:
+    leg = routed.get((call.didok, next_call.didok))
+    return leg.signed_path if leg is not None else []
+
+
+def _outgoing_leg_edges(
+    calls: list[StopCall], routed: dict[tuple[int, int], RoutedLeg]
+) -> list[list[int]]:
+    edges_between_calls = [
+        _leg_edges_between(routed, call, next_call)
+        for call, next_call in zip(calls, calls[1:], strict=False)
+    ]
+    return [*edges_between_calls, []]
+
+
+def _routed_events(
+    calls: list[StopCall],
+    category: int,
+    routed: dict[tuple[int, int], RoutedLeg],
+    catalog: _StationCatalog,
+) -> list[Event]:
+    return [
+        Event(
+            catalog.register(call.didok, category),
+            call.arrival,
+            call.departure,
+            leg_edges,
+        )
+        for call, leg_edges in zip(
+            calls, _outgoing_leg_edges(calls, routed), strict=True
+        )
+    ]
+
+
+def _geometry_free_events(
+    calls: list[StopCall], category: int, catalog: _StationCatalog
+) -> list[Event]:
+    return [
+        Event(catalog.register(call.didok, category), call.arrival, call.departure, [])
+        for call in calls
+    ]
+
+
+def _named_straight_fallbacks(
+    router: RailRouter,
+    routed: dict[tuple[int, int], RoutedLeg],
+    catalog: _StationCatalog,
+) -> list[NamedStraightFallback]:
+    return [
         NamedStraightFallback(
             catalog.name_of(fallback.from_didok),
             catalog.name_of(fallback.to_didok),
@@ -233,7 +256,46 @@ def assemble_railbound_schedule_day(
         )
         for fallback in router.straight_fallbacks(routed)
     ]
-    return ScheduleBuild(day, catalog.entries, method_counts, straight)
+
+
+def assemble_railbound_schedule_day(
+    service_date: date,
+    trips: dict[str, int],
+    sequences: dict[str, list[StopCall]],
+    router: RailRouter,
+    source: StationSource,
+    stations_with_known_location: Set[int],
+    regular_connections: RegularConnections,
+) -> ScheduleBuild:
+    kept_calls = _kept_calls_by_trip(
+        trips,
+        sequences,
+        stations_with_known_location,
+        partial(_railbound_trip_is_droppable, regular_connections=regular_connections),
+    )
+    routed = router.route(_connections_of(kept_calls))
+
+    catalog = _StationCatalog(source)
+    assembled = [
+        Trip(
+            category=trips[trip_id],
+            events=_routed_events(calls, trips[trip_id], routed, catalog),
+        )
+        for trip_id, calls in kept_calls.items()
+    ]
+
+    day = ScheduleDay(
+        service_date=service_date,
+        stations=catalog.coordinates,
+        edges=router.edges,
+        trips=assembled,
+    )
+    return ScheduleBuild(
+        day,
+        catalog.entries,
+        dict(Counter(leg.method for leg in routed.values())),
+        _named_straight_fallbacks(router, routed, catalog),
+    )
 
 
 def assemble_bus_schedule_day(
@@ -243,23 +305,21 @@ def assemble_bus_schedule_day(
     bus_stops: dict[int, BusStop],
     regular_connections: RegularConnections,
 ) -> ScheduleBuild:
+    kept_calls = _kept_calls_by_trip(
+        trips,
+        sequences,
+        set(bus_stops),
+        partial(_bus_trip_is_droppable, regular_connections=regular_connections),
+    )
+
     catalog = _StationCatalog(BusStationSource(bus_stops))
-    stations_with_known_location = set(bus_stops)
-    assembled: list[Trip] = []
-    for trip_id, category in trips.items():
-        sequence = sequences.get(trip_id, [])
-        if _bus_trip_is_droppable(sequence, category, regular_connections):
-            continue
-        calls = _calls_at_locatable_stations(sequence, stations_with_known_location)
-        if len(calls) < 2:
-            continue
-        events = [
-            Event(
-                catalog.register(call.didok, category), call.arrival, call.departure, []
-            )
-            for call in calls
-        ]
-        assembled.append(Trip(category=category, events=events))
+    assembled = [
+        Trip(
+            category=trips[trip_id],
+            events=_geometry_free_events(calls, trips[trip_id], catalog),
+        )
+        for trip_id, calls in kept_calls.items()
+    ]
     day = ScheduleDay(
         service_date=service_date,
         stations=catalog.coordinates,
