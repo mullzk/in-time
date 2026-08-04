@@ -91,8 +91,8 @@ class RailRouter:
     def signed_length(self, signed_path: list[int]) -> float:
         return self._edges.length_of(signed_path)
 
-    def signed_path(self, from_node: str, to_node: str) -> list[int] | None:
-        return self._edges.signed_between(from_node, to_node)
+    def edge_path_between_nodes(self, from_node: str, to_node: str) -> list[int] | None:
+        return self._edges.edge_path_between(from_node, to_node)
 
     def route(
         self, pairs: Iterable[tuple[int, int]]
@@ -169,7 +169,7 @@ class RailRouter:
         entry_second = self._entry_node(second)
         if entry_first is None or entry_second is None or entry_first == entry_second:
             return None
-        signed = self._edges.signed_between(entry_first, entry_second)
+        signed = self._edges.edge_path_between(entry_first, entry_second)
         straight = self._straight_distance(first, second)
         if signed is None or straight is None:
             return None
@@ -185,7 +185,7 @@ class RailRouter:
             for end in self._entry_candidates(second):
                 if start == end:
                     continue
-                signed = self._edges.signed_between(start, end)
+                signed = self._edges.edge_path_between(start, end)
                 if signed is None:
                     continue
                 length = self._edges.length_of(signed)

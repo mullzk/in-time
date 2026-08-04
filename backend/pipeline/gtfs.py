@@ -88,7 +88,7 @@ def active_services(gtfs_dir: Path, service_date: datetime.date) -> set[str]:
     return (regular | added) - removed
 
 
-def routes_by_category(gtfs_dir: Path) -> dict[str, int]:
+def category_by_route_id(gtfs_dir: Path) -> dict[str, int]:
     routes: dict[str, int] = {}
     with open(gtfs_dir / "routes.txt", encoding="utf-8-sig", newline="") as feed:
         for row in csv.DictReader(feed):
@@ -100,7 +100,7 @@ def routes_by_category(gtfs_dir: Path) -> dict[str, int]:
 
 def active_trips(gtfs_dir: Path, service_date: datetime.date) -> dict[str, int]:
     services = active_services(gtfs_dir, service_date)
-    routes = routes_by_category(gtfs_dir)
+    routes = category_by_route_id(gtfs_dir)
     trips: dict[str, int] = {}
     with open(gtfs_dir / "trips.txt", encoding="utf-8-sig", newline="") as feed:
         for row in csv.DictReader(feed):

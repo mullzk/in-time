@@ -10,7 +10,7 @@ from pipeline.fetch import (
     locate_gdb,
     resolve_gtfs_version,
     resolve_rail_network_version,
-    sanitize_last_modified,
+    version_from_last_modified,
 )
 
 RUN_NETWORK = os.environ.get("RUN_NETWORK_FETCH")
@@ -25,8 +25,8 @@ def test_gtfs_version_from_final_url() -> None:
     assert gtfs_version_from_final_url(url) == "20260715"
 
 
-def test_sanitize_last_modified() -> None:
-    assert sanitize_last_modified("Mon, 15 Sep 2025 07:12:05 GMT") == "20250915"
+def test_version_from_last_modified() -> None:
+    assert version_from_last_modified("Mon, 15 Sep 2025 07:12:05 GMT") == "20250915"
 
 
 def test_extract_zip_from_url_reads_a_local_zip(tmp_path: Path) -> None:

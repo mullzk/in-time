@@ -102,7 +102,7 @@ class SharedEdges:
     def length_of(self, signed_path: list[int]) -> float:
         return sum(self._lengths[abs(edge) - 1] for edge in signed_path)
 
-    def signed_between(self, from_node: str, to_node: str) -> list[int] | None:
+    def edge_path_between(self, from_node: str, to_node: str) -> list[int] | None:
         try:
             hops: list[str] = nx.shortest_path(
                 self._graph, from_node, to_node, weight="weight"

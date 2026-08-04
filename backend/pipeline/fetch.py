@@ -40,7 +40,7 @@ def gtfs_version_from_final_url(url: str) -> str:
     return match.group(1)
 
 
-def sanitize_last_modified(last_modified: str) -> str:
+def version_from_last_modified(last_modified: str) -> str:
     return parsedate_to_datetime(last_modified).strftime("%Y%m%d")
 
 
@@ -88,7 +88,7 @@ def resolve_rail_network_version(url: str = RAIL_NETWORK_URL) -> str:
         last_modified = response.headers.get("Last-Modified")
     if not last_modified:
         raise ValueError(f"no Last-Modified for {url}")
-    return sanitize_last_modified(last_modified)
+    return version_from_last_modified(last_modified)
 
 
 def gtfs_archive(archive_root: Path, url: str = GTFS_SCHEDULE_URL) -> VersionedArchive:
