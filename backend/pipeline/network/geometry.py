@@ -7,15 +7,18 @@ from shapely.geometry import LineString
 Point = tuple[float, float]
 
 
-def distance(a: Point, b: Point) -> float:
-    return math.hypot(b[0] - a[0], b[1] - a[1])
+def distance(first: Point, second: Point) -> float:
+    return math.hypot(second[0] - first[0], second[1] - first[1])
 
 
 def polyline_length(points: list[Point]) -> float:
-    return sum(distance(p, q) for p, q in zip(points, points[1:], strict=False))
+    return sum(
+        distance(point, next_point)
+        for point, next_point in zip(points, points[1:], strict=False)
+    )
 
 
-def oriented(points: list[Point], start: Point) -> list[Point]:
+def starting_nearest_to(points: list[Point], start: Point) -> list[Point]:
     if distance(points[-1], start) < distance(points[0], start):
         return list(reversed(points))
     return points

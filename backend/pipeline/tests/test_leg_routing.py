@@ -25,7 +25,7 @@ def test_direct_leg_routes_over_graph() -> None:
     routed = router.route([(1, 4)])
 
     assert routed[(1, 4)].method == "direct"
-    assert router.signed_length(routed[(1, 4)].signed_path) == 3000.0
+    assert router.path_length_metres(routed[(1, 4)].signed_path) == 3000.0
 
 
 def test_unconnectable_leg_falls_back_to_straight_line() -> None:

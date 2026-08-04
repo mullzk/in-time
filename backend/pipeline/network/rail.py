@@ -73,34 +73,34 @@ class RailRouter:
         self._edges = SharedEdges.build(rail_graph, thresholds)
         self._station_to_node = rail_graph.station_to_node
         self._node_point = rail_graph.node_point
-        self._routable = self._edges.routable_nodes()
-        self._routable_set = set(self._routable)
+        self._nodes_with_tracks = self._edges.nodes_with_tracks()
+        self._nodes_with_tracks_set = set(self._nodes_with_tracks)
         self._thresholds = thresholds
-        self._candidate_cache: dict[int, list[str]] = {}
+        self._entry_node_cache: dict[int, list[str]] = {}
 
     @property
     def edges(self) -> list[list[Point]]:
         return self._edges.polylines
 
     def edge_index_of(self, first: str, second: str) -> int:
-        return self._edges.index_of(first, second)
+        return self._edges.edge_index_between(first, second)
 
     def subnetwork_count(self) -> int:
         return self._edges.subnetwork_count()
 
-    def signed_length(self, signed_path: list[int]) -> float:
-        return self._edges.length_of(signed_path)
+    def path_length_metres(self, edge_path: list[int]) -> float:
+        return self._edges.path_length_metres(edge_path)
 
     def edge_path_between_nodes(self, from_node: str, to_node: str) -> list[int] | None:
         return self._edges.edge_path_between(from_node, to_node)
 
     def route(
-        self, pairs: Iterable[tuple[int, int]]
+        self, station_pairs: Iterable[tuple[int, int]]
     ) -> dict[tuple[int, int], RoutedLeg]:
-        pair_set = set(pairs)
+        pair_set = set(station_pairs)
         routed: dict[tuple[int, int], RoutedLeg] = {}
         for pair in pair_set:
-            leg = self._route_snapped(pair[0], pair[1])
+            leg = self._shortest_leg_over_network(pair[0], pair[1])
             if leg is not None:
                 routed[pair] = leg
         self._recover_missing(pair_set, routed)
@@ -114,7 +114,7 @@ class RailRouter:
         for (first, second), leg in routed.items():
             if leg.method != "straight":
                 continue
-            straight = self._straight_distance(first, second)
+            straight = self._straight_line_distance_metres(first, second)
             if straight is None:
                 continue
             fallbacks.append(StraightFallback(first, second, straight))
@@ -127,82 +127,83 @@ class RailRouter:
 
     def _entry_node(self, didok: int) -> str | None:
         node = self._station_to_node.get(didok)
-        return node if node in self._routable_set else None
+        return node if node in self._nodes_with_tracks_set else None
 
-    def _entry_candidates(self, didok: int) -> list[str]:
-        if didok not in self._candidate_cache:
-            self._candidate_cache[didok] = self._resolve_candidates(didok)
-        return self._candidate_cache[didok]
+    def _nearby_entry_nodes(self, didok: int) -> list[str]:
+        if didok not in self._entry_node_cache:
+            self._entry_node_cache[didok] = self._resolve_nearby_entry_nodes(didok)
+        return self._entry_node_cache[didok]
 
-    def _resolve_candidates(self, didok: int) -> list[str]:
+    def _resolve_nearby_entry_nodes(self, didok: int) -> list[str]:
         location = self._location(didok)
         if location is None:
             return []
         radius = self._thresholds.entry_candidate_radius_metres
         return [
             node
-            for node in self._routable
+            for node in self._nodes_with_tracks
             if distance(location, self._node_point[node]) <= radius
         ]
 
-    def _route_snapped(self, first: int, second: int) -> RoutedLeg | None:
-        straight = self._straight_distance(first, second)
-        direct = self._try_direct(first, second)
+    def _shortest_leg_over_network(self, first: int, second: int) -> RoutedLeg | None:
+        straight = self._straight_line_distance_metres(first, second)
+        direct = self._leg_between_station_nodes(first, second)
         if (
             direct is not None
             and straight is not None
-            and self._edges.length_of(direct)
+            and self._edges.path_length_metres(direct)
             <= DIRECT_ACCEPT_FACTOR * straight + DIRECT_ACCEPT_SLACK_METRES
         ):
             return RoutedLeg(direct, "direct")
 
-        multi = self._multi_snap(first, second)
-        if multi is not None and (
+        over_neighbours = self._leg_over_nearby_entry_nodes(first, second)
+        if over_neighbours is not None and (
             direct is None
-            or self._edges.length_of(multi) < self._edges.length_of(direct)
+            or self._edges.path_length_metres(over_neighbours)
+            < self._edges.path_length_metres(direct)
         ):
-            return RoutedLeg(multi, "multi_snap")
+            return RoutedLeg(over_neighbours, "multi_snap")
         return RoutedLeg(direct, "direct") if direct is not None else None
 
-    def _try_direct(self, first: int, second: int) -> list[int] | None:
+    def _leg_between_station_nodes(self, first: int, second: int) -> list[int] | None:
         entry_first = self._entry_node(first)
         entry_second = self._entry_node(second)
         if entry_first is None or entry_second is None or entry_first == entry_second:
             return None
-        signed = self._edges.edge_path_between(entry_first, entry_second)
-        straight = self._straight_distance(first, second)
-        if signed is None or straight is None:
+        edge_path = self._edges.edge_path_between(entry_first, entry_second)
+        straight = self._straight_line_distance_metres(first, second)
+        if edge_path is None or straight is None:
             return None
-        return signed if self._within_detour(signed, straight) else None
+        return edge_path if self._is_within_detour_limit(edge_path, straight) else None
 
-    def _multi_snap(self, first: int, second: int) -> list[int] | None:
-        straight = self._straight_distance(first, second)
+    def _leg_over_nearby_entry_nodes(self, first: int, second: int) -> list[int] | None:
+        straight = self._straight_line_distance_metres(first, second)
         if straight is None:
             return None
         best: list[int] | None = None
         best_length: float | None = None
-        for start in self._entry_candidates(first):
-            for end in self._entry_candidates(second):
+        for start in self._nearby_entry_nodes(first):
+            for end in self._nearby_entry_nodes(second):
                 if start == end:
                     continue
-                signed = self._edges.edge_path_between(start, end)
-                if signed is None:
+                edge_path = self._edges.edge_path_between(start, end)
+                if edge_path is None:
                     continue
-                length = self._edges.length_of(signed)
+                length = self._edges.path_length_metres(edge_path)
                 if best_length is None or length < best_length:
-                    best, best_length = signed, length
-        if best is not None and self._within_detour(best, straight):
+                    best, best_length = edge_path, length
+        if best is not None and self._is_within_detour_limit(best, straight):
             return best
         return None
 
-    def _within_detour(self, signed_path: list[int], straight: float) -> bool:
+    def _is_within_detour_limit(self, edge_path: list[int], straight: float) -> bool:
         limit = max(
             straight * self._thresholds.detour_factor,
             straight + self._thresholds.detour_slack_metres,
         )
-        return self._edges.length_of(signed_path) <= limit
+        return self._edges.path_length_metres(edge_path) <= limit
 
-    def _straight_distance(self, first: int, second: int) -> float | None:
+    def _straight_line_distance_metres(self, first: int, second: int) -> float | None:
         start = self._location(first)
         end = self._location(second)
         return distance(start, end) if start is not None and end is not None else None
@@ -220,7 +221,7 @@ class RailRouter:
             if start is None or end is None:
                 continue
             routed[pair] = RoutedLeg(
-                [self._edges.append_straight(start, end)], "straight"
+                [self._edges.append_straight_edge(start, end)], "straight"
             )
 
     def _recover_missing(
@@ -228,47 +229,56 @@ class RailRouter:
         pair_set: set[tuple[int, int]],
         routed: dict[tuple[int, int], RoutedLeg],
     ) -> None:
-        good: nx.Graph[int] = nx.Graph()
-        for (first, second), leg in routed.items():
-            weight = self._edges.length_of(leg.signed_path)
-            if (
-                not good.has_edge(first, second)
-                or weight < good[first][second]["weight"]
-            ):
-                good.add_edge(
-                    first, second, weight=weight, signed=leg.signed_path, forward=first
-                )
-
+        routed_leg_graph = self._graph_of_routed_legs(routed)
         for pair in pair_set:
             if pair in routed:
                 continue
-            recovered = self._recover_over(good, pair[0], pair[1])
+            recovered = self._leg_composed_of_routed_legs(
+                routed_leg_graph, pair[0], pair[1]
+            )
             if recovered is not None:
                 routed[pair] = RoutedLeg(recovered, "recover")
 
-    def _recover_over(
+    def _graph_of_routed_legs(
+        self, routed: dict[tuple[int, int], RoutedLeg]
+    ) -> nx.Graph[int]:
+        routed_leg_graph: nx.Graph[int] = nx.Graph()
+        for (first, second), leg in routed.items():
+            weight = self._edges.path_length_metres(leg.signed_path)
+            if (
+                not routed_leg_graph.has_edge(first, second)
+                or weight < routed_leg_graph[first][second]["weight"]
+            ):
+                routed_leg_graph.add_edge(
+                    first, second, weight=weight, signed=leg.signed_path, forward=first
+                )
+        return routed_leg_graph
+
+    def _leg_composed_of_routed_legs(
         self,
-        good: nx.Graph[int],
+        routed_leg_graph: nx.Graph[int],
         first: int,
         second: int,
     ) -> list[int] | None:
-        if first not in good or second not in good:
+        if first not in routed_leg_graph or second not in routed_leg_graph:
             return None
         try:
-            hops: list[int] = nx.shortest_path(good, first, second, weight="weight")
+            hops: list[int] = nx.shortest_path(
+                routed_leg_graph, first, second, weight="weight"
+            )
         except (nx.NetworkXNoPath, nx.NodeNotFound):
             return None
         composed: list[int] = []
         total = 0.0
         for start, end in zip(hops, hops[1:], strict=False):
-            data = good[start][end]
+            data = routed_leg_graph[start][end]
             stored: list[int] = data["signed"]
             segment = (
                 stored if data["forward"] == start else [-s for s in reversed(stored)]
             )
             composed.extend(segment)
             total += float(data["weight"])
-        straight = self._straight_distance(first, second)
+        straight = self._straight_line_distance_metres(first, second)
         if straight is not None and total > max(
             straight * self._thresholds.detour_factor,
             straight + self._thresholds.recover_slack_metres,
