@@ -1,19 +1,25 @@
 """Assembles a service day into a ScheduleBuild and collects the stations it
 touches.
 
-The build_* entry points read the GTFS source from gtfs_dir and delegate; the
-assemble_* functions are pure and work on already-loaded trips and sequences.
+build_schedule_day reads the GTFS source from gtfs_dir and delegates to the
+assemble_* functions, which are pure and work on already-loaded trips and
+sequences.
 
-Rail and tram are routed over the BAV network (assemble_schedule_day); buses are
-drawn as straight lines between their stops (assemble_straight_line_day), so a
-bus leg carries no edges. build_schedule_day produces both.
+Two vocabularies meet here. The input side speaks modes, where rail excludes
+tram (RAIL_CATEGORIES, STATION_MODE_RAIL), so the assemble_* functions split
+into railbound (rail and tram) and bus. The output side speaks networks, where
+rail means track-bound and therefore carries tram, so the two builds are named
+rail and road after the blobs they become.
 
-The frequency filter treats the modes differently. A rail or tram trip drops as
-soon as one of its connections is irregular. A bus trip is kept as long as it has
-any regular connection: an urban line whose city-centre routing legitimately
+Railbound trips are routed over the BAV network; buses are drawn as straight
+lines between their stops, so a bus leg carries no edges.
+
+The frequency filter treats the modes differently. A railbound trip drops as
+soon as one of its connections is irregular. A bus trip is kept as long as it
+has any regular connection: an urban line whose city-centre routing legitimately
 varies day to day would otherwise vanish whole, and its rare segments cost
-nothing extra to
-show — they are the same straight lines every bus leg already is."""
+nothing extra to show — they are the same straight lines every bus leg already
+is."""
 
 from collections import Counter
 from collections.abc import Set
@@ -32,7 +38,6 @@ from pipeline.gtfs import (
     CATEGORY_TRAM,
     RAIL_CATEGORIES,
     StopCall,
-    active_rail_trips,
     active_trips,
     is_swiss_didok,
     stop_sequences,
@@ -167,7 +172,7 @@ def _bus_trip_is_droppable(
     return not regular_connections.trip_has_regular_connection(swiss_stations, mode)
 
 
-def assemble_schedule_day(
+def assemble_railbound_schedule_day(
     service_date: date,
     trips: dict[str, int],
     sequences: dict[str, list[StopCall]],
@@ -231,38 +236,7 @@ def assemble_schedule_day(
     return ScheduleBuild(day, catalog.entries, method_counts, straight)
 
 
-def _rail_inputs(
-    rail_graph: RailGraph,
-) -> tuple[RailRouter, RailStationSource, set[int]]:
-    stations_with_known_location = set(rail_graph.station_to_node)
-    return (
-        RailRouter(rail_graph),
-        RailStationSource(rail_graph),
-        stations_with_known_location,
-    )
-
-
-def build_rail_schedule_day(
-    gtfs_dir: Path,
-    rail_graph: RailGraph,
-    service_date: date,
-    regular_connections: RegularConnections | None = None,
-) -> ScheduleBuild:
-    trips = active_rail_trips(gtfs_dir, service_date)
-    sequences = stop_sequences(gtfs_dir, set(trips))
-    router, source, stations_with_known_location = _rail_inputs(rail_graph)
-    return assemble_schedule_day(
-        service_date,
-        trips,
-        sequences,
-        router,
-        source,
-        stations_with_known_location,
-        regular_connections,
-    )
-
-
-def assemble_straight_line_day(
+def assemble_bus_schedule_day(
     service_date: date,
     trips: dict[str, int],
     sequences: dict[str, list[StopCall]],
@@ -313,17 +287,16 @@ def build_schedule_day(
         trip: category for trip, category in trips.items() if category == CATEGORY_BUS
     }
 
-    router, source, stations_with_known_location = _rail_inputs(rail_graph)
-    rail = assemble_schedule_day(
+    rail = assemble_railbound_schedule_day(
         service_date,
         rail_trips,
         sequences,
-        router,
-        source,
-        stations_with_known_location,
+        RailRouter(rail_graph),
+        RailStationSource(rail_graph),
+        set(rail_graph.station_to_node),
         regular_connections,
     )
-    road = assemble_straight_line_day(
+    road = assemble_bus_schedule_day(
         service_date, bus_trips, sequences, bus_stops, regular_connections
     )
     return DayBuilds(rail=rail, road=road)

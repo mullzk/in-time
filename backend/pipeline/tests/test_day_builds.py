@@ -224,6 +224,37 @@ def write_three_stop_feed(directory: Path) -> None:
     )
 
 
+def test_railbound_build_carries_events_legs_and_routing_method(
+    tmp_path: Path,
+) -> None:
+    write_three_stop_feed(tmp_path)
+    fully_regular = RegularConnections(
+        frozenset(
+            {
+                (RAIL_A, RAIL_B, FREQUENCY_MODE_RAIL),
+                (RAIL_B, RAIL_C, FREQUENCY_MODE_RAIL),
+            }
+        )
+    )
+    build = build_schedule_day(
+        tmp_path, mixed_graph(), mixed_bus_stops(), fully_regular, THURSDAY
+    ).rail
+
+    assert build.day.service_date == THURSDAY
+    trip = build.day.trips[0]
+    assert trip.category == 1  # IR
+    assert [event.station for event in trip.events] == [0, 1, 2]
+    assert [event.arrival for event in trip.events] == [28800, 29100, 29400]
+    # Every stop but the last carries an outgoing routed leg.
+    assert trip.events[0].leg_edges and trip.events[1].leg_edges
+    assert trip.events[2].leg_edges == []
+
+    assert build.day.stations == [PA, PB, PC]
+    assert [station.name for station in build.stations] == ["RailA", "RailB", "RailC"]
+    assert build.method_counts["direct"] == 2
+    assert build.straight_fallbacks == []
+
+
 def test_bus_survives_an_irregular_connection_but_rail_does_not(
     tmp_path: Path,
 ) -> None:

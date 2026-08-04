@@ -109,14 +109,6 @@ def active_trips(gtfs_dir: Path, service_date: datetime.date) -> dict[str, int]:
     return trips
 
 
-def active_rail_trips(gtfs_dir: Path, service_date: datetime.date) -> dict[str, int]:
-    return {
-        trip_id: category
-        for trip_id, category in active_trips(gtfs_dir, service_date).items()
-        if category in RAIL_CATEGORIES
-    }
-
-
 def _stop_didok_map(gtfs_dir: Path) -> dict[str, int]:
     mapping: dict[str, int] = {}
     with open(gtfs_dir / "stops.txt", encoding="utf-8-sig", newline="") as feed:
