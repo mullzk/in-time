@@ -1,9 +1,9 @@
 """Rail network graph and shared-edge leg routing over the BAV network in LV95.
 
 A rail (or tram) station already sits on a network node — its DiDok maps to it —
-so legs route from that node. The router snaps to the node, widens the search
-(multi-snap over nearby nodes, then recover over already-routed legs) and falls
-back to a straight line when two stations cannot be connected."""
+so legs route from that node. When that fails the router widens the search: over
+the nodes nearby, then over legs it has already routed, and finally it draws a
+straight line when two stations cannot be connected at all."""
 
 from __future__ import annotations
 
@@ -50,6 +50,9 @@ class RailGraph(NetworkGraph):
 
 @dataclass
 class RoutedLeg:
+    """One leg placed on the network: the edges it runs over, and how it was
+    found — the method drives the routing-quality report."""
+
     signed_path: list[int]
     method: str  # "direct" | "multi_snap" | "recover" | "straight"
 

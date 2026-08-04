@@ -67,8 +67,8 @@ class Command(BaseCommand):
         diagnostics: list[DayDiagnostics] = []
 
         def fetch_sources() -> str:
-            versions["gtfs"] = gtfs.ensure()
-            versions["rail"] = rail_network.ensure()
+            versions["gtfs"] = gtfs.ensure_current_version()
+            versions["rail"] = rail_network.ensure_current_version()
             return composite_version(versions["gtfs"], versions["rail"])
 
         def build_day_artifacts(day: datetime.date, dest: Path) -> None:

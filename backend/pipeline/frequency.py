@@ -69,6 +69,9 @@ def _connection_key(first: int, second: int, mode: int) -> Connection:
 
 
 class RegularConnections:
+    """The connections that passed the frequency filter, answering both per
+    connection and per trip."""
+
     def __init__(self, connections: frozenset[Connection]) -> None:
         self._connections = connections
 
@@ -179,7 +182,7 @@ def _operating_day_masks(gtfs_dir: Path, needed: set[str]) -> dict[str, int]:
     return operating_day_masks
 
 
-def _swiss_stop_didok(gtfs_dir: Path) -> dict[str, int]:
+def _swiss_didok_by_stop_id(gtfs_dir: Path) -> dict[str, int]:
     mapping: dict[str, int] = {}
     with open(gtfs_dir / "stops.txt", encoding="utf-8-sig", newline="") as feed:
         for row in csv.DictReader(feed):
@@ -190,6 +193,9 @@ def _swiss_stop_didok(gtfs_dir: Path) -> dict[str, int]:
 
 
 class _ConnectionTraffic:
+    """Accumulates operating days and departures per connection over the whole
+    feed, then decides which of them run regularly enough."""
+
     def __init__(self) -> None:
         self._operating_day_masks: dict[Connection, int] = {}
         self._departures: dict[Connection, int] = {}
@@ -216,7 +222,9 @@ class _ConnectionTraffic:
                     )
             previous = station
 
-    def regular(self, thresholds: FrequencyThresholds) -> frozenset[Connection]:
+    def regular_connections(
+        self, thresholds: FrequencyThresholds
+    ) -> frozenset[Connection]:
         return frozenset(
             connection
             for connection, operating_day_mask in self._operating_day_masks.items()
@@ -291,11 +299,11 @@ def scan_regular_connections(
 ) -> RegularConnections:
     trip_mode, trip_service = _trip_modes_and_services(gtfs_dir)
     operating_day_masks = _operating_day_masks(gtfs_dir, set(trip_service.values()))
-    stop_didok = _swiss_stop_didok(gtfs_dir)
+    stop_didok = _swiss_didok_by_stop_id(gtfs_dir)
     traffic = _accumulate_connections(
         gtfs_dir, trip_mode, trip_service, operating_day_masks, stop_didok
     )
-    return RegularConnections(traffic.regular(thresholds))
+    return RegularConnections(traffic.regular_connections(thresholds))
 
 
 # The `i` item width is the platform's native int, but the sidecar never leaves

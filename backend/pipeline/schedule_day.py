@@ -128,6 +128,9 @@ class BusStationSource:
 
 
 class _StationCatalog:
+    """Hands out the consecutive blob indices stations are addressed by, and
+    collects which modes serve each of them."""
+
     def __init__(self, source: StationSource) -> None:
         self._source = source
         self._index: dict[int, int] = {}

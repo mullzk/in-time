@@ -118,7 +118,7 @@ def active_trips(gtfs_dir: Path, service_date: datetime.date) -> dict[str, int]:
     return trips
 
 
-def _stop_didok_map(gtfs_dir: Path) -> dict[str, int]:
+def _didok_by_stop_id(gtfs_dir: Path) -> dict[str, int]:
     mapping: dict[str, int] = {}
     with open(gtfs_dir / "stops.txt", encoding="utf-8-sig", newline="") as feed:
         reader = csv.DictReader(feed)
@@ -139,7 +139,7 @@ def _resolve_didok(stop_id: str, didok_map: dict[str, int]) -> int | None:
 
 
 def stop_sequences(gtfs_dir: Path, trip_ids: set[str]) -> dict[str, list[StopCall]]:
-    didok_map = _stop_didok_map(gtfs_dir)
+    didok_map = _didok_by_stop_id(gtfs_dir)
     ordered: dict[str, list[tuple[int, StopCall]]] = {trip: [] for trip in trip_ids}
 
     with open(gtfs_dir / "stop_times.txt", encoding="utf-8-sig", newline="") as feed:

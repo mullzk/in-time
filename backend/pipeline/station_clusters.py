@@ -1,8 +1,8 @@
 """Groups stops that GTFS transfers.txt ties together into one physical
 interchange, so the sonification can treat a rail station and its neighbouring
 tram and bus stops -- distinct DiDoks at the same place, e.g. "Bern" and "Bern,
-Bahnhof" -- as a single sonified station. It is a union-find over the transfer
-edges in DiDok space: platforms already share their station's DiDok, so
+Bahnhof" -- as a single sonified station. Stops named by a transfer are merged
+into one group in DiDok space: platforms already share their station's DiDok, so
 no parent-station step is needed. Each cluster is named by its smallest didok."""
 
 import csv
@@ -11,21 +11,27 @@ from pathlib import Path
 from pipeline.gtfs import is_swiss_didok_text
 
 
-class _UnionFind:
+class _MergedStops:
+    """Keeps merged stops in groups, each answering to one representative
+    didok."""
+
     def __init__(self) -> None:
-        self._parent: dict[int, int] = {}
+        self._representative: dict[int, int] = {}
 
-    def find(self, item: int) -> int:
-        self._parent.setdefault(item, item)
-        while self._parent[item] != item:
-            self._parent[item] = self._parent[self._parent[item]]
-            item = self._parent[item]
-        return item
+    def representative_of(self, didok: int) -> int:
+        self._representative.setdefault(didok, didok)
+        while self._representative[didok] != didok:
+            self._representative[didok] = self._representative[
+                self._representative[didok]
+            ]
+            didok = self._representative[didok]
+        return didok
 
-    def union(self, first: int, second: int) -> None:
-        root_first, root_second = self.find(first), self.find(second)
-        if root_first != root_second:
-            self._parent[root_first] = root_second
+    def merge(self, first: int, second: int) -> None:
+        first_representative = self.representative_of(first)
+        second_representative = self.representative_of(second)
+        if first_representative != second_representative:
+            self._representative[first_representative] = second_representative
 
 
 def _read_stop_didoks(gtfs_dir: Path) -> dict[str, int]:
@@ -44,17 +50,17 @@ def load_station_clusters(gtfs_dir: Path) -> dict[int, int]:
     if not transfers.exists():
         return {}
 
-    union = _UnionFind()
+    merged = _MergedStops()
     with open(transfers, encoding="utf-8-sig", newline="") as feed:
         for row in csv.DictReader(feed):
             from_didok = stop_to_didok.get(row["from_stop_id"])
             to_didok = stop_to_didok.get(row["to_stop_id"])
             if from_didok is not None and to_didok is not None:
-                union.union(from_didok, to_didok)
+                merged.merge(from_didok, to_didok)
 
     members: dict[int, set[int]] = {}
     for didok in set(stop_to_didok.values()):
-        members.setdefault(union.find(didok), set()).add(didok)
+        members.setdefault(merged.representative_of(didok), set()).add(didok)
 
     clusters: dict[int, int] = {}
     for group in members.values():
