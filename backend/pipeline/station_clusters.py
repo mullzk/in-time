@@ -8,7 +8,7 @@ no parent-station step is needed. Each cluster is named by its smallest didok.""
 import csv
 from pathlib import Path
 
-from pipeline.gtfs import is_swiss_didok_text
+from pipeline.gtfs import swiss_didok_by_stop_id
 
 
 class _MergedStops:
@@ -34,18 +34,8 @@ class _MergedStops:
             self._representative[first_representative] = second_representative
 
 
-def _read_stop_didoks(gtfs_dir: Path) -> dict[str, int]:
-    stop_to_didok: dict[str, int] = {}
-    with open(gtfs_dir / "stops.txt", encoding="utf-8-sig", newline="") as feed:
-        for row in csv.DictReader(feed):
-            didok_text = (row.get("didok") or "").strip()
-            if is_swiss_didok_text(didok_text):
-                stop_to_didok[row["stop_id"]] = int(didok_text)
-    return stop_to_didok
-
-
 def load_station_clusters(gtfs_dir: Path) -> dict[int, int]:
-    stop_to_didok = _read_stop_didoks(gtfs_dir)
+    stop_to_didok = swiss_didok_by_stop_id(gtfs_dir)
     transfers = gtfs_dir / "transfers.txt"
     if not transfers.exists():
         return {}

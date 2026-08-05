@@ -29,7 +29,7 @@ from pipeline.gtfs import (
     RAIL_CATEGORIES,
     WEEKDAY_COLUMNS,
     category_of,
-    is_swiss_didok_text,
+    swiss_didok_by_stop_id,
 )
 
 # Frequency-filter modes: a collapsed projection of the gtfs CATEGORY_* space.
@@ -186,16 +186,6 @@ def _operating_day_masks(gtfs_dir: Path, needed: set[str]) -> dict[str, int]:
     return operating_day_masks
 
 
-def _swiss_didok_by_stop_id(gtfs_dir: Path) -> dict[str, int]:
-    mapping: dict[str, int] = {}
-    with open(gtfs_dir / "stops.txt", encoding="utf-8-sig", newline="") as feed:
-        for row in csv.DictReader(feed):
-            didok = (row.get("didok") or "").strip()
-            if is_swiss_didok_text(didok):
-                mapping[row["stop_id"]] = int(didok)
-    return mapping
-
-
 class _ConnectionTraffic:
     """Accumulates operating days and departures per connection over the whole
     feed, then decides which of them run regularly enough."""
@@ -303,7 +293,7 @@ def scan_regular_connections(
 ) -> RegularConnections:
     trip_mode, trip_service = _trip_modes_and_services(gtfs_dir)
     operating_day_masks = _operating_day_masks(gtfs_dir, set(trip_service.values()))
-    stop_didok = _swiss_didok_by_stop_id(gtfs_dir)
+    stop_didok = swiss_didok_by_stop_id(gtfs_dir)
     traffic = _accumulate_connections(
         gtfs_dir, trip_mode, trip_service, operating_day_masks, stop_didok
     )

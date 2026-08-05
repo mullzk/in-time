@@ -97,6 +97,16 @@ def active_services(gtfs_dir: Path, service_date: datetime.date) -> set[str]:
     return (regular | added) - removed
 
 
+def swiss_didok_by_stop_id(gtfs_dir: Path) -> dict[str, int]:
+    mapping: dict[str, int] = {}
+    with open(gtfs_dir / "stops.txt", encoding="utf-8-sig", newline="") as feed:
+        for row in csv.DictReader(feed):
+            didok_text = (row.get("didok") or "").strip()
+            if is_swiss_didok_text(didok_text):
+                mapping[row["stop_id"]] = int(didok_text)
+    return mapping
+
+
 def category_by_route_id(gtfs_dir: Path) -> dict[str, int]:
     routes: dict[str, int] = {}
     with open(gtfs_dir / "routes.txt", encoding="utf-8-sig", newline="") as feed:
