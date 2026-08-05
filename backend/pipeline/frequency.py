@@ -4,10 +4,14 @@ served regularly enough to appear in the base map.
 Over the whole feed each service's operating days form a bitmask (calendar plus
 calendar_dates); every connection accumulates the union of its trips' days and
 their total departures. A connection is regular when it runs on enough days and
-often enough per operating day. A trip is kept only if all of its connections are
-regular, so a single irregular connection drops the trip — decommissioned lines
-and rare seasonal variants vanish from the base map. Foreign stops are bridged: a
-connection joins the surrounding Swiss stations."""
+often enough per operating day, which is what keeps decommissioned lines and rare
+seasonal variants out of the base map. Foreign stops are bridged: a connection
+joins the surrounding Swiss stations.
+
+Judging a whole trip by its connections is left to the caller, because the two
+verdicts differ by mode: `trip_is_regular` demands all of them and
+`trip_has_regular_connection` any one. See `schedule_day` for which mode takes
+which."""
 
 import array
 import csv
