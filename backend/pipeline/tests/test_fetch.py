@@ -42,18 +42,16 @@ def test_extract_zip_from_url_reads_a_local_zip(tmp_path: Path) -> None:
     assert (dest / "nested" / "stops.txt").exists()
 
 
-def test_extract_zip_normalises_windows_separators(tmp_path: Path) -> None:
-    # The swissTLM3D archive stores paths with backslashes; they must become a
-    # real nested directory, not a flat file named "DIR.gdb\inner".
-    zip_path = tmp_path / "gdb.zip"
+def test_extract_zip_rejects_an_entry_escaping_the_destination(tmp_path: Path) -> None:
+    zip_path = tmp_path / "hostile.zip"
     with zipfile.ZipFile(zip_path, "w") as archive:
-        archive.writestr("SUB.gdb\\a0001.gdbtable", "content")
+        archive.writestr("../outside.txt", "escaped")
 
     dest = tmp_path / "out"
-    extract_zip_from_url(zip_path.as_uri(), dest)
+    with pytest.raises(ValueError, match="escapes the destination"):
+        extract_zip_from_url(zip_path.as_uri(), dest)
 
-    assert (dest / "SUB.gdb" / "a0001.gdbtable").read_text() == "content"
-    assert (dest / "SUB.gdb").is_dir()
+    assert not (tmp_path / "outside.txt").exists()
 
 
 def test_locate_gdb_finds_the_only_geodatabase(tmp_path: Path) -> None:

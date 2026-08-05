@@ -5,7 +5,7 @@ Bus anchors are plain stop coordinates, whereas rail and tram take theirs from
 the BAV network node. GTFS carries stops in WGS84 keyed by SLOID, with the DiDok
 number in the didok column and one row per platform. We collapse the platforms onto
 their station, reproject to LV95 and drop foreign stops, which lie outside the
-swissTLM3D road network and cannot be routed."""
+area the map covers."""
 
 import csv
 from dataclasses import dataclass
