@@ -92,7 +92,7 @@ const diameterFactor = (category) =>
 // from the ground it draws on, so it needs no switch of its own: a smear only
 // reads over empty ground. Every map underneath brings its own texture, against
 // which the trail turns to mud, so the vehicles stay plain points there.
-const TRAIL_BACKGROUND_IDS = ['black'];
+const TRAIL_BACKGROUND_IDS = ['black', 'swissview'];
 const trailShownOn = (background) =>
   TRAIL_BACKGROUND_IDS.includes(background.id);
 
