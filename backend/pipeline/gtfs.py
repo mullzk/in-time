@@ -132,7 +132,7 @@ def active_trips(gtfs_dir: Path, service_date: datetime.date) -> dict[str, int]:
     return trips
 
 
-def _didok_by_stop_id(gtfs_dir: Path) -> dict[str, int]:
+def _didok_by_stop_id_including_foreign(gtfs_dir: Path) -> dict[str, int]:
     mapping: dict[str, int] = {}
     with open(gtfs_dir / "stops.txt", encoding="utf-8-sig", newline="") as feed:
         reader = csv.DictReader(feed)
@@ -156,7 +156,7 @@ def stop_sequences(gtfs_dir: Path, trip_ids: set[str]) -> dict[str, list[StopCal
     """Per requested trip, its calls in stop_sequence order, timed in seconds
     since midnight and running past 24 h where the trip does. Foreign stops stay
     in, because a trip may leave the country and come back."""
-    didok_map = _didok_by_stop_id(gtfs_dir)
+    didok_map = _didok_by_stop_id_including_foreign(gtfs_dir)
     ordered: dict[str, list[tuple[int, StopCall]]] = {trip: [] for trip in trip_ids}
 
     with open(gtfs_dir / "stop_times.txt", encoding="utf-8-sig", newline="") as feed:

@@ -208,7 +208,7 @@ def _leg_edges_between(
     routed: dict[tuple[int, int], RoutedLeg], call: StopCall, next_call: StopCall
 ) -> list[int]:
     leg = routed.get((call.didok, next_call.didok))
-    return leg.signed_path if leg is not None else []
+    return leg.edge_path if leg is not None else []
 
 
 def _outgoing_leg_edges(

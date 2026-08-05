@@ -19,11 +19,11 @@ from pipeline.network.thresholds import RoutingThresholds
 
 class SharedEdges:
     """Every network edge stored once, its polyline oriented from the smaller to
-    the larger node id. A leg is a list of signed 1-based indices: the magnitude
-    picks the edge (1-based, because 0 could not carry a sign), the sign gives
-    the travel direction (positive = stored orientation). Disconnected
-    subnetworks whose nearest nodes are close are bridged so a leg can cross
-    between them."""
+    the larger node id. A leg is an edge path: a list of signed 1-based indices
+    where the magnitude picks the edge (1-based, because 0 could not carry a
+    sign) and the sign gives the travel direction (positive = stored
+    orientation). Disconnected subnetworks whose nearest nodes are close are
+    bridged so a leg can cross between them."""
 
     def __init__(self, graph: nx.Graph[str], node_point: dict[str, Point]) -> None:
         self._graph = graph
@@ -119,12 +119,12 @@ class SharedEdges:
             )
         except (nx.NetworkXNoPath, nx.NodeNotFound):
             return None
-        signed: list[int] = []
+        edge_path: list[int] = []
         for current, following in zip(hops, hops[1:], strict=False):
             index = self._index[frozenset((current, following))]
             forward = self._endpoints[index][0] == current
-            signed.append((index + 1) if forward else -(index + 1))
-        return signed
+            edge_path.append((index + 1) if forward else -(index + 1))
+        return edge_path
 
     def append_straight_edge(self, start: Point, end: Point) -> int:
         self.polylines.append([start, end])

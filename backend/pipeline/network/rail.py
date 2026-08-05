@@ -30,7 +30,7 @@ class RoutedLeg:
     """One leg placed on the network: the edges it runs over, and how it was
     found — the method drives the routing-quality report."""
 
-    signed_path: list[int]
+    edge_path: list[int]
     method: str  # "direct" | "multi_snap" | "recover" | "straight"
 
 
@@ -43,7 +43,7 @@ class StraightFallback:
 
 class RailRouter:
     """Routes each leg (a pair of DiDok station numbers) over the BAV network,
-    taking the shortest signed path between the stations' own nodes and widening
+    taking the shortest edge path between the stations' own nodes and widening
     the search before falling back to a straight line. The graph is fixed for the
     router's lifetime; `route` then takes only the pairs to connect.
 
@@ -239,13 +239,17 @@ class RailRouter:
         them."""
         routed_leg_graph: nx.Graph[int] = nx.Graph()
         for (first, second), leg in routed.items():
-            weight = self._edges.path_length_metres(leg.signed_path)
+            weight = self._edges.path_length_metres(leg.edge_path)
             if (
                 not routed_leg_graph.has_edge(first, second)
                 or weight < routed_leg_graph[first][second]["weight"]
             ):
                 routed_leg_graph.add_edge(
-                    first, second, weight=weight, signed=leg.signed_path, forward=first
+                    first,
+                    second,
+                    weight=weight,
+                    edge_path=leg.edge_path,
+                    forward=first,
                 )
         return routed_leg_graph
 
@@ -270,9 +274,11 @@ class RailRouter:
         total = 0.0
         for start, end in zip(hops, hops[1:], strict=False):
             data = routed_leg_graph[start][end]
-            stored: list[int] = data["signed"]
+            stored: list[int] = data["edge_path"]
             segment = (
-                stored if data["forward"] == start else [-s for s in reversed(stored)]
+                stored
+                if data["forward"] == start
+                else [-edge for edge in reversed(stored)]
             )
             composed.extend(segment)
             total += float(data["weight"])

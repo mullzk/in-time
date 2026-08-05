@@ -89,9 +89,10 @@ const diameterFactor = (category) =>
   DIAMETER_FACTOR_BY_CATEGORY.get(category) ?? 1.5;
 
 // Whether a vehicle trails the stretch of schedule it has just covered follows
-// from the ground it draws on, so it needs no switch of its own: a smear only
-// reads over empty ground. Every map underneath brings its own texture, against
-// which the trail turns to mud, so the vehicles stay plain points there.
+// from the ground it draws on, so it needs no switch of its own: the busier the
+// texture underneath, the more the smear reads as mud rather than as movement.
+// Empty ground carries it best; the aerial imagery is dense but dark and low in
+// contrast enough that the trail still wins, which the drawn maps are not.
 const TRAIL_BACKGROUND_IDS = ['black', 'swissview'];
 const trailShownOn = (background) =>
   TRAIL_BACKGROUND_IDS.includes(background.id);

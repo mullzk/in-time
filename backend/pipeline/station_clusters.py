@@ -13,7 +13,8 @@ from pipeline.gtfs import swiss_didok_by_stop_id
 
 class _MergedStops:
     """Keeps merged stops in groups, each answering to one representative
-    didok."""
+    didok. A union-find under another name: `merge` is its union, and
+    `representative_of` its find, halving the chain it walks as it goes."""
 
     def __init__(self) -> None:
         self._representative: dict[int, int] = {}
