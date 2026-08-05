@@ -13,7 +13,7 @@ from pipeline.network.geometry import (
     simplify,
     starting_nearest_to,
 )
-from pipeline.network.graph import NetworkGraph
+from pipeline.network.rail_graph import RailGraph
 from pipeline.network.thresholds import RoutingThresholds
 
 
@@ -34,7 +34,7 @@ class SharedEdges:
         self._lengths: list[float] = []
 
     @classmethod
-    def build(cls, network: NetworkGraph, thresholds: RoutingThresholds) -> SharedEdges:
+    def build(cls, network: RailGraph, thresholds: RoutingThresholds) -> SharedEdges:
         edges = cls(network.graph.copy(), network.node_point)
         edges._register_segments(
             network.edge_points, thresholds.simplify_tolerance_metres

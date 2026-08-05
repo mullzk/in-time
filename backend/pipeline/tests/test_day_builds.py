@@ -8,7 +8,7 @@ from pipeline.frequency import (
     FREQUENCY_MODE_TRAM,
     RegularConnections,
 )
-from pipeline.network.rail import RailGraph
+from pipeline.network.rail_graph import RailGraph
 from pipeline.schedule_blob import NetworkType, create_schedule_blob, read_header
 from pipeline.schedule_day import build_schedule_day
 

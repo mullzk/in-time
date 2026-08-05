@@ -1,5 +1,6 @@
-"""The raw network: nodes with LV95 coordinates and edges with polyline
-geometry, as read from a source before any deduplication or routing."""
+"""The BAV rail network as read from its source: nodes with LV95 coordinates,
+edges with polyline geometry, and the DiDok stations sitting on those nodes —
+before any deduplication or routing."""
 
 from __future__ import annotations
 
@@ -13,19 +14,22 @@ Segment = tuple[str, str, list[Point]]
 
 
 @dataclass
-class NetworkGraph:
+class RailGraph:
     graph: nx.Graph[str]
     node_point: dict[str, Point]
     edge_points: dict[frozenset[str], list[Point]]
     node_name: dict[str, str]
+    station_to_node: dict[int, str]
+    """DiDok station number -> BAV network node id (its Betriebspunkt)."""
 
     @classmethod
-    def from_segments(
+    def from_rail_segments(
         cls,
         nodes: dict[str, Point],
         segments: list[Segment],
+        station_to_node: dict[int, str],
         node_name: dict[str, str] | None = None,
-    ) -> NetworkGraph:
+    ) -> RailGraph:
         graph: nx.Graph[str] = nx.Graph()
         graph.add_nodes_from(nodes)
         edge_points: dict[frozenset[str], list[Point]] = {}
@@ -37,4 +41,5 @@ class NetworkGraph:
             node_point=nodes,
             edge_points=edge_points,
             node_name=node_name or {},
+            station_to_node=station_to_node,
         )

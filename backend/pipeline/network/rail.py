@@ -1,4 +1,4 @@
-"""Rail network graph and shared-edge leg routing over the BAV network in LV95.
+"""Shared-edge leg routing over the BAV rail network in LV95.
 
 A rail (or tram) station already sits on a network node — its DiDok maps to it —
 so legs route from that node. When that fails the router widens the search: over
@@ -14,38 +14,15 @@ import networkx as nx
 
 from pipeline.network.edges import SharedEdges
 from pipeline.network.geometry import Point, distance
-from pipeline.network.graph import NetworkGraph, Segment
+from pipeline.network.rail_graph import RailGraph
 from pipeline.network.thresholds import DEFAULT_THRESHOLDS, RoutingThresholds
 
-__all__ = ["RailGraph", "RailRouter", "RoutedLeg", "StraightFallback"]
+__all__ = ["RailRouter", "RoutedLeg", "StraightFallback"]
 
 # A direct leg is kept over a multi-snap alternative when it is at most this much
 # longer than the straight line between the two stations.
 DIRECT_ACCEPT_FACTOR = 1.8
 DIRECT_ACCEPT_SLACK_METRES = 500.0
-
-
-@dataclass
-class RailGraph(NetworkGraph):
-    station_to_node: dict[int, str]
-    """DiDok station number -> BAV network node id (its Betriebspunkt)."""
-
-    @classmethod
-    def from_rail_segments(
-        cls,
-        nodes: dict[str, Point],
-        segments: list[Segment],
-        station_to_node: dict[int, str],
-        node_name: dict[str, str] | None = None,
-    ) -> RailGraph:
-        base = NetworkGraph.from_segments(nodes, segments, node_name)
-        return cls(
-            graph=base.graph,
-            node_point=base.node_point,
-            edge_points=base.edge_points,
-            node_name=base.node_name,
-            station_to_node=station_to_node,
-        )
 
 
 @dataclass
@@ -68,7 +45,12 @@ class RailRouter:
     """Routes each leg (a pair of DiDok station numbers) over the BAV network,
     taking the shortest signed path between the stations' own nodes and widening
     the search before falling back to a straight line. The graph is fixed for the
-    router's lifetime; `route` then takes only the pairs to connect."""
+    router's lifetime; `route` then takes only the pairs to connect.
+
+    The build reaches only `route`, `edges` and `straight_fallbacks`. The four
+    accessors below them reach into the edge store to let tests and the
+    verify_railnet command assert on single paths, which `route`'s bulk result
+    cannot show."""
 
     def __init__(
         self, rail_graph: RailGraph, thresholds: RoutingThresholds = DEFAULT_THRESHOLDS

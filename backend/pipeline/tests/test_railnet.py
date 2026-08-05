@@ -1,5 +1,6 @@
-from pipeline.network import polyline_length
-from pipeline.network.rail import RailGraph, RailRouter
+from pipeline.network.geometry import polyline_length
+from pipeline.network.rail import RailRouter
+from pipeline.network.rail_graph import RailGraph
 
 # Points are LV95 metres (east, north).
 A = (0.0, 1000.0)

@@ -1,4 +1,5 @@
-from pipeline.network.rail import RailGraph, RailRouter
+from pipeline.network.rail import RailRouter
+from pipeline.network.rail_graph import RailGraph
 
 # A B C D on a line (all routable); E far away and disconnected.
 A = (0.0, 0.0)
