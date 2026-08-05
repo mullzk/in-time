@@ -82,6 +82,9 @@ class RailRouter:
     def route(
         self, station_pairs: Iterable[tuple[int, int]]
     ) -> dict[tuple[int, int], RoutedLeg]:
+        """Places every pair on the network and reports back how each one was
+        found; a pair drops out only when neither station has a location at
+        all, since anything else still yields a straight line."""
         pair_set = set(station_pairs)
         routed: dict[tuple[int, int], RoutedLeg] = {}
         for pair in pair_set:
@@ -95,6 +98,8 @@ class RailRouter:
     def straight_fallbacks(
         self, routed: dict[tuple[int, int], RoutedLeg]
     ) -> list[StraightFallback]:
+        """The pairs the network could not connect, longest gap first — read as
+        the list of places where the routing gave up."""
         fallbacks: list[StraightFallback] = []
         for (first, second), leg in routed.items():
             if leg.method != "straight":
@@ -131,6 +136,8 @@ class RailRouter:
         ]
 
     def _shortest_leg_over_network(self, first: int, second: int) -> RoutedLeg | None:
+        """The better of the two attempts — from the stations' own nodes, or
+        from the nodes near them — or None when neither yields a usable path."""
         straight = self._straight_line_distance_metres(first, second)
         direct = self._leg_between_station_nodes(first, second)
         if (
@@ -227,6 +234,9 @@ class RailRouter:
     def _graph_of_routed_legs(
         self, routed: dict[tuple[int, int], RoutedLeg]
     ) -> nx.Graph[int]:
+        """The legs already placed, re-read as a graph over station numbers and
+        weighted by their length, so a pair that failed can be composed out of
+        them."""
         routed_leg_graph: nx.Graph[int] = nx.Graph()
         for (first, second), leg in routed.items():
             weight = self._edges.path_length_metres(leg.signed_path)
@@ -245,6 +255,9 @@ class RailRouter:
         first: int,
         second: int,
     ) -> list[int] | None:
+        """A leg stitched together from other legs, each hop's stored path
+        reversed where this trip runs it backwards; None when the stitched
+        result detours further than the limit allows."""
         if first not in routed_leg_graph or second not in routed_leg_graph:
             return None
         try:

@@ -89,6 +89,9 @@ def _deduplicated_segments(
     geometries: list[BaseGeometry | None],
     node_point: dict[str, Point],
 ) -> list[tuple[str, str, list[Point]]]:
+    """One segment per node pair: parallel tracks collapse onto the first of
+    them, endpoints the GDB does not know as nodes drop out, and a segment
+    without usable geometry becomes the straight line between its nodes."""
     seen: set[frozenset[str]] = set()
     segments: list[tuple[str, str, list[Point]]] = []
     for start, end, geometry in zip(starts, ends, geometries, strict=True):

@@ -40,6 +40,9 @@ def _station_json(station: StationEntry, clusters: dict[int, int]) -> dict[str, 
 
 
 def stations_json(stations: list[StationEntry], clusters: dict[int, int]) -> str:
+    """The station catalog in blob index order, so entry i names the station the
+    blob addresses as i; the cluster key appears only where a stop shares an
+    interchange with another."""
     return json.dumps(
         [_station_json(station, clusters) for station in stations],
         ensure_ascii=False,

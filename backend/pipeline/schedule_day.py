@@ -182,6 +182,9 @@ def _kept_calls_by_trip(
     stations_with_known_location: Set[int],
     trip_is_droppable: Callable[[list[StopCall], int], bool],
 ) -> dict[str, list[StopCall]]:
+    """The calls that survive, per surviving trip: a trip drops when
+    trip_is_droppable says so, or when fewer than two of its calls stand at a
+    station we can place."""
     kept: dict[str, list[StopCall]] = {}
     for trip_id, category in trips.items():
         sequence = sequences.get(trip_id, [])
@@ -211,6 +214,8 @@ def _leg_edges_between(
 def _outgoing_leg_edges(
     calls: list[StopCall], routed: dict[tuple[int, int], RoutedLeg]
 ) -> list[list[int]]:
+    """One entry per call, holding the edges of the leg leaving it; the last
+    call gets an empty one, since no leg leaves a trip's final stop."""
     edges_between_calls = [
         _leg_edges_between(routed, call, next_call)
         for call, next_call in zip(calls, calls[1:], strict=False)
@@ -270,6 +275,9 @@ def assemble_railbound_schedule_day(
     stations_with_known_location: Set[int],
     regular_connections: RegularConnections,
 ) -> ScheduleBuild:
+    """Routes the surviving rail and tram trips over the BAV network, returning
+    the blob-ready day alongside the stations it touched and the routing-quality
+    figures the diagnostics report reads."""
     kept_calls = _kept_calls_by_trip(
         trips,
         sequences,
@@ -308,6 +316,9 @@ def assemble_bus_schedule_day(
     bus_stops: dict[int, BusStop],
     regular_connections: RegularConnections,
 ) -> ScheduleBuild:
+    """Assembles the surviving bus trips without geometry: the day carries no
+    edges, so the client draws each leg as the straight line between its stops
+    and no routing figures arise."""
     kept_calls = _kept_calls_by_trip(
         trips,
         sequences,
@@ -339,6 +350,9 @@ def build_schedule_day(
     regular_connections: RegularConnections,
     service_date: date,
 ) -> DayBuilds:
+    """Reads that day out of the GTFS feed and splits it into the two published
+    networks: railbound trips routed over rail_graph, bus trips anchored on
+    bus_stops."""
     trips = active_trips(gtfs_dir, service_date)
     sequences = stop_sequences(gtfs_dir, set(trips))
     rail_trips = {

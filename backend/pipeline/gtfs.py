@@ -92,6 +92,8 @@ def _service_exceptions_on(
 
 
 def active_services(gtfs_dir: Path, service_date: datetime.date) -> set[str]:
+    """The service ids running that day: the calendar's weekday pattern, plus
+    the exceptions that add the day and minus those that take it away."""
     regular = _services_by_calendar(gtfs_dir, service_date)
     added, removed = _service_exceptions_on(gtfs_dir, service_date)
     return (regular | added) - removed
@@ -118,6 +120,8 @@ def category_by_route_id(gtfs_dir: Path) -> dict[str, int]:
 
 
 def active_trips(gtfs_dir: Path, service_date: datetime.date) -> dict[str, int]:
+    """Per trip running that day, the product category it is drawn as; trips on
+    a route type we do not show are left out."""
     services = active_services(gtfs_dir, service_date)
     routes = category_by_route_id(gtfs_dir)
     trips: dict[str, int] = {}
@@ -149,6 +153,9 @@ def _resolve_didok(stop_id: str, didok_map: dict[str, int]) -> int | None:
 
 
 def stop_sequences(gtfs_dir: Path, trip_ids: set[str]) -> dict[str, list[StopCall]]:
+    """Per requested trip, its calls in stop_sequence order, timed in seconds
+    since midnight and running past 24 h where the trip does. Foreign stops stay
+    in, because a trip may leave the country and come back."""
     didok_map = _didok_by_stop_id(gtfs_dir)
     ordered: dict[str, list[tuple[int, StopCall]]] = {trip: [] for trip in trip_ids}
 

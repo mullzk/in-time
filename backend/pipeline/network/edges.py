@@ -35,6 +35,9 @@ class SharedEdges:
 
     @classmethod
     def build(cls, network: RailGraph, thresholds: RoutingThresholds) -> SharedEdges:
+        """Turns the raw network into the routable store: every segment
+        simplified and oriented once, then subnetworks that merely lie close to
+        one another joined, so a leg can cross from one to the next."""
         edges = cls(network.graph.copy(), network.node_point)
         edges._register_segments(
             network.edge_points, thresholds.simplify_tolerance_metres

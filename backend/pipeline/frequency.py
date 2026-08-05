@@ -89,6 +89,8 @@ class RegularConnections:
         return _connection_key(first, second, mode) in self._connections
 
     def trip_is_regular(self, stations: list[int], mode: int) -> bool:
+        """Whether every connection between consecutive stations passed the
+        filter, so one irregular connection condemns the whole trip."""
         return all(
             self.is_regular(first, second, mode)
             for first, second in zip(stations, stations[1:], strict=False)
@@ -96,6 +98,8 @@ class RegularConnections:
         )
 
     def trip_has_regular_connection(self, stations: list[int], mode: int) -> bool:
+        """Whether at least one connection between consecutive stations passed
+        the filter — the lenient verdict buses are judged by."""
         return any(
             self.is_regular(first, second, mode)
             for first, second in zip(stations, stations[1:], strict=False)
@@ -104,6 +108,8 @@ class RegularConnections:
 
 
 def _trip_modes_and_services(gtfs_dir: Path) -> tuple[dict[str, int], dict[str, str]]:
+    """Per trip its frequency mode, and per trip its service id; trips on a
+    route type the filter does not classify appear in neither."""
     route_mode: dict[str, int] = {}
     with open(gtfs_dir / "routes.txt", encoding="utf-8-sig", newline="") as feed:
         for row in csv.DictReader(feed):
@@ -148,6 +154,8 @@ def _calendar_exceptions(
 def _start_date_of_mask(
     calendar_rows: list[dict[str, str]], exceptions: list[tuple[str, str, str]]
 ) -> datetime.date:
+    """The day bit 0 of an operating-day mask stands for: 1 January of the
+    earliest year any calendar row or exception names."""
     starts = [row["start_date"] for row in calendar_rows]
     starts += [date for _service, date, _kind in exceptions]
     earliest_year = min(_parse_date(date).year for date in starts)
@@ -155,6 +163,8 @@ def _start_date_of_mask(
 
 
 def _operating_day_masks(gtfs_dir: Path, needed: set[str]) -> dict[str, int]:
+    """Per requested service, one bit per calendar day it runs on, counted from
+    the anchor _start_date_of_mask picks — the whole year in a single integer."""
     calendar_rows = _calendar_rows(gtfs_dir, needed)
     exceptions = _calendar_exceptions(gtfs_dir, needed)
     if not calendar_rows and not exceptions:
@@ -245,7 +255,10 @@ def _accumulate_connections(
     operating_day_masks: dict[str, int],
     stop_didok: dict[str, int],
 ) -> _ConnectionTraffic:
-    """Requires stop_times.txt rows to be contiguous per trip_id: the scan is
+    """Walks stop_times.txt once and tallies, per connection, the days it is
+    served on and how many departures it sees.
+
+    Requires stop_times.txt rows to be contiguous per trip_id: the scan is
     single-pass and flushes a trip as soon as the trip_id changes, so a
     fragmented trip would drop its cross-fragment connection and double-count shared
     ones. This trades robustness for bounded memory (~1.8M trips / 28M rows in
