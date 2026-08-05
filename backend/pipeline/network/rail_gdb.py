@@ -10,7 +10,7 @@ from shapely.geometry import Point as ShapelyPoint
 from shapely.geometry.base import BaseGeometry
 
 from pipeline.network.geometry import Point, polyline_length
-from pipeline.network.rail import RailGraph
+from pipeline.network.rail_graph import RailGraph
 
 
 def _line_coords(line: LineString) -> list[Point]:
@@ -55,51 +55,82 @@ def _to_didok(value: object) -> int | None:
     return number if number > 0 else None
 
 
+def _node_points(
+    node_ids: list[str], geometries: list[BaseGeometry]
+) -> dict[str, Point]:
+    return {
+        node_id: _node_xy(geometry)
+        for node_id, geometry in zip(node_ids, geometries, strict=True)
+    }
+
+
+def _node_names(node_ids: list[str], names: list[object]) -> dict[str, str]:
+    return {
+        node_id: str(name)
+        for node_id, name in zip(node_ids, names, strict=True)
+        if name
+    }
+
+
+def _node_by_station_didok(
+    node_ids: list[str], station_numbers: list[object]
+) -> dict[int, str]:
+    station_to_node: dict[int, str] = {}
+    for node_id, number in zip(node_ids, station_numbers, strict=True):
+        didok = _to_didok(number)
+        if didok is not None and didok not in station_to_node:
+            station_to_node[didok] = node_id
+    return station_to_node
+
+
+def _deduplicated_segments(
+    starts: list[str],
+    ends: list[str],
+    geometries: list[BaseGeometry | None],
+    node_point: dict[str, Point],
+) -> list[tuple[str, str, list[Point]]]:
+    """One segment per node pair: parallel tracks collapse onto the first of
+    them, endpoints the GDB does not know as nodes drop out, and a segment
+    without usable geometry becomes the straight line between its nodes."""
+    seen: set[frozenset[str]] = set()
+    segments: list[tuple[str, str, list[Point]]] = []
+    for start, end, geometry in zip(starts, ends, geometries, strict=True):
+        if start not in node_point or end not in node_point or geometry is None:
+            continue
+        key = frozenset((start, end))
+        if key in seen:
+            continue
+        seen.add(key)
+        segments.append((start, end, _segment_points(geometry, node_point, start, end)))
+    return segments
+
+
+def _segment_points(
+    geometry: BaseGeometry, node_point: dict[str, Point], start: str, end: str
+) -> list[Point]:
+    points = _vertices(geometry)
+    if len(points) < 2 or polyline_length(points) == 0.0:
+        return [node_point[start], node_point[end]]
+    return points
+
+
 def load_rail_graph(gdb_path: Path) -> RailGraph:
     nodes = gpd.read_file(gdb_path, layer="Netzknoten")
     segments = gpd.read_file(gdb_path, layer="Netzsegment")
 
     node_ids = [str(value) for value in nodes["xtf_id"].tolist()]
-    node_point: dict[str, Point] = {
-        node_id: _node_xy(geometry)
-        for node_id, geometry in zip(node_ids, nodes.geometry, strict=True)
-    }
-    node_name: dict[str, str] = {
-        node_id: str(name)
-        for node_id, name in zip(
-            node_ids, nodes["Betriebspunkt_Name"].tolist(), strict=True
-        )
-        if name
-    }
-
-    station_to_node: dict[int, str] = {}
-    numbers = nodes["Betriebspunkt_Nummer"].tolist()
-    for node_id, number in zip(node_ids, numbers, strict=True):
-        didok = _to_didok(number)
-        if didok is not None and didok not in station_to_node:
-            station_to_node[didok] = node_id
-
-    starts = [str(value) for value in segments["rAnfangsknoten"].tolist()]
-    ends = [str(value) for value in segments["rEndknoten"].tolist()]
-    geometries = list(segments.geometry)
-
-    edge_points: dict[frozenset[str], list[Point]] = {}
-    segment_list: list[tuple[str, str, list[Point]]] = []
-    for start, end, geometry in zip(starts, ends, geometries, strict=True):
-        if start not in node_point or end not in node_point or geometry is None:
-            continue
-        key = frozenset((start, end))
-        if key in edge_points:
-            continue
-        points = _vertices(geometry)
-        if len(points) < 2 or polyline_length(points) == 0.0:
-            points = [node_point[start], node_point[end]]
-        edge_points[key] = points
-        segment_list.append((start, end, points))
+    node_point = _node_points(node_ids, list(nodes.geometry))
 
     return RailGraph.from_rail_segments(
         nodes=node_point,
-        segments=segment_list,
-        station_to_node=station_to_node,
-        node_name=node_name,
+        segments=_deduplicated_segments(
+            [str(value) for value in segments["rAnfangsknoten"].tolist()],
+            [str(value) for value in segments["rEndknoten"].tolist()],
+            list(segments.geometry),
+            node_point,
+        ),
+        station_to_node=_node_by_station_didok(
+            node_ids, nodes["Betriebspunkt_Nummer"].tolist()
+        ),
+        node_name=_node_names(node_ids, nodes["Betriebspunkt_Name"].tolist()),
     )

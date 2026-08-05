@@ -48,6 +48,11 @@ blobs and the map tiles load without the reverse proxy.
 `tooling/check.sh` runs every formatter and linter (`--fix` applies them),
 `tooling/test.sh` runs both test suites.
 
+A second management command, `verify_railnet --gdb <path>`, loads a BAV rail
+network geodatabase on its own and reports node, edge and subnetwork counts plus
+load and routing-build times. It publishes nothing and is meant for judging a
+new network release before a build runs on it.
+
 ## HTTP surface
 
 The browser-facing app (`web`) exposes a small surface; everything else the

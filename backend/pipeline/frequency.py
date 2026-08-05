@@ -4,10 +4,14 @@ served regularly enough to appear in the base map.
 Over the whole feed each service's operating days form a bitmask (calendar plus
 calendar_dates); every connection accumulates the union of its trips' days and
 their total departures. A connection is regular when it runs on enough days and
-often enough per operating day. A trip is kept only if all of its connections are
-regular, so a single irregular connection drops the trip — decommissioned lines
-and rare seasonal variants vanish from the base map. Foreign stops are bridged: a
-connection joins the surrounding Swiss stations."""
+often enough per operating day, which is what keeps decommissioned lines and rare
+seasonal variants out of the base map. Foreign stops are bridged: a connection
+joins the surrounding Swiss stations.
+
+Judging a whole trip by its connections is left to the caller, because the two
+verdicts differ by mode: `trip_is_regular` demands all of them and
+`trip_has_regular_connection` any one. See `schedule_day` for which mode takes
+which."""
 
 import array
 import csv
@@ -25,7 +29,7 @@ from pipeline.gtfs import (
     RAIL_CATEGORIES,
     WEEKDAY_COLUMNS,
     category_of,
-    is_swiss_didok_text,
+    swiss_didok_by_stop_id,
 )
 
 # Frequency-filter modes: a collapsed projection of the gtfs CATEGORY_* space.
@@ -69,6 +73,9 @@ def _connection_key(first: int, second: int, mode: int) -> Connection:
 
 
 class RegularConnections:
+    """The connections that passed the frequency filter, answering both per
+    connection and per trip."""
+
     def __init__(self, connections: frozenset[Connection]) -> None:
         self._connections = connections
 
@@ -82,6 +89,8 @@ class RegularConnections:
         return _connection_key(first, second, mode) in self._connections
 
     def trip_is_regular(self, stations: list[int], mode: int) -> bool:
+        """Whether every connection between consecutive stations passed the
+        filter, so one irregular connection condemns the whole trip."""
         return all(
             self.is_regular(first, second, mode)
             for first, second in zip(stations, stations[1:], strict=False)
@@ -89,6 +98,8 @@ class RegularConnections:
         )
 
     def trip_has_regular_connection(self, stations: list[int], mode: int) -> bool:
+        """Whether at least one connection between consecutive stations passed
+        the filter — the lenient verdict buses are judged by."""
         return any(
             self.is_regular(first, second, mode)
             for first, second in zip(stations, stations[1:], strict=False)
@@ -97,6 +108,8 @@ class RegularConnections:
 
 
 def _trip_modes_and_services(gtfs_dir: Path) -> tuple[dict[str, int], dict[str, str]]:
+    """Per trip its frequency mode, and per trip its service id; trips on a
+    route type the filter does not classify appear in neither."""
     route_mode: dict[str, int] = {}
     with open(gtfs_dir / "routes.txt", encoding="utf-8-sig", newline="") as feed:
         for row in csv.DictReader(feed):
@@ -141,6 +154,8 @@ def _calendar_exceptions(
 def _start_date_of_mask(
     calendar_rows: list[dict[str, str]], exceptions: list[tuple[str, str, str]]
 ) -> datetime.date:
+    """The day bit 0 of an operating-day mask stands for: 1 January of the
+    earliest year any calendar row or exception names."""
     starts = [row["start_date"] for row in calendar_rows]
     starts += [date for _service, date, _kind in exceptions]
     earliest_year = min(_parse_date(date).year for date in starts)
@@ -148,6 +163,8 @@ def _start_date_of_mask(
 
 
 def _operating_day_masks(gtfs_dir: Path, needed: set[str]) -> dict[str, int]:
+    """Per requested service, one bit per calendar day it runs on, counted from
+    the anchor _start_date_of_mask picks — the whole year in a single integer."""
     calendar_rows = _calendar_rows(gtfs_dir, needed)
     exceptions = _calendar_exceptions(gtfs_dir, needed)
     if not calendar_rows and not exceptions:
@@ -179,17 +196,10 @@ def _operating_day_masks(gtfs_dir: Path, needed: set[str]) -> dict[str, int]:
     return operating_day_masks
 
 
-def _swiss_stop_didok(gtfs_dir: Path) -> dict[str, int]:
-    mapping: dict[str, int] = {}
-    with open(gtfs_dir / "stops.txt", encoding="utf-8-sig", newline="") as feed:
-        for row in csv.DictReader(feed):
-            didok = (row.get("didok") or "").strip()
-            if is_swiss_didok_text(didok):
-                mapping[row["stop_id"]] = int(didok)
-    return mapping
-
-
 class _ConnectionTraffic:
+    """Accumulates operating days and departures per connection over the whole
+    feed, then decides which of them run regularly enough."""
+
     def __init__(self) -> None:
         self._operating_day_masks: dict[Connection, int] = {}
         self._departures: dict[Connection, int] = {}
@@ -216,7 +226,9 @@ class _ConnectionTraffic:
                     )
             previous = station
 
-    def regular(self, thresholds: FrequencyThresholds) -> frozenset[Connection]:
+    def regular_connections(
+        self, thresholds: FrequencyThresholds
+    ) -> frozenset[Connection]:
         return frozenset(
             connection
             for connection, operating_day_mask in self._operating_day_masks.items()
@@ -243,7 +255,10 @@ def _accumulate_connections(
     operating_day_masks: dict[str, int],
     stop_didok: dict[str, int],
 ) -> _ConnectionTraffic:
-    """Requires stop_times.txt rows to be contiguous per trip_id: the scan is
+    """Walks stop_times.txt once and tallies, per connection, the days it is
+    served on and how many departures it sees.
+
+    Requires stop_times.txt rows to be contiguous per trip_id: the scan is
     single-pass and flushes a trip as soon as the trip_id changes, so a
     fragmented trip would drop its cross-fragment connection and double-count shared
     ones. This trades robustness for bounded memory (~1.8M trips / 28M rows in
@@ -291,11 +306,11 @@ def scan_regular_connections(
 ) -> RegularConnections:
     trip_mode, trip_service = _trip_modes_and_services(gtfs_dir)
     operating_day_masks = _operating_day_masks(gtfs_dir, set(trip_service.values()))
-    stop_didok = _swiss_stop_didok(gtfs_dir)
+    stop_didok = swiss_didok_by_stop_id(gtfs_dir)
     traffic = _accumulate_connections(
         gtfs_dir, trip_mode, trip_service, operating_day_masks, stop_didok
     )
-    return RegularConnections(traffic.regular(thresholds))
+    return RegularConnections(traffic.regular_connections(thresholds))
 
 
 # The `i` item width is the platform's native int, but the sidecar never leaves
