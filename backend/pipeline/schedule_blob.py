@@ -1,8 +1,10 @@
-"""Binary schedule blob v1 (ITSB): columnar, little-endian.
+"""Binary schedule blob v2 (ITSB): columnar, little-endian.
 
 The rail network geometry is stored once as a shared, deduplicated edge list;
 every trip is a reference — a path of signed 1-based edge indices plus per-stop
-schedule times.
+schedule times. Every column a reader needs is written and no others: a trip's
+first departure and last arrival are derived from its own events, and its slice
+of the path column is walked as the events are read.
 """
 
 import array
@@ -13,13 +15,19 @@ from datetime import date
 from enum import IntEnum
 
 MAGIC = b"ITSB"
-VERSION = 1
-COORD_SCALE = 1
+VERSION = 2
 LV95_ORIGIN_EAST = 2_480_000
 LV95_ORIGIN_NORTH = 1_070_000
 
-_HEADER_FORMAT = "<4sHHIIIHHIIIIIIIIIIII4I"
+# magic, version, network type, service date, both coordinate origins, one
+# reserved word, six counts, six section offsets, four reserved words. The
+# reserved words are unclaimed zeroes that keep the header a fixed 88 bytes: a
+# field added into one of them leaves every section offset — and therefore every
+# reader's arithmetic below the header — where it is. Spending one is a version
+# bump like any other format change, since an older reader would read the zero.
+_HEADER_FORMAT = "<4sHH16I4I"
 HEADER_SIZE = struct.calcsize(_HEADER_FORMAT)
+_RESERVED = 0
 
 
 class NetworkType(IntEnum):
@@ -56,7 +64,6 @@ class ScheduleHeader:
     service_date: int
     coord_origin_east: int
     coord_origin_north: int
-    coord_scale: int
     station_count: int
     edge_count: int
     point_count: int
@@ -102,12 +109,8 @@ class _EdgeGeometryColumns:
 @dataclass
 class _TripColumns:
     category: list[int]
-    first_departure: list[int]
-    last_arrival: list[int]
     event_start: list[int]
     event_len: list[int]
-    path_start: list[int]
-    path_len: list[int]
     event_station: list[int]
     event_arrival: list[int]
     event_departure: list[int]
@@ -138,21 +141,17 @@ def _edge_geometry_columns(
 
 
 def _trip_columns(trips: list[Trip]) -> _TripColumns:
-    columns = _TripColumns([], [], [], [], [], [], [], [], [], [], [], [])
+    columns = _TripColumns([], [], [], [], [], [], [], [])
     for trip in trips:
         columns.category.append(trip.category)
-        columns.first_departure.append(trip.events[0].departure)
-        columns.last_arrival.append(trip.events[-1].arrival)
         columns.event_start.append(len(columns.event_station))
         columns.event_len.append(len(trip.events))
-        columns.path_start.append(len(columns.path))
         for event in trip.events:
             columns.event_station.append(event.station)
             columns.event_arrival.append(event.arrival)
             columns.event_departure.append(event.departure)
             columns.event_leg_edge_count.append(len(event.leg_edges))
             columns.path.extend(event.leg_edges)
-        columns.path_len.append(len(columns.path) - columns.path_start[-1])
     return columns
 
 
@@ -172,12 +171,8 @@ def _sections(
         ),
         _pad_to_four(
             _column("B", trips.category)
-            + _column("I", trips.first_departure)
-            + _column("I", trips.last_arrival)
             + _column("I", trips.event_start)
             + _column("H", trips.event_len)
-            + _column("I", trips.path_start)
-            + _column("I", trips.path_len)
         ),
         _pad_to_four(
             _column("I", trips.event_station)
@@ -212,8 +207,7 @@ def create_schedule_blob(day: ScheduleDay, network_type: NetworkType) -> bytes:
         int(day.service_date.strftime("%Y%m%d")),
         LV95_ORIGIN_EAST,
         LV95_ORIGIN_NORTH,
-        COORD_SCALE,
-        0,
+        _RESERVED,
         len(day.stations),
         len(day.edges),
         len(geometry.point_east),
@@ -221,10 +215,7 @@ def create_schedule_blob(day: ScheduleDay, network_type: NetworkType) -> bytes:
         len(trips.event_station),
         len(trips.path),
         *_section_offsets(sections),
-        0,
-        0,
-        0,
-        0,
+        *(_RESERVED,) * 4,
     )
     return header + b"".join(sections)
 
@@ -240,19 +231,18 @@ def read_header(data: bytes) -> ScheduleHeader:
         service_date=fields[3],
         coord_origin_east=fields[4],
         coord_origin_north=fields[5],
-        coord_scale=fields[6],
-        station_count=fields[8],
-        edge_count=fields[9],
-        point_count=fields[10],
-        trip_count=fields[11],
-        event_count=fields[12],
-        path_count=fields[13],
-        offset_stations=fields[14],
-        offset_edges=fields[15],
-        offset_points=fields[16],
-        offset_trips=fields[17],
-        offset_events=fields[18],
-        offset_path=fields[19],
+        station_count=fields[7],
+        edge_count=fields[8],
+        point_count=fields[9],
+        trip_count=fields[10],
+        event_count=fields[11],
+        path_count=fields[12],
+        offset_stations=fields[13],
+        offset_edges=fields[14],
+        offset_points=fields[15],
+        offset_trips=fields[16],
+        offset_events=fields[17],
+        offset_path=fields[18],
     )
 
 
@@ -309,9 +299,7 @@ def read_schedule_blob(data: bytes) -> ScheduleDay:
     start = header.offset_trips
     count = header.trip_count
     trip_category = _read_column(data, "B", count, start)
-    start += count  # category uint8
-    start += count * 4  # skip trip_first_departure (engine fast-path, derivable)
-    start += count * 4  # skip trip_last_arrival
+    start += count
     trip_event_start = _read_column(data, "I", count, start)
     start += count * 4
     trip_event_len = _read_column(data, "H", count, start)

@@ -75,8 +75,12 @@ Apple Silicon.
 | ------------------------------------- | ------------------- | --------------- |
 | trips                                 | 27 004              | 129 056         |
 | stations                              | 2 017               | 21 400          |
-| blob raw / gz                         | 7.90 / 1.12 MB      | 31.90 / 4.50 MB |
+| blob raw / gz                         | 7.85 / 1.03 MB      | 31.39 / 4.26 MB |
 | routing direct/multi/recover/straight | 99.22/0.74/0/0.04 % | — (straight)    |
+
+Blob v2 dropped the four per-trip columns no reader consumed (first departure,
+last arrival, and the path slice bounds), 16 bytes per trip: 0.43 MB off the
+rail blob and 2.06 MB (6 %) off the road blob.
 
 The frequency filter is asymmetric: a rail or tram trip drops on any irregular
 edge, but a bus trip is kept as long as one edge is regular (so a frequent urban

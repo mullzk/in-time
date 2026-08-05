@@ -1,10 +1,10 @@
-// Reads the station-coordinate section of a schedule blob (ITSB v1): the shared
+// Reads the station-coordinate section of a schedule blob (ITSB v2): the shared
 // source both the vehicle-position engine and the station catalog use to turn a
 // blob station index into its LV95 point. Mirrors the column layout of the
 // Python writer (backend/pipeline/schedule_blob.py).
 
 const MAGIC = 'ITSB';
-const VERSION = 1;
+const VERSION = 2;
 
 const OFFSET_VERSION = 4;
 const OFFSET_ORIGIN_EAST = 12;

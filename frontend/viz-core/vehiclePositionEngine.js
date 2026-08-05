@@ -1,4 +1,4 @@
-// Reads the binary schedule blob v1 (ITSB) and answers activeAt(t): the trips
+// Reads the binary schedule blob v2 (ITSB) and answers activeAt(t): the trips
 // running at time t with their interpolated LV95 positions. Mirrors the column
 // layout of the Python writer (backend/pipeline/schedule_blob.py); the shared
 // golden fixture is the cross-language proof that both agree on the format.
@@ -6,15 +6,16 @@
 import { readStationPoints } from './blobStations.js';
 
 const MAGIC = 'ITSB';
-const VERSION = 1;
+const VERSION = 2;
 
+// Byte offsets into the fixed 88-byte header. Byte 20 is a reserved word the
+// writer zeroes, hence the gap.
 const HEADER = {
   version: 4,
   networkType: 6,
   serviceDate: 8,
   originEast: 12,
   originNorth: 16,
-  coordScale: 20,
   stationCount: 24,
   edgeCount: 28,
   pointCount: 32,
@@ -152,8 +153,8 @@ export class VehiclePositionEngine {
     const tripStart = view.getUint32(HEADER.offsetTrips, true);
     const count = this.tripCount;
     const category = readU8Column(view, tripStart, count);
-    const eventStart = readU32Column(view, tripStart + count * 9, count);
-    const eventLen = readU16Column(view, tripStart + count * 13, count);
+    const eventStart = readU32Column(view, tripStart + count, count);
+    const eventLen = readU16Column(view, tripStart + count * 5, count);
 
     const eventsStart = view.getUint32(HEADER.offsetEvents, true);
     const evStation = readU32Column(view, eventsStart, this.eventCount);
