@@ -27,7 +27,7 @@ def test_real_rail_graph_is_plausible() -> None:
     assert len(router.edges) >= rail_graph.graph.number_of_edges()
     assert router.subnetwork_count() < 20  # bridging collapses the ~50 raw ones
 
-    path = router.signed_path(
+    path = router.edge_path_between_nodes(
         rail_graph.station_to_node[ZURICH_HB], rail_graph.station_to_node[BERN]
     )
     assert path is not None and len(path) > 5

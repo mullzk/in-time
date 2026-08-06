@@ -47,22 +47,21 @@ interchange = one ear" grouping. Local run, Apple Silicon.
 | load (`stops.txt` + `transfers.txt`) | ~1.5 s                       |
 | Bern cluster (rep 8507000)           | 7 members, rail + tram + bus |
 
-## Frequency filter — `frequency.scan_regular_edges`
+## Frequency filter — `frequency.scan_regular_connections`
 
 Source: GTFS feed 2026 (full year, ~15 M `stop_times` rows), feed 2026-07-15.
-Yearly scan, cached per GTFS version. An edge is regular at `≥300` operating
-days **and** `≥4` departures per day; a trip drops as soon as one edge is
-irregular. Local run, Apple Silicon.
+Yearly scan, cached per GTFS version. A connection is regular at `≥300`
+operating days **and** `≥4` departures per day. Local run, Apple Silicon.
 
-| metric                            | value                    |
-| --------------------------------- | ------------------------ |
-| trips classified (rail/tram/bus)  | 1 641 400                |
-| services with a calendar          | 62 674                   |
-| prep (routes + trips + calendar)  | 26 s                     |
-| stop_times scan                   | 30 s                     |
-| raw edges (rail / tram / bus)     | 33 230 (2616/681/29 933) |
-| regular edges (rail / tram / bus) | 24 867 (2000/594/22 273) |
-| max service bitmask               | 711 bits                 |
+| metric                           | value                    |
+| -------------------------------- | ------------------------ |
+| trips classified (rail/tram/bus) | 1 641 400                |
+| services with a calendar         | 62 674                   |
+| prep (routes + trips + calendar) | 26 s                     |
+| stop_times scan                  | 30 s                     |
+| raw connections (rail/tram/bus)  | 33 230 (2616/681/29 933) |
+| regular connections (r/t/b)      | 24 867 (2000/594/22 273) |
+| max service bitmask              | 711 bits                 |
 
 ## Day build — `build_schedule_day` + `write_day_artifacts`
 
@@ -75,17 +74,22 @@ Apple Silicon.
 | ------------------------------------- | ------------------- | --------------- |
 | trips                                 | 27 004              | 129 056         |
 | stations                              | 2 017               | 21 400          |
-| blob raw / gz                         | 7.90 / 1.12 MB      | 31.90 / 4.50 MB |
+| blob raw / gz                         | 7.85 / 1.03 MB      | 31.39 / 4.26 MB |
 | routing direct/multi/recover/straight | 99.22/0.74/0/0.04 % | — (straight)    |
 
-The frequency filter is asymmetric: a rail or tram trip drops on any irregular
-edge, but a bus trip is kept as long as one edge is regular (so a frequent urban
-line whose city-centre routing varies day to day survives). That lenience adds
-the ~23 700 bus trips (+22 %) an all-edges-regular rule would have dropped
-whole.
+Blob v2 dropped the four per-trip columns no reader consumed (first departure,
+last arrival, and the path slice bounds), 16 bytes per trip: 0.43 MB off the
+rail blob and 2.06 MB (6 %) off the road blob.
 
-Frequency edges are cached per GTFS version (sidecar `regular_edges.bin`, 0.30
-MB): first build scans ~56 s, later builds load in ~6 ms.
+The frequency filter is asymmetric: a rail or tram trip drops on any irregular
+connection, but a bus trip is kept as long as one connection is regular (so a
+frequent urban line whose city-centre routing varies day to day survives). That
+lenience adds the ~23 700 bus trips (+22 %) an all-connections-regular rule
+would have dropped whole.
+
+Regular connections are cached per GTFS version (sidecar
+`regular_connections.bin`, 0.30 MB): first build scans ~56 s, later builds load
+in ~6 ms.
 
 ## Source fetches — `fetch.py` (network-bound, indicative)
 

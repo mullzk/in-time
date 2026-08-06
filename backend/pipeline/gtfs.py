@@ -62,33 +62,54 @@ def seconds_since_midnight(clock: str) -> int:
     return hours * 3600 + minutes * 60 + seconds
 
 
-def active_services(gtfs_dir: Path, service_date: datetime.date) -> set[str]:
+def _services_by_calendar(gtfs_dir: Path, service_date: datetime.date) -> set[str]:
     weekday_column = WEEKDAY_COLUMNS[service_date.weekday()]
-    date_str = service_date.strftime("%Y%m%d")
-
-    regular: set[str] = set()
+    date_text = service_date.strftime("%Y%m%d")
     with open(gtfs_dir / "calendar.txt", encoding="utf-8-sig", newline="") as feed:
-        for row in csv.DictReader(feed):
-            if row[weekday_column] == "1" and (
-                row["start_date"] <= date_str <= row["end_date"]
-            ):
-                regular.add(row["service_id"])
+        return {
+            row["service_id"]
+            for row in csv.DictReader(feed)
+            if row[weekday_column] == "1"
+            and row["start_date"] <= date_text <= row["end_date"]
+        }
 
+
+def _service_exceptions_on(
+    gtfs_dir: Path, service_date: datetime.date
+) -> tuple[set[str], set[str]]:
+    date_text = service_date.strftime("%Y%m%d")
     added: set[str] = set()
     removed: set[str] = set()
     exceptions = gtfs_dir / "calendar_dates.txt"
-    if exceptions.exists():
-        with open(exceptions, encoding="utf-8-sig", newline="") as feed:
-            for row in csv.DictReader(feed):
-                if row["date"] != date_str:
-                    continue
-                (added if row["exception_type"] == "1" else removed).add(
-                    row["service_id"]
-                )
+    if not exceptions.exists():
+        return added, removed
+    with open(exceptions, encoding="utf-8-sig", newline="") as feed:
+        for row in csv.DictReader(feed):
+            if row["date"] != date_text:
+                continue
+            (added if row["exception_type"] == "1" else removed).add(row["service_id"])
+    return added, removed
+
+
+def active_services(gtfs_dir: Path, service_date: datetime.date) -> set[str]:
+    """The service ids running that day: the calendar's weekday pattern, plus
+    the exceptions that add the day and minus those that take it away."""
+    regular = _services_by_calendar(gtfs_dir, service_date)
+    added, removed = _service_exceptions_on(gtfs_dir, service_date)
     return (regular | added) - removed
 
 
-def routes_by_category(gtfs_dir: Path) -> dict[str, int]:
+def swiss_didok_by_stop_id(gtfs_dir: Path) -> dict[str, int]:
+    mapping: dict[str, int] = {}
+    with open(gtfs_dir / "stops.txt", encoding="utf-8-sig", newline="") as feed:
+        for row in csv.DictReader(feed):
+            didok_text = (row.get("didok") or "").strip()
+            if is_swiss_didok_text(didok_text):
+                mapping[row["stop_id"]] = int(didok_text)
+    return mapping
+
+
+def category_by_route_id(gtfs_dir: Path) -> dict[str, int]:
     routes: dict[str, int] = {}
     with open(gtfs_dir / "routes.txt", encoding="utf-8-sig", newline="") as feed:
         for row in csv.DictReader(feed):
@@ -99,8 +120,10 @@ def routes_by_category(gtfs_dir: Path) -> dict[str, int]:
 
 
 def active_trips(gtfs_dir: Path, service_date: datetime.date) -> dict[str, int]:
+    """Per trip running that day, the product category it is drawn as; trips on
+    a route type we do not show are left out."""
     services = active_services(gtfs_dir, service_date)
-    routes = routes_by_category(gtfs_dir)
+    routes = category_by_route_id(gtfs_dir)
     trips: dict[str, int] = {}
     with open(gtfs_dir / "trips.txt", encoding="utf-8-sig", newline="") as feed:
         for row in csv.DictReader(feed):
@@ -109,15 +132,7 @@ def active_trips(gtfs_dir: Path, service_date: datetime.date) -> dict[str, int]:
     return trips
 
 
-def active_rail_trips(gtfs_dir: Path, service_date: datetime.date) -> dict[str, int]:
-    return {
-        trip_id: category
-        for trip_id, category in active_trips(gtfs_dir, service_date).items()
-        if category in RAIL_CATEGORIES
-    }
-
-
-def _stop_didok_map(gtfs_dir: Path) -> dict[str, int]:
+def _didok_by_stop_id_including_foreign(gtfs_dir: Path) -> dict[str, int]:
     mapping: dict[str, int] = {}
     with open(gtfs_dir / "stops.txt", encoding="utf-8-sig", newline="") as feed:
         reader = csv.DictReader(feed)
@@ -138,7 +153,10 @@ def _resolve_didok(stop_id: str, didok_map: dict[str, int]) -> int | None:
 
 
 def stop_sequences(gtfs_dir: Path, trip_ids: set[str]) -> dict[str, list[StopCall]]:
-    didok_map = _stop_didok_map(gtfs_dir)
+    """Per requested trip, its calls in stop_sequence order, timed in seconds
+    since midnight and running past 24 h where the trip does. Foreign stops stay
+    in, because a trip may leave the country and come back."""
+    didok_map = _didok_by_stop_id_including_foreign(gtfs_dir)
     ordered: dict[str, list[tuple[int, StopCall]]] = {trip: [] for trip in trip_ids}
 
     with open(gtfs_dir / "stop_times.txt", encoding="utf-8-sig", newline="") as feed:

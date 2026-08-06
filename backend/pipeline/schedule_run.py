@@ -15,6 +15,9 @@ def run_schedule_build(
     build_day_artifacts: Callable[[date, Path], None],
     reload_service: Callable[[], None],
 ) -> BuildRun:
+    """Builds that day, publishes it and returns the ledger entry the attempt
+    left behind — including when nothing was built, because the same day already
+    stands published from the same source version."""
     version = fetch_sources()
     if _already_current(data_dir, service_date, version):
         return BuildRun.objects.create(

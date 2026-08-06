@@ -1,5 +1,6 @@
-from pipeline.network import polyline_length
-from pipeline.network.rail import RailGraph, RailRouter
+from pipeline.network.geometry import polyline_length
+from pipeline.network.rail import RailRouter
+from pipeline.network.rail_graph import RailGraph
 
 # Points are LV95 metres (east, north).
 A = (0.0, 1000.0)
@@ -34,24 +35,24 @@ def test_edge_length_matches_polyline() -> None:
     assert router.edges[index] and polyline_length(router.edges[index]) == 1000.0
 
 
-def test_signed_path_forward_and_reverse() -> None:
+def test_edge_path_forward_and_reverse() -> None:
     router = RailRouter(line_graph())
     edge_ab = router.edge_index_of("A", "B") + 1
     edge_bc = router.edge_index_of("B", "C") + 1
 
-    assert router.signed_path("A", "C") == [edge_ab, edge_bc]
+    assert router.edge_path_between_nodes("A", "C") == [edge_ab, edge_bc]
     # The reverse leg traverses the same edges with flipped signs.
-    assert router.signed_path("C", "A") == [-edge_bc, -edge_ab]
+    assert router.edge_path_between_nodes("C", "A") == [-edge_bc, -edge_ab]
 
 
-def test_signed_path_returns_none_without_connection() -> None:
+def test_edge_path_returns_none_without_connection() -> None:
     graph = RailGraph.from_rail_segments(
         nodes={"A": A, "C": C},
         segments=[],
         station_to_node={},
     )
     router = RailRouter(graph)
-    assert router.signed_path("A", "C") is None
+    assert router.edge_path_between_nodes("A", "C") is None
 
 
 def test_co_located_subnetworks_are_bridged() -> None:
@@ -69,6 +70,6 @@ def test_co_located_subnetworks_are_bridged() -> None:
     )
     router = RailRouter(graph)
 
-    path = router.signed_path("A", "D")
+    path = router.edge_path_between_nodes("A", "D")
     assert path is not None
     assert len(path) == 3  # edge A-B, bridge B-C, edge C-D

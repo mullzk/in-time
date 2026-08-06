@@ -6,9 +6,9 @@ from pathlib import Path
 
 class DataDir:
     """Layout under IN_TIME_DATA_DIR. `artifacts/` holds only published outputs
-    (served by nginx via the `current` symlink); `gtfs`/`build`/`catalog` are
-    internal siblings. Publishing swaps `current` atomically, then removes the
-    day it replaced."""
+    (served by nginx via the `current` symlink); the source archives are internal
+    siblings. Publishing swaps `current` atomically, then removes the day it
+    replaced."""
 
     def __init__(self, root: Path) -> None:
         self.root = Path(root)
@@ -24,14 +24,6 @@ class DataDir:
     @property
     def rail_network_archive(self) -> Path:
         return self.root / "railnet" / "archive"
-
-    @property
-    def build(self) -> Path:
-        return self.root / "build"
-
-    @property
-    def catalog(self) -> Path:
-        return self.root / "catalog"
 
     @property
     def current_link(self) -> Path:

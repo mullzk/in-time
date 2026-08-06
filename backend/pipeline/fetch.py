@@ -40,7 +40,7 @@ def gtfs_version_from_final_url(url: str) -> str:
     return match.group(1)
 
 
-def sanitize_last_modified(last_modified: str) -> str:
+def version_from_last_modified(last_modified: str) -> str:
     return parsedate_to_datetime(last_modified).strftime("%Y%m%d")
 
 
@@ -52,21 +52,21 @@ def extract_zip_from_url(url: str, dest_dir: Path) -> None:
             zip_path = Path(buffer.name)
     try:
         with zipfile.ZipFile(zip_path) as archive:
-            _extract_normalising_separators(archive, dest_dir)
+            _extract_refusing_escapes(archive, dest_dir)
     finally:
         zip_path.unlink(missing_ok=True)
 
 
-def _extract_normalising_separators(archive: zipfile.ZipFile, dest_dir: Path) -> None:
-    # The swissTLM3D archive stores paths with Windows backslashes, which
-    # extractall keeps as literal filename characters instead of directories.
+def _extract_refusing_escapes(archive: zipfile.ZipFile, dest_dir: Path) -> None:
+    # extractall silently trims a member path that points outside the
+    # destination; a source that ever did that would be tampered with, so it must
+    # abort the fetch rather than land somewhere trimmed.
     root = dest_dir.resolve()
     for member in archive.infolist():
-        relative = member.filename.replace("\\", "/")
-        target = (dest_dir / relative).resolve()
+        target = (dest_dir / member.filename).resolve()
         if not target.is_relative_to(root):
             raise ValueError(f"zip entry escapes the destination: {member.filename}")
-        if relative.endswith("/"):
+        if member.is_dir():
             target.mkdir(parents=True, exist_ok=True)
             continue
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -88,7 +88,7 @@ def resolve_rail_network_version(url: str = RAIL_NETWORK_URL) -> str:
         last_modified = response.headers.get("Last-Modified")
     if not last_modified:
         raise ValueError(f"no Last-Modified for {url}")
-    return sanitize_last_modified(last_modified)
+    return version_from_last_modified(last_modified)
 
 
 def gtfs_archive(archive_root: Path, url: str = GTFS_SCHEDULE_URL) -> VersionedArchive:

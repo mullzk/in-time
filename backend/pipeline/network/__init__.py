@@ -1,27 +1,16 @@
-"""Rail network graph and shared-edge leg routing over the BAV network (LV95)."""
+"""Rail network graph and shared-edge leg routing over the BAV network (LV95).
 
-from pipeline.network.edges import SharedEdges
-from pipeline.network.geometry import Point, distance, polyline_length
-from pipeline.network.graph import NetworkGraph, Segment
-from pipeline.network.rail import (
-    RailGraph,
-    RailRouter,
-    RoutedLeg,
-    StraightFallback,
-)
-from pipeline.network.thresholds import DEFAULT_THRESHOLDS, RoutingThresholds
+Re-exports only what the pipeline outside this package builds a day from; the
+geometry helpers, the edge store and the thresholds are internal and are
+imported from their own modules where they are needed."""
+
+from pipeline.network.geometry import Point
+from pipeline.network.rail import RailRouter, RoutedLeg
+from pipeline.network.rail_graph import RailGraph
 
 __all__ = [
-    "DEFAULT_THRESHOLDS",
-    "NetworkGraph",
     "Point",
     "RailGraph",
     "RailRouter",
     "RoutedLeg",
-    "RoutingThresholds",
-    "Segment",
-    "SharedEdges",
-    "StraightFallback",
-    "distance",
-    "polyline_length",
 ]

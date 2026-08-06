@@ -19,6 +19,10 @@ export const PIXELKARTE_GREY_TILE_SOURCE = tileSource(
   'ch.swisstopo.pixelkarte-grau',
   'jpeg',
 );
+export const SWISSVIEW_TILE_SOURCE = tileSource(
+  'ch.swisstopo.swissimage',
+  'jpeg',
+);
 
 // swisstopo's terms of use require a visible source credit wherever their maps
 // are shown; every raster background carries it, the black one (no raster) none.
@@ -53,6 +57,13 @@ export const BACKGROUNDS = [
     id: 'pixel-grey',
     label: 'Landeskarte grau',
     source: PIXELKARTE_GREY_TILE_SOURCE,
+    showsRailwayLines: true,
+    attribution: SWISSTOPO_ATTRIBUTION,
+  },
+  {
+    id: 'swissview',
+    label: 'Luftaufnahme',
+    source: SWISSVIEW_TILE_SOURCE,
     showsRailwayLines: true,
     attribution: SWISSTOPO_ATTRIBUTION,
   },

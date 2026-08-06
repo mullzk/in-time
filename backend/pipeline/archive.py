@@ -37,7 +37,7 @@ class VersionedArchive:
             else:
                 entry.unlink(missing_ok=True)
 
-    def ensure(self) -> str:
+    def ensure_current_version(self) -> str:
         version = self._resolve_version()
         destination = self.path_for(version)
         if destination.exists():

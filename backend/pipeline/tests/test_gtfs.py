@@ -6,7 +6,6 @@ import pytest
 from pipeline.gtfs import (
     CATEGORY_BUS,
     CATEGORY_TRAM,
-    active_rail_trips,
     active_services,
     active_trips,
     category_of,
@@ -69,25 +68,6 @@ def test_active_services_applies_calendar_and_exceptions(tmp_path: Path) -> None
         },
     )
     assert active_services(tmp_path, THURSDAY) == {"WE"}
-
-
-def test_active_rail_trips_excludes_non_rail(tmp_path: Path) -> None:
-    write_gtfs(
-        tmp_path,
-        {
-            "calendar.txt": CALENDAR,
-            "routes.txt": (
-                "route_id,agency_id,route_short_name,route_long_name,route_desc,"
-                "route_type\n"
-                "R_IR,,IR,,,103\n"
-                "R_BUS,,B,,,700\n"
-            ),
-            "trips.txt": (
-                "route_id,service_id,trip_id\nR_IR,WD,T_IR\nR_BUS,WD,T_BUS\n"
-            ),
-        },
-    )
-    assert active_rail_trips(tmp_path, THURSDAY) == {"T_IR": 1}
 
 
 def test_active_trips_keeps_rail_tram_and_bus(tmp_path: Path) -> None:

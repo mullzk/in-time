@@ -1,4 +1,5 @@
-from pipeline.network.rail import RailGraph, RailRouter
+from pipeline.network.rail import RailRouter
+from pipeline.network.rail_graph import RailGraph
 
 # A B C D on a line (all routable); E far away and disconnected.
 A = (0.0, 0.0)
@@ -25,7 +26,7 @@ def test_direct_leg_routes_over_graph() -> None:
     routed = router.route([(1, 4)])
 
     assert routed[(1, 4)].method == "direct"
-    assert router.signed_length(routed[(1, 4)].signed_path) == 3000.0
+    assert router.path_length_metres(routed[(1, 4)].edge_path) == 3000.0
 
 
 def test_unconnectable_leg_falls_back_to_straight_line() -> None:
@@ -37,7 +38,7 @@ def test_unconnectable_leg_falls_back_to_straight_line() -> None:
     assert leg.method == "straight"
     # A single synthetic 2-point edge was appended for the straight line.
     assert len(router.edges) == edges_before + 1
-    straight_edge = router.edges[abs(leg.signed_path[0]) - 1]
+    straight_edge = router.edges[abs(leg.edge_path[0]) - 1]
     assert straight_edge == [A, E]
 
 

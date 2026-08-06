@@ -15,17 +15,17 @@ const engine = new VehiclePositionEngine(buffer);
 const closeTo = (actual, expected, tolerance) =>
   Math.abs(actual - expected) <= tolerance;
 
-// A minimal ITSB v1 blob: one station at the origin, no edges, and `tripCount`
+// A minimal ITSB v2 blob: one station at the origin, no edges, and `tripCount`
 // single-event trips whose departure and arrival both sit at 36000 + tripIndex.
 // It exists to drive #deriveOperatingWindow at a trip count above the JS engine
 // spread-argument cap, which the golden fixtures (2 trips) never reach.
 const buildSingleEventTripBlob = (tripCount) => {
   const stationCount = 1;
-  const headerBytes = 72;
+  const headerBytes = 88;
   const stationsBytes = stationCount * 8;
   const offsetStations = headerBytes;
   const offsetTrips = offsetStations + stationsBytes;
-  const offsetEvents = offsetTrips + tripCount * 15;
+  const offsetEvents = offsetTrips + tripCount * 7;
   const totalBytes = offsetEvents + tripCount * 14;
 
   const buffer = new ArrayBuffer(totalBytes);
@@ -34,7 +34,7 @@ const buildSingleEventTripBlob = (tripCount) => {
   [...'ITSB'].forEach((character, index) => {
     view.setUint8(index, character.charCodeAt(0));
   });
-  view.setUint16(4, 1, true);
+  view.setUint16(4, 2, true);
   view.setUint32(24, stationCount, true);
   view.setUint32(28, 0, true);
   view.setUint32(32, 0, true);
@@ -48,8 +48,8 @@ const buildSingleEventTripBlob = (tripCount) => {
   view.setUint32(64, offsetEvents, true);
   view.setUint32(68, offsetEvents, true);
 
-  const eventStartColumn = offsetTrips + tripCount * 9;
-  const eventLengthColumn = offsetTrips + tripCount * 13;
+  const eventStartColumn = offsetTrips + tripCount;
+  const eventLengthColumn = offsetTrips + tripCount * 5;
   const arrivalColumn = offsetEvents + tripCount * 4;
   const departureColumn = offsetEvents + tripCount * 8;
 
