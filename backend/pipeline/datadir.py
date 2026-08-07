@@ -18,11 +18,11 @@ class DataDir:
         return self.root / "artifacts"
 
     @property
-    def gtfs_archive(self) -> Path:
+    def gtfs_archive_root(self) -> Path:
         return self.root / "gtfs" / "archive"
 
     @property
-    def rail_network_archive(self) -> Path:
+    def rail_network_archive_root(self) -> Path:
         return self.root / "railnet" / "archive"
 
     @property
