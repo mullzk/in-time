@@ -52,6 +52,10 @@ DATABASES = {"default": env.dj_db_url("DATABASE_URL")}
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR.parent / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR.parent / "frontend"]
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "config.staticfiles.HashedStaticFilesStorage"},
+}
 
 if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
