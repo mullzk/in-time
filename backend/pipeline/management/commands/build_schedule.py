@@ -119,22 +119,40 @@ class Command(BaseCommand):
             return composite_version(versions["gtfs"], versions["rail"])
 
         def build_day_artifacts(day: datetime.date, dest: Path) -> None:
+            """Creates schedule-blobs for the given day.
+
+            Locate external sources:
+            - GDB (rail network nodes and track geometry)
+            - GTFS (stops, transfers and timetable)
+            Creates the internal representation of
+            - rail network graph
+            - bus stops
+            - station clusters
+            - regular connections (frequent enough to be part of the "takt")
+            Build and write artifacts, each for rail and road:
+            - schedule-itsb: all trips, placed on rail stations & track geometry
+              or bus stops. Dropping trips that cannot be placed on the map or
+              are not on regular connections.
+            - station-json: didok, name and modes per station, in the blob's
+              index order — entry i is the station the blob addresses as i.
+            see module-level docstring for details.
+            """
+            inputs_started = time.monotonic()
             gdb = fetch.locate_gdb(rail_network_archive.path_for(versions["rail"]))
-            started = time.monotonic()
-            rail_graph = load_rail_graph(gdb)
             gtfs_dir = gtfs_archive.path_for(versions["gtfs"])
+            rail_network_graph = load_rail_graph(gdb)
             bus_stops = load_bus_stops(gtfs_dir)
             station_clusters = load_station_clusters(gtfs_dir)
             regular_connections = load_or_scan_regular_connections(
                 gtfs_dir, gtfs_dir / REGULAR_CONNECTIONS_CACHE_NAME
             )
-            inputs_seconds = time.monotonic() - started
+            inputs_seconds = time.monotonic() - inputs_started
 
-            started = time.monotonic()
+            build_started = time.monotonic()
             builds = build_schedule_day(
-                gtfs_dir, rail_graph, bus_stops, regular_connections, day
+                gtfs_dir, rail_network_graph, bus_stops, regular_connections, day
             )
-            build_seconds = time.monotonic() - started
+            build_seconds = time.monotonic() - build_started
 
             write_day_artifacts(builds, dest, station_clusters)
             if options["diagnose"]:
