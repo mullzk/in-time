@@ -53,6 +53,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand, CommandParser
 from django.utils import timezone
 
+from pipeline import fetch
 from pipeline.artifacts import (
     SCHEDULE_RAIL_BLOB_NAME,
     SCHEDULE_ROAD_BLOB_NAME,
@@ -62,7 +63,6 @@ from pipeline.artifacts import (
 from pipeline.bus_stops import load_bus_stops
 from pipeline.datadir import DataDir
 from pipeline.diagnostics import DayDiagnostics
-from pipeline.fetch import gtfs_archive, locate_gdb, rail_network_archive
 from pipeline.frequency import (
     REGULAR_CONNECTIONS_CACHE_NAME,
     load_or_scan_regular_connections,
@@ -106,21 +106,23 @@ class Command(BaseCommand):
         )
 
         data_dir = DataDir(settings.DATA_DIR)
-        gtfs = gtfs_archive(data_dir.gtfs_archive)
-        rail_network = rail_network_archive(data_dir.rail_network_archive)
+        gtfs_archive = fetch.gtfs_archive(data_dir.gtfs_archive_root)
+        rail_network_archive = fetch.rail_network_archive(
+            data_dir.rail_network_archive_root
+        )
         versions: dict[str, str] = {}
         diagnostics: list[DayDiagnostics] = []
 
         def fetch_sources() -> str:
-            versions["gtfs"] = gtfs.ensure_current_version()
-            versions["rail"] = rail_network.ensure_current_version()
+            versions["gtfs"] = gtfs_archive.ensure_current_version()
+            versions["rail"] = rail_network_archive.ensure_current_version()
             return composite_version(versions["gtfs"], versions["rail"])
 
         def build_day_artifacts(day: datetime.date, dest: Path) -> None:
-            gdb = locate_gdb(rail_network.path_for(versions["rail"]))
+            gdb = fetch.locate_gdb(rail_network_archive.path_for(versions["rail"]))
             started = time.monotonic()
             rail_graph = load_rail_graph(gdb)
-            gtfs_dir = gtfs.path_for(versions["gtfs"])
+            gtfs_dir = gtfs_archive.path_for(versions["gtfs"])
             bus_stops = load_bus_stops(gtfs_dir)
             station_clusters = load_station_clusters(gtfs_dir)
             regular_connections = load_or_scan_regular_connections(
@@ -155,8 +157,8 @@ class Command(BaseCommand):
             reload_service=reload_runner(settings.SCHEDULE_RELOAD_COMMAND),
         )
 
-        gtfs.retain_only(versions["gtfs"])
-        rail_network.retain_only(versions["rail"])
+        gtfs_archive.retain_only(versions["gtfs"])
+        rail_network_archive.retain_only(versions["rail"])
         self.stdout.write(f"{service_date}: {run.status} ({run.source_version})")
         for report in diagnostics:
             for line in report.lines():
