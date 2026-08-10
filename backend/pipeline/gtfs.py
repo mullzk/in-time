@@ -152,12 +152,20 @@ def _resolve_didok(stop_id: str, didok_map: dict[str, int]) -> int | None:
     return didok_map.get(stop_id)
 
 
+def _calls_in_sequence_order(
+    numbered_calls: list[tuple[int, StopCall]],
+) -> list[StopCall]:
+    return [call for _, call in sorted(numbered_calls, key=lambda pair: pair[0])]
+
+
 def stop_sequences(gtfs_dir: Path, trip_ids: set[str]) -> dict[str, list[StopCall]]:
     """Per requested trip, its calls in stop_sequence order, timed in seconds
     since midnight and running past 24 h where the trip does. Foreign stops stay
     in, because a trip may leave the country and come back."""
     didok_map = _didok_by_stop_id_including_foreign(gtfs_dir)
-    ordered: dict[str, list[tuple[int, StopCall]]] = {trip: [] for trip in trip_ids}
+    numbered_calls_by_trip: dict[str, list[tuple[int, StopCall]]] = {
+        trip: [] for trip in trip_ids
+    }
 
     with open(gtfs_dir / "stop_times.txt", encoding="utf-8-sig", newline="") as feed:
         reader = csv.reader(feed)
@@ -170,7 +178,7 @@ def stop_sequences(gtfs_dir: Path, trip_ids: set[str]) -> dict[str, list[StopCal
         sequence_at = column["stop_sequence"]
         for row in reader:
             trip = row[trip_at]
-            if trip not in ordered:
+            if trip not in numbered_calls_by_trip:
                 continue
             didok = _resolve_didok(row[stop_at], didok_map)
             if didok is None:
@@ -180,9 +188,9 @@ def stop_sequences(gtfs_dir: Path, trip_ids: set[str]) -> dict[str, list[StopCal
                 arrival=seconds_since_midnight(row[arrival_at]),
                 departure=seconds_since_midnight(row[departure_at]),
             )
-            ordered[trip].append((int(row[sequence_at]), call))
+            numbered_calls_by_trip[trip].append((int(row[sequence_at]), call))
 
     return {
-        trip: [call for _, call in sorted(calls, key=lambda item: item[0])]
-        for trip, calls in ordered.items()
+        trip: _calls_in_sequence_order(numbered_calls)
+        for trip, numbered_calls in numbered_calls_by_trip.items()
     }
