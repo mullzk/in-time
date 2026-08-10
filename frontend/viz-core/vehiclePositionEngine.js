@@ -131,21 +131,21 @@ export class VehiclePositionEngine {
   }
 
   #buildEdgeArcLengths() {
-    this.edgeCumulative = this.edges.map((polyline) => {
-      const cumulative = [0];
+    this.edgeDistancesToPoints = this.edges.map((polyline) => {
+      const distancesToPoints = [0];
       for (let point = 1; point < polyline.length; point += 1) {
-        cumulative.push(
-          cumulative[point - 1] +
+        distancesToPoints.push(
+          distancesToPoints[point - 1] +
             Math.hypot(
               polyline[point][0] - polyline[point - 1][0],
               polyline[point][1] - polyline[point - 1][1],
             ),
         );
       }
-      return cumulative;
+      return distancesToPoints;
     });
-    this.edgeLengths = this.edgeCumulative.map(
-      (cumulative) => cumulative[cumulative.length - 1],
+    this.edgeLengths = this.edgeDistancesToPoints.map(
+      (distancesToPoints) => distancesToPoints[distancesToPoints.length - 1],
     );
   }
 
@@ -199,13 +199,13 @@ export class VehiclePositionEngine {
       return {
         category: category[trip],
         events,
-        legCumulative: this.#legCumulative(events),
+        tripDistancesToEvents: this.#tripDistancesToEvents(events),
       };
     });
   }
 
-  #legCumulative(events) {
-    const cumulative = [0];
+  #tripDistancesToEvents(events) {
+    const distancesToEvents = [0];
     events.forEach((event, index) => {
       if (index === events.length - 1) {
         return;
@@ -218,9 +218,9 @@ export class VehiclePositionEngine {
                 sum + this.edgeLengths[Math.abs(signedEdge) - 1],
               0,
             );
-      cumulative.push(cumulative[index] + legDistance);
+      distancesToEvents.push(distancesToEvents[index] + legDistance);
     });
-    return cumulative;
+    return distancesToEvents;
   }
 
   // A leg with no edges is a straight line between its two stations — the shape
@@ -247,21 +247,25 @@ export class VehiclePositionEngine {
   #pointOnEdge(signedEdge, distanceIntoEdge) {
     const edge = Math.abs(signedEdge) - 1;
     const polyline = this.edges[edge];
-    const cumulative = this.edgeCumulative[edge];
+    const distancesToPoints = this.edgeDistancesToPoints[edge];
     const target =
       signedEdge < 0
         ? this.edgeLengths[edge] - distanceIntoEdge
         : distanceIntoEdge;
 
     let segment = 1;
-    while (segment < cumulative.length - 1 && cumulative[segment] < target) {
+    while (
+      segment < distancesToPoints.length - 1 &&
+      distancesToPoints[segment] < target
+    ) {
       segment += 1;
     }
-    const segmentLength = cumulative[segment] - cumulative[segment - 1];
+    const segmentLength =
+      distancesToPoints[segment] - distancesToPoints[segment - 1];
     const fraction =
       segmentLength === 0
         ? 0
-        : (target - cumulative[segment - 1]) / segmentLength;
+        : (target - distancesToPoints[segment - 1]) / segmentLength;
     return lerp(polyline[segment - 1], polyline[segment], fraction);
   }
 
@@ -278,15 +282,15 @@ export class VehiclePositionEngine {
   }
 
   #pointAtTripDistance(trip, distance) {
-    const { legCumulative, events } = trip;
+    const { tripDistancesToEvents, events } = trip;
     let leg = 0;
     while (
-      leg < legCumulative.length - 1 &&
-      legCumulative[leg + 1] < distance
+      leg < tripDistancesToEvents.length - 1 &&
+      tripDistancesToEvents[leg + 1] < distance
     ) {
       leg += 1;
     }
-    const distanceIntoLeg = distance - legCumulative[leg];
+    const distanceIntoLeg = distance - tripDistancesToEvents[leg];
     if (events[leg].legEdges.length === 0) {
       return this.#pointOnStraightLeg(
         events[leg],
@@ -305,24 +309,25 @@ export class VehiclePositionEngine {
   }
 
   #tripDistanceAt(trip, t) {
-    const { events, legCumulative } = trip;
+    const { events, tripDistancesToEvents } = trip;
     for (let index = 0; index < events.length; index += 1) {
       if (t < events[index].arr) {
         break;
       }
       if (t <= events[index].dep) {
-        return legCumulative[index];
+        return tripDistancesToEvents[index];
       }
       if (index + 1 < events.length && t < events[index + 1].arr) {
         const fraction =
           (t - events[index].dep) / (events[index + 1].arr - events[index].dep);
         return (
-          legCumulative[index] +
-          fraction * (legCumulative[index + 1] - legCumulative[index])
+          tripDistancesToEvents[index] +
+          fraction *
+            (tripDistancesToEvents[index + 1] - tripDistancesToEvents[index])
         );
       }
     }
-    return legCumulative[legCumulative.length - 1];
+    return tripDistancesToEvents[tripDistancesToEvents.length - 1];
   }
 
   tripEndpoints(tripIndex) {
