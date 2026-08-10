@@ -30,34 +30,34 @@ const HEADER = {
   offsetPath: 68,
 };
 
-const readU8Column = (view, start, count) => {
+const readU8Column = (dataView, start, count) => {
   const column = new Uint8Array(count);
   for (let index = 0; index < count; index += 1) {
-    column[index] = view.getUint8(start + index);
+    column[index] = dataView.getUint8(start + index);
   }
   return column;
 };
 
-const readU16Column = (view, start, count) => {
+const readU16Column = (dataView, start, count) => {
   const column = new Uint16Array(count);
   for (let index = 0; index < count; index += 1) {
-    column[index] = view.getUint16(start + index * 2, true);
+    column[index] = dataView.getUint16(start + index * 2, true);
   }
   return column;
 };
 
-const readU32Column = (view, start, count) => {
+const readU32Column = (dataView, start, count) => {
   const column = new Uint32Array(count);
   for (let index = 0; index < count; index += 1) {
-    column[index] = view.getUint32(start + index * 4, true);
+    column[index] = dataView.getUint32(start + index * 4, true);
   }
   return column;
 };
 
-const readI32Column = (view, start, count) => {
+const readI32Column = (dataView, start, count) => {
   const column = new Int32Array(count);
   for (let index = 0; index < count; index += 1) {
-    column[index] = view.getInt32(start + index * 4, true);
+    column[index] = dataView.getInt32(start + index * 4, true);
   }
   return column;
 };
@@ -69,54 +69,54 @@ const lerp = (from, to, fraction) => [
 
 export class VehiclePositionEngine {
   constructor(arrayBuffer) {
-    const view = new DataView(arrayBuffer);
-    this.#readMagic(view);
+    const dataView = new DataView(arrayBuffer);
+    this.#readMagic(dataView);
 
-    this.stationCount = view.getUint32(HEADER.stationCount, true);
-    this.edgeCount = view.getUint32(HEADER.edgeCount, true);
-    this.pointCount = view.getUint32(HEADER.pointCount, true);
-    this.tripCount = view.getUint32(HEADER.tripCount, true);
-    this.eventCount = view.getUint32(HEADER.eventCount, true);
-    this.pathCount = view.getUint32(HEADER.pathCount, true);
+    this.stationCount = dataView.getUint32(HEADER.stationCount, true);
+    this.edgeCount = dataView.getUint32(HEADER.edgeCount, true);
+    this.pointCount = dataView.getUint32(HEADER.pointCount, true);
+    this.tripCount = dataView.getUint32(HEADER.tripCount, true);
+    this.eventCount = dataView.getUint32(HEADER.eventCount, true);
+    this.pathCount = dataView.getUint32(HEADER.pathCount, true);
 
-    const originEast = view.getUint32(HEADER.originEast, true);
-    const originNorth = view.getUint32(HEADER.originNorth, true);
+    const originEast = dataView.getUint32(HEADER.originEast, true);
+    const originNorth = dataView.getUint32(HEADER.originNorth, true);
 
     this.stations = readStationPoints(arrayBuffer);
-    this.edges = this.#readEdges(view, originEast, originNorth);
+    this.edges = this.#readEdges(dataView, originEast, originNorth);
     this.#buildEdgeArcLengths();
-    this.trips = this.#readTrips(view);
+    this.trips = this.#readTrips(dataView);
     this.#deriveOperatingWindow();
   }
 
-  #readMagic(view) {
+  #readMagic(dataView) {
     const magic = String.fromCharCode(
-      view.getUint8(0),
-      view.getUint8(1),
-      view.getUint8(2),
-      view.getUint8(3),
+      dataView.getUint8(0),
+      dataView.getUint8(1),
+      dataView.getUint8(2),
+      dataView.getUint8(3),
     );
     if (magic !== MAGIC) {
       throw new Error(`not an ITSB blob: ${magic}`);
     }
-    if (view.getUint16(HEADER.version, true) !== VERSION) {
+    if (dataView.getUint16(HEADER.version, true) !== VERSION) {
       throw new Error('unsupported ITSB version');
     }
   }
 
-  #readEdges(view, originEast, originNorth) {
-    const edgeStart = view.getUint32(HEADER.offsetEdges, true);
-    const pointStart = readU32Column(view, edgeStart, this.edgeCount);
+  #readEdges(dataView, originEast, originNorth) {
+    const edgeStart = dataView.getUint32(HEADER.offsetEdges, true);
+    const pointStart = readU32Column(dataView, edgeStart, this.edgeCount);
     const pointLen = readU16Column(
-      view,
+      dataView,
       edgeStart + this.edgeCount * 4,
       this.edgeCount,
     );
 
-    const pointsStart = view.getUint32(HEADER.offsetPoints, true);
-    const east = readU32Column(view, pointsStart, this.pointCount);
+    const pointsStart = dataView.getUint32(HEADER.offsetPoints, true);
+    const east = readU32Column(dataView, pointsStart, this.pointCount);
     const north = readU32Column(
-      view,
+      dataView,
       pointsStart + this.pointCount * 4,
       this.pointCount,
     );
@@ -149,34 +149,34 @@ export class VehiclePositionEngine {
     );
   }
 
-  #readTrips(view) {
-    const tripStart = view.getUint32(HEADER.offsetTrips, true);
+  #readTrips(dataView) {
+    const tripStart = dataView.getUint32(HEADER.offsetTrips, true);
     const count = this.tripCount;
-    const category = readU8Column(view, tripStart, count);
-    const eventStart = readU32Column(view, tripStart + count, count);
-    const eventLen = readU16Column(view, tripStart + count * 5, count);
+    const category = readU8Column(dataView, tripStart, count);
+    const eventStart = readU32Column(dataView, tripStart + count, count);
+    const eventLen = readU16Column(dataView, tripStart + count * 5, count);
 
-    const eventsStart = view.getUint32(HEADER.offsetEvents, true);
-    const evStation = readU32Column(view, eventsStart, this.eventCount);
+    const eventsStart = dataView.getUint32(HEADER.offsetEvents, true);
+    const evStation = readU32Column(dataView, eventsStart, this.eventCount);
     const evArr = readU32Column(
-      view,
+      dataView,
       eventsStart + this.eventCount * 4,
       this.eventCount,
     );
     const evDep = readU32Column(
-      view,
+      dataView,
       eventsStart + this.eventCount * 8,
       this.eventCount,
     );
     const evLegEdgeCount = readU16Column(
-      view,
+      dataView,
       eventsStart + this.eventCount * 12,
       this.eventCount,
     );
 
     const path = readI32Column(
-      view,
-      view.getUint32(HEADER.offsetPath, true),
+      dataView,
+      dataView.getUint32(HEADER.offsetPath, true),
       this.pathCount,
     );
 
