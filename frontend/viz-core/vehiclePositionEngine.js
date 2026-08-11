@@ -181,8 +181,10 @@ export class VehiclePositionEngine {
     );
 
     let pathCursor = 0;
+    // Returns List of Trips
     return Array.from({ length: count }, (_, trip) => {
       const first = eventStart[trip];
+      // Events: Station-Index, Arrival, Departure + Edges of outgoing Leg
       const events = Array.from({ length: eventLen[trip] }, (_, offset) => {
         const eventIndex = first + offset;
         const legEdges = Array.from(
@@ -196,6 +198,7 @@ export class VehiclePositionEngine {
           legEdges,
         };
       });
+      // Trip: Category, Events, and Distances to every stop
       return {
         category: category[trip],
         events,
