@@ -196,6 +196,9 @@ const LAYER_LABELS = [
 const PULSE_MODE_SUPPRESSED_LAYERS = ['tram', 'bus'];
 const BLACK_BACKGROUND_ID = 'black';
 
+const didokToIndex = (stations) =>
+  new Map(stations.map((station, index) => [station.didok, index]));
+
 const SOUND_STATION_HINT =
   'Sound erklingt erst, wenn eine Station gewählt ist.';
 
@@ -210,8 +213,7 @@ export class TaktPanel extends Panel {
   constructor(railBuffer, railStations) {
     super();
     this.catalog = new StationCatalog([]);
-    this.engineViews = [];
-    this.engines = [];
+    this.positionEngines = [];
     this.soundEngines = [];
     this.clusterToDidoks = new Map();
     this.adoptSchedule(railBuffer, railStations);
@@ -253,13 +255,10 @@ export class TaktPanel extends Panel {
     // Each engine is paired with the station names its trips index into, so a
     // clicked vehicle resolves to its origin and destination stop names.
     const engine = new VehiclePositionEngine(buffer);
-    this.engineViews.push({ engine, stations });
-    this.engines.push(engine);
+    this.positionEngines.push({ engine, stations });
     this.soundEngines.push({
       engine: new SonificationEngine(engine.trips),
-      didokToIndex: new Map(
-        stations.map((station, index) => [station.didok, index]),
-      ),
+      didokToIndex: didokToIndex(stations),
     });
     // The rail blob is the one the panel is constructed with, and the only one
     // carrying long-distance trips, so the pulse reads the first engine adopted.
@@ -318,10 +317,10 @@ export class TaktPanel extends Panel {
 
   update(currentTimeSeconds, deltaSeconds) {
     this.currentTimeSeconds = currentTimeSeconds;
-    this.activeVehicles = this.engineViews
-      .flatMap((view, engineIndex) =>
-        view.engine.activeAt(currentTimeSeconds).map((vehicle) => {
-          vehicle.engineIndex = engineIndex;
+    this.activeVehicles = this.positionEngines
+      .flatMap(({ engine }, positionEngineIndex) =>
+        engine.activeAt(currentTimeSeconds).map((vehicle) => {
+          vehicle.positionEngineIndex = positionEngineIndex;
           return vehicle;
         }),
       )
@@ -339,7 +338,7 @@ export class TaktPanel extends Panel {
   drawWorld(p, context) {
     context.drawTiles(p);
     if (this.layers.network) {
-      this.engines.forEach((engine) => {
+      this.positionEngines.forEach(({ engine }) => {
         context.drawBasemap(p, engine.edges);
       });
     }
@@ -392,7 +391,7 @@ export class TaktPanel extends Panel {
     vehicles.forEach((vehicle) => {
       const [r, g, b] = this.#vehicleColor(vehicle.category);
       const sampleCount = trailSampleCount(vehicle.category);
-      this.engineViews[vehicle.engineIndex].engine
+      this.positionEngines[vehicle.positionEngineIndex].engine
         .trailPositions(
           vehicle.tripIndex,
           this.currentTimeSeconds,
@@ -725,19 +724,20 @@ export class TaktPanel extends Panel {
   }
 
   describeVehicle(vehicle) {
-    const view = this.engineViews[vehicle.engineIndex];
-    const { originStation, destinationStation } = view.engine.tripEndpoints(
+    const { engine, stations } =
+      this.positionEngines[vehicle.positionEngineIndex];
+    const { originStation, destinationStation } = engine.tripEndpoints(
       vehicle.tripIndex,
     );
     return {
       label: categoryLabel(vehicle.category),
-      origin: view.stations[originStation]?.name,
-      destination: view.stations[destinationStation]?.name,
+      origin: stations[originStation]?.name,
+      destination: stations[destinationStation]?.name,
     };
   }
 
   vehiclePosition(vehicle, currentTimeSeconds) {
-    return this.engineViews[vehicle.engineIndex].engine.positionAt(
+    return this.positionEngines[vehicle.positionEngineIndex].engine.positionAt(
       vehicle.tripIndex,
       currentTimeSeconds,
     );

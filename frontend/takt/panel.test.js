@@ -33,7 +33,7 @@ const ROAD_STATIONS = [
 const context = { camera: {} };
 
 const describeState = (panel) => ({
-  engines: panel.engines.length,
+  positionEngines: panel.positionEngines.length,
   soundEngines: panel.soundEngines.length,
   stations: panel.catalog.entries
     .map((entry) => `${entry.didok}:${entry.name}`)
@@ -48,7 +48,7 @@ test('a panel without the road blob knows only the rail stations', () => {
   const panel = new TaktPanel(RAIL_BUFFER, RAIL_STATIONS);
   panel.init(context);
 
-  assert.equal(panel.engines.length, 1);
+  assert.equal(panel.positionEngines.length, 1);
   assert.equal(panel.soundEngines.length, 1);
   assert.deepEqual(panel.stationCatalog().matching('dorfplatz'), []);
 });
@@ -63,7 +63,7 @@ test('adopting the road schedule after init matches adopting it before', () => {
   beforeInit.init(context);
 
   assert.deepEqual(describeState(afterInit), describeState(beforeInit));
-  assert.equal(afterInit.engines.length, 2);
+  assert.equal(afterInit.positionEngines.length, 2);
   assert.equal(afterInit.stationCatalog().matching('dorfplatz')[0].didok, 11);
 });
 
