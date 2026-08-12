@@ -248,12 +248,12 @@ export class VehiclePositionEngine {
   }
 
   #pointOnEdge(signedEdge, distanceIntoEdge) {
-    const edge = Math.abs(signedEdge) - 1;
-    const polyline = this.edges[edge];
-    const distancesToPoints = this.edgeDistancesToPoints[edge];
+    const undirectedEdgeIndex = Math.abs(signedEdge) - 1;
+    const polyline = this.edges[undirectedEdgeIndex];
+    const distancesToPoints = this.edgeDistancesToPoints[undirectedEdgeIndex];
     const target =
       signedEdge < 0
-        ? this.edgeLengths[edge] - distanceIntoEdge
+        ? this.edgeLengths[undirectedEdgeIndex] - distanceIntoEdge
         : distanceIntoEdge;
 
     let segment = 1;
@@ -281,11 +281,12 @@ export class VehiclePositionEngine {
       }
       remaining -= length;
     }
-    return this.stations[0];
+    throw new Error('a leg without edges has no point on an edge');
   }
 
   #pointAtTripDistance(trip, distance) {
     const { tripDistancesToEvents, events } = trip;
+    // The leg the distance falls into: the last one starting before it.
     let leg = 0;
     while (
       leg < tripDistancesToEvents.length - 1 &&
@@ -294,6 +295,7 @@ export class VehiclePositionEngine {
       leg += 1;
     }
     const distanceIntoLeg = distance - tripDistancesToEvents[leg];
+    // A leg without edges is a bus leg, drawn straight between its stops.
     if (events[leg].legEdges.length === 0) {
       return this.#pointOnStraightLeg(
         events[leg],
@@ -314,12 +316,15 @@ export class VehiclePositionEngine {
   #tripDistanceAt(trip, t) {
     const { events, tripDistancesToEvents } = trip;
     for (let index = 0; index < events.length; index += 1) {
+      // Before the trip's first arrival.
       if (t < events[index].arr) {
         break;
       }
+      // Standing at this stop.
       if (t <= events[index].dep) {
         return tripDistancesToEvents[index];
       }
+      // Running from this stop to the next one.
       if (index + 1 < events.length && t < events[index + 1].arr) {
         const fraction =
           (t - events[index].dep) / (events[index + 1].arr - events[index].dep);
@@ -330,6 +335,7 @@ export class VehiclePositionEngine {
         );
       }
     }
+    // Past the last arrival: the trip has covered its whole length.
     return tripDistancesToEvents[tripDistancesToEvents.length - 1];
   }
 
@@ -374,9 +380,11 @@ export class VehiclePositionEngine {
     this.trips.forEach((trip, tripIndex) => {
       const firstDep = trip.events[0].dep;
       const lastArr = trip.events[trip.events.length - 1].arr;
+      // Not yet departed, or already arrived.
       if (t < firstDep || t > lastArr) {
         return;
       }
+      // How far the trip has come, then where that distance lies on the ground.
       const [east, north] = this.#pointAtTripDistance(
         trip,
         this.#tripDistanceAt(trip, t),
