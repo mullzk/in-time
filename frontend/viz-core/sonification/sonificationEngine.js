@@ -1,70 +1,55 @@
-// Indexes a day's trips by the station they call at, so the sonifier can ask a
-// single station -- the "ear" -- for the arrival, dwell, departure and
-// pass-through events it hears. Built once per blob from the trips a
-// VehiclePositionEngine has already parsed; the events themselves are derived on
-// demand and shared across trips serving the same station.
+// Answers what a single station -- the "ear" -- hears: the arrival, dwell,
+// departure and pass-through events of every trip calling there. The trips a
+// VehiclePositionEngine has parsed are scanned on demand rather than indexed by
+// station, because only a station the user picks is ever asked for.
 
 import { deriveStationEvents } from './stationEvents.js';
 
 export class SonificationEngine {
   constructor(trips) {
     this.trips = trips;
-    this.stationReferences = new Map();
-    trips.forEach((trip, tripIndex) => {
-      trip.events.forEach((event, eventOffset) => {
-        const references = this.stationReferences.get(event.station) ?? [];
-        references.push({ tripIndex, eventOffset });
-        this.stationReferences.set(event.station, references);
-      });
-    });
   }
 
   eventsAtStation(stationIndex) {
     return this.eventsAtCluster([stationIndex]);
   }
 
-  // A cluster is a set of station indices treated as one place. A trip's
-  // consecutive calls within the cluster collapse into a single visit -- the
-  // first call's arrival to the last call's departure -- so a bus threading two
-  // cluster stops sounds once, not twice. A later re-entry is a separate visit.
+  // A cluster is a set of station indices treated as one place, so a bus
+  // threading two cluster stops sounds once, not twice.
   eventsAtCluster(stationIndices) {
-    const offsetsByTrip = new Map();
-    stationIndices.forEach((stationIndex) => {
-      (this.stationReferences.get(stationIndex) ?? []).forEach(
-        ({ tripIndex, eventOffset }) => {
-          const offsets = offsetsByTrip.get(tripIndex);
-          if (offsets) {
-            offsets.push(eventOffset);
-          } else {
-            offsetsByTrip.set(tripIndex, [eventOffset]);
-          }
-        },
-      );
-    });
-
+    const clusterStations = new Set(stationIndices);
     const rawEvents = [];
-    offsetsByTrip.forEach((offsets, tripIndex) => {
-      const trip = this.trips[tripIndex];
-      offsets.sort((first, second) => first - second);
-      let runStart = offsets[0];
-      let previous = offsets[0];
-      offsets.slice(1).forEach((offset) => {
-        if (offset !== previous + 1) {
-          rawEvents.push(this.#visit(trip, runStart, previous));
-          runStart = offset;
+    this.trips.forEach((trip) => {
+      const stopIndices = [];
+      trip.events.forEach((event, stopIndex) => {
+        if (clusterStations.has(event.station)) {
+          stopIndices.push(stopIndex);
         }
-        previous = offset;
       });
-      rawEvents.push(this.#visit(trip, runStart, previous));
+      visitsWithin(stopIndices).forEach(({ startStopIndex, endStopIndex }) => {
+        rawEvents.push({
+          arrival: trip.events[startStopIndex].arr,
+          departure: trip.events[endStopIndex].dep,
+          category: trip.category,
+        });
+      });
     });
     return deriveStationEvents(rawEvents);
   }
+}
 
-  #visit(trip, startOffset, endOffset) {
-    return {
-      arrival: trip.events[startOffset].arr,
-      departure: trip.events[endOffset].dep,
-      category: trip.category,
-    };
-  }
+// A trip's consecutive calls within the cluster are one visit -- the first
+// call's arrival to the last call's departure. A later re-entry is a separate
+// visit.
+function visitsWithin(stopIndices) {
+  const visits = [];
+  stopIndices.forEach((stopIndex) => {
+    const current = visits[visits.length - 1];
+    if (current !== undefined && stopIndex === current.endStopIndex + 1) {
+      current.endStopIndex = stopIndex;
+    } else {
+      visits.push({ startStopIndex: stopIndex, endStopIndex: stopIndex });
+    }
+  });
+  return visits;
 }
