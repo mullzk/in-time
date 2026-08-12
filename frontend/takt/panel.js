@@ -157,6 +157,12 @@ const PULSE_MINIMUM_ALPHA = 60;
 // apart.
 const PULSE_MODE_VEHICLE_COLOR = [255, 255, 255];
 
+const withinWorldBounds = (bounds, { east, north }) =>
+  east >= bounds.eastMin &&
+  east <= bounds.eastMax &&
+  north >= bounds.northMin &&
+  north <= bounds.northMax;
+
 const STATION_NODE_FILL = [255, 255, 255];
 // Over a raster background a white node needs an outline; its colour marks the
 // station's mode, using the same hues the tram and bus vehicles carry (rail
@@ -351,8 +357,11 @@ export class TaktPanel extends Panel {
 
   #drawVehicles(p, context) {
     p.noStroke();
-    const visible = this.activeVehicles.filter((vehicle) =>
-      this.#categoryVisible(vehicle.category),
+    const bounds = context.camera.visibleWorldBounds();
+    const visible = this.activeVehicles.filter(
+      (vehicle) =>
+        this.#categoryVisible(vehicle.category) &&
+        withinWorldBounds(bounds, vehicle),
     );
     this.#drawVehicleTrails(
       p,
@@ -637,13 +646,7 @@ export class TaktPanel extends Panel {
       p.noStroke();
     }
     this.catalog.entries.forEach((station) => {
-      if (
-        this.#stationShown(station) &&
-        station.east >= bounds.eastMin &&
-        station.east <= bounds.eastMax &&
-        station.north >= bounds.northMin &&
-        station.north <= bounds.northMax
-      ) {
+      if (this.#stationShown(station) && withinWorldBounds(bounds, station)) {
         if (outlined) {
           const [r, g, b] = STATION_STROKE_BY_MODE.get(
             dominantStationMode(station.modes),
