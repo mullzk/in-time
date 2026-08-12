@@ -106,15 +106,15 @@ const TRAIL_TAIL_ALPHA = 12;
 
 // How far back a service reaches beyond the plain schedule distance: the trail
 // length is the second thing after colour that tells the services apart, and the
-// only one left once the pulse turns every train white. The dense tram and bus
-// traffic stays shortest so it does not blur into one field.
+// only one left once the pulse turns every train white. Only trains trail -- tram
+// and bus run too dense and too short for a smear to read as movement.
 const TRAIL_BASE_LENGTH_SECONDS = 84;
 const TRAIL_LENGTH_FACTOR_BY_LAYER = new Map([
   ['fernverkehr', 1.25],
   ['regionalverkehr', 2 / 3],
-  ['tram', 0.5],
-  ['bus', 0.5],
 ]);
+const trailedLayer = (category) =>
+  TRAIL_LENGTH_FACTOR_BY_LAYER.has(layerOfCategory(category));
 
 // The gap between samples, in schedule seconds. Long-distance trains both reach
 // furthest and move fastest, so at close zoom the same gap tears their trail
@@ -354,28 +354,28 @@ export class TaktPanel extends Panel {
     const visible = this.activeVehicles.filter((vehicle) =>
       this.#categoryVisible(vehicle.category),
     );
-    if (this.#trailShown()) {
-      this.#drawVehicleTrails(p, context, visible);
-    }
+    this.#drawVehicleTrails(
+      p,
+      context,
+      visible.filter((vehicle) => this.#trailShown(vehicle.category)),
+    );
     this.#drawVehicleHeads(p, context, visible);
   }
 
-  #trailShown() {
-    return trailShownOn(this.background);
+  #trailShown(category) {
+    return trailShownOn(this.background) && trailedLayer(category);
   }
 
   #drawVehicleHeads(p, context, vehicles) {
     const worldPerPixel = context.camera.worldPerPixel();
-    const styleFactor = this.#trailShown()
-      ? trailHeadFactor(context.camera.zoomFraction())
-      : 1;
+    const trailedFactor = trailHeadFactor(context.camera.zoomFraction());
     vehicles.forEach((vehicle) => {
       const [r, g, b] = this.#vehicleColor(vehicle.category);
       p.fill(r, g, b);
       const diameter =
         BASE_DIAMETER_PIXELS *
         diameterFactor(vehicle.category) *
-        styleFactor *
+        (this.#trailShown(vehicle.category) ? trailedFactor : 1) *
         worldPerPixel;
       p.circle(vehicle.east, vehicle.north, diameter);
     });
