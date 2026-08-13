@@ -73,18 +73,20 @@ export class StationCatalog {
     this.#absorb(
       stations.flatMap((station, index) => {
         const point = points[index];
-        return point
-          ? [
-              new StationEntry(
-                station.didok,
-                station.name,
-                point[0],
-                point[1],
-                station.modes ?? [],
-                station.cluster ?? null,
-              ),
-            ]
-          : [];
+        if (!point) {
+          return [];
+        }
+        const [east, north] = point;
+        return [
+          new StationEntry(
+            station.didok,
+            station.name,
+            east,
+            north,
+            station.modes ?? [],
+            station.cluster ?? null,
+          ),
+        ];
       }),
     );
   }

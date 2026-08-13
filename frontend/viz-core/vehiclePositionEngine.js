@@ -30,34 +30,34 @@ const HEADER = {
   offsetPath: 68,
 };
 
-const readU8Column = (view, start, count) => {
+const readU8Column = (dataView, start, count) => {
   const column = new Uint8Array(count);
   for (let index = 0; index < count; index += 1) {
-    column[index] = view.getUint8(start + index);
+    column[index] = dataView.getUint8(start + index);
   }
   return column;
 };
 
-const readU16Column = (view, start, count) => {
+const readU16Column = (dataView, start, count) => {
   const column = new Uint16Array(count);
   for (let index = 0; index < count; index += 1) {
-    column[index] = view.getUint16(start + index * 2, true);
+    column[index] = dataView.getUint16(start + index * 2, true);
   }
   return column;
 };
 
-const readU32Column = (view, start, count) => {
+const readU32Column = (dataView, start, count) => {
   const column = new Uint32Array(count);
   for (let index = 0; index < count; index += 1) {
-    column[index] = view.getUint32(start + index * 4, true);
+    column[index] = dataView.getUint32(start + index * 4, true);
   }
   return column;
 };
 
-const readI32Column = (view, start, count) => {
+const readI32Column = (dataView, start, count) => {
   const column = new Int32Array(count);
   for (let index = 0; index < count; index += 1) {
-    column[index] = view.getInt32(start + index * 4, true);
+    column[index] = dataView.getInt32(start + index * 4, true);
   }
   return column;
 };
@@ -69,54 +69,54 @@ const lerp = (from, to, fraction) => [
 
 export class VehiclePositionEngine {
   constructor(arrayBuffer) {
-    const view = new DataView(arrayBuffer);
-    this.#readMagic(view);
+    const dataView = new DataView(arrayBuffer);
+    this.#readMagic(dataView);
 
-    this.stationCount = view.getUint32(HEADER.stationCount, true);
-    this.edgeCount = view.getUint32(HEADER.edgeCount, true);
-    this.pointCount = view.getUint32(HEADER.pointCount, true);
-    this.tripCount = view.getUint32(HEADER.tripCount, true);
-    this.eventCount = view.getUint32(HEADER.eventCount, true);
-    this.pathCount = view.getUint32(HEADER.pathCount, true);
+    this.stationCount = dataView.getUint32(HEADER.stationCount, true);
+    this.edgeCount = dataView.getUint32(HEADER.edgeCount, true);
+    this.pointCount = dataView.getUint32(HEADER.pointCount, true);
+    this.tripCount = dataView.getUint32(HEADER.tripCount, true);
+    this.eventCount = dataView.getUint32(HEADER.eventCount, true);
+    this.pathCount = dataView.getUint32(HEADER.pathCount, true);
 
-    const originEast = view.getUint32(HEADER.originEast, true);
-    const originNorth = view.getUint32(HEADER.originNorth, true);
+    const originEast = dataView.getUint32(HEADER.originEast, true);
+    const originNorth = dataView.getUint32(HEADER.originNorth, true);
 
     this.stations = readStationPoints(arrayBuffer);
-    this.edges = this.#readEdges(view, originEast, originNorth);
+    this.edges = this.#readEdges(dataView, originEast, originNorth);
     this.#buildEdgeArcLengths();
-    this.trips = this.#readTrips(view);
+    this.trips = this.#readTrips(dataView);
     this.#deriveOperatingWindow();
   }
 
-  #readMagic(view) {
+  #readMagic(dataView) {
     const magic = String.fromCharCode(
-      view.getUint8(0),
-      view.getUint8(1),
-      view.getUint8(2),
-      view.getUint8(3),
+      dataView.getUint8(0),
+      dataView.getUint8(1),
+      dataView.getUint8(2),
+      dataView.getUint8(3),
     );
     if (magic !== MAGIC) {
       throw new Error(`not an ITSB blob: ${magic}`);
     }
-    if (view.getUint16(HEADER.version, true) !== VERSION) {
+    if (dataView.getUint16(HEADER.version, true) !== VERSION) {
       throw new Error('unsupported ITSB version');
     }
   }
 
-  #readEdges(view, originEast, originNorth) {
-    const edgeStart = view.getUint32(HEADER.offsetEdges, true);
-    const pointStart = readU32Column(view, edgeStart, this.edgeCount);
+  #readEdges(dataView, originEast, originNorth) {
+    const edgeStart = dataView.getUint32(HEADER.offsetEdges, true);
+    const pointStart = readU32Column(dataView, edgeStart, this.edgeCount);
     const pointLen = readU16Column(
-      view,
+      dataView,
       edgeStart + this.edgeCount * 4,
       this.edgeCount,
     );
 
-    const pointsStart = view.getUint32(HEADER.offsetPoints, true);
-    const east = readU32Column(view, pointsStart, this.pointCount);
+    const pointsStart = dataView.getUint32(HEADER.offsetPoints, true);
+    const east = readU32Column(dataView, pointsStart, this.pointCount);
     const north = readU32Column(
-      view,
+      dataView,
       pointsStart + this.pointCount * 4,
       this.pointCount,
     );
@@ -131,58 +131,60 @@ export class VehiclePositionEngine {
   }
 
   #buildEdgeArcLengths() {
-    this.edgeCumulative = this.edges.map((polyline) => {
-      const cumulative = [0];
+    this.edgeDistancesToPoints = this.edges.map((polyline) => {
+      const distancesToPoints = [0];
       for (let point = 1; point < polyline.length; point += 1) {
-        cumulative.push(
-          cumulative[point - 1] +
+        distancesToPoints.push(
+          distancesToPoints[point - 1] +
             Math.hypot(
               polyline[point][0] - polyline[point - 1][0],
               polyline[point][1] - polyline[point - 1][1],
             ),
         );
       }
-      return cumulative;
+      return distancesToPoints;
     });
-    this.edgeLengths = this.edgeCumulative.map(
-      (cumulative) => cumulative[cumulative.length - 1],
+    this.edgeLengths = this.edgeDistancesToPoints.map(
+      (distancesToPoints) => distancesToPoints[distancesToPoints.length - 1],
     );
   }
 
-  #readTrips(view) {
-    const tripStart = view.getUint32(HEADER.offsetTrips, true);
+  #readTrips(dataView) {
+    const tripStart = dataView.getUint32(HEADER.offsetTrips, true);
     const count = this.tripCount;
-    const category = readU8Column(view, tripStart, count);
-    const eventStart = readU32Column(view, tripStart + count, count);
-    const eventLen = readU16Column(view, tripStart + count * 5, count);
+    const category = readU8Column(dataView, tripStart, count);
+    const eventStart = readU32Column(dataView, tripStart + count, count);
+    const eventLen = readU16Column(dataView, tripStart + count * 5, count);
 
-    const eventsStart = view.getUint32(HEADER.offsetEvents, true);
-    const evStation = readU32Column(view, eventsStart, this.eventCount);
+    const eventsStart = dataView.getUint32(HEADER.offsetEvents, true);
+    const evStation = readU32Column(dataView, eventsStart, this.eventCount);
     const evArr = readU32Column(
-      view,
+      dataView,
       eventsStart + this.eventCount * 4,
       this.eventCount,
     );
     const evDep = readU32Column(
-      view,
+      dataView,
       eventsStart + this.eventCount * 8,
       this.eventCount,
     );
     const evLegEdgeCount = readU16Column(
-      view,
+      dataView,
       eventsStart + this.eventCount * 12,
       this.eventCount,
     );
 
     const path = readI32Column(
-      view,
-      view.getUint32(HEADER.offsetPath, true),
+      dataView,
+      dataView.getUint32(HEADER.offsetPath, true),
       this.pathCount,
     );
 
     let pathCursor = 0;
+    // Returns List of Trips
     return Array.from({ length: count }, (_, trip) => {
       const first = eventStart[trip];
+      // Events: Station-Index, Arrival, Departure + Edges of outgoing Leg
       const events = Array.from({ length: eventLen[trip] }, (_, offset) => {
         const eventIndex = first + offset;
         const legEdges = Array.from(
@@ -196,16 +198,17 @@ export class VehiclePositionEngine {
           legEdges,
         };
       });
+      // Trip: Category, Events, and Distances to every stop
       return {
         category: category[trip],
         events,
-        legCumulative: this.#legCumulative(events),
+        tripDistancesToEvents: this.#tripDistancesToEvents(events),
       };
     });
   }
 
-  #legCumulative(events) {
-    const cumulative = [0];
+  #tripDistancesToEvents(events) {
+    const distancesToEvents = [0];
     events.forEach((event, index) => {
       if (index === events.length - 1) {
         return;
@@ -218,9 +221,9 @@ export class VehiclePositionEngine {
                 sum + this.edgeLengths[Math.abs(signedEdge) - 1],
               0,
             );
-      cumulative.push(cumulative[index] + legDistance);
+      distancesToEvents.push(distancesToEvents[index] + legDistance);
     });
-    return cumulative;
+    return distancesToEvents;
   }
 
   // A leg with no edges is a straight line between its two stations — the shape
@@ -245,23 +248,27 @@ export class VehiclePositionEngine {
   }
 
   #pointOnEdge(signedEdge, distanceIntoEdge) {
-    const edge = Math.abs(signedEdge) - 1;
-    const polyline = this.edges[edge];
-    const cumulative = this.edgeCumulative[edge];
+    const undirectedEdgeIndex = Math.abs(signedEdge) - 1;
+    const polyline = this.edges[undirectedEdgeIndex];
+    const distancesToPoints = this.edgeDistancesToPoints[undirectedEdgeIndex];
     const target =
       signedEdge < 0
-        ? this.edgeLengths[edge] - distanceIntoEdge
+        ? this.edgeLengths[undirectedEdgeIndex] - distanceIntoEdge
         : distanceIntoEdge;
 
     let segment = 1;
-    while (segment < cumulative.length - 1 && cumulative[segment] < target) {
+    while (
+      segment < distancesToPoints.length - 1 &&
+      distancesToPoints[segment] < target
+    ) {
       segment += 1;
     }
-    const segmentLength = cumulative[segment] - cumulative[segment - 1];
+    const segmentLength =
+      distancesToPoints[segment] - distancesToPoints[segment - 1];
     const fraction =
       segmentLength === 0
         ? 0
-        : (target - cumulative[segment - 1]) / segmentLength;
+        : (target - distancesToPoints[segment - 1]) / segmentLength;
     return lerp(polyline[segment - 1], polyline[segment], fraction);
   }
 
@@ -274,19 +281,21 @@ export class VehiclePositionEngine {
       }
       remaining -= length;
     }
-    return this.stations[0];
+    throw new Error('a leg without edges has no point on an edge');
   }
 
   #pointAtTripDistance(trip, distance) {
-    const { legCumulative, events } = trip;
+    const { tripDistancesToEvents, events } = trip;
+    // The leg the distance falls into: the last one starting before it.
     let leg = 0;
     while (
-      leg < legCumulative.length - 1 &&
-      legCumulative[leg + 1] < distance
+      leg < tripDistancesToEvents.length - 1 &&
+      tripDistancesToEvents[leg + 1] < distance
     ) {
       leg += 1;
     }
-    const distanceIntoLeg = distance - legCumulative[leg];
+    const distanceIntoLeg = distance - tripDistancesToEvents[leg];
+    // A leg without edges is a bus leg, drawn straight between its stops.
     if (events[leg].legEdges.length === 0) {
       return this.#pointOnStraightLeg(
         events[leg],
@@ -305,24 +314,29 @@ export class VehiclePositionEngine {
   }
 
   #tripDistanceAt(trip, t) {
-    const { events, legCumulative } = trip;
+    const { events, tripDistancesToEvents } = trip;
     for (let index = 0; index < events.length; index += 1) {
+      // Before the trip's first arrival.
       if (t < events[index].arr) {
         break;
       }
+      // Standing at this stop.
       if (t <= events[index].dep) {
-        return legCumulative[index];
+        return tripDistancesToEvents[index];
       }
+      // Running from this stop to the next one.
       if (index + 1 < events.length && t < events[index + 1].arr) {
         const fraction =
           (t - events[index].dep) / (events[index + 1].arr - events[index].dep);
         return (
-          legCumulative[index] +
-          fraction * (legCumulative[index + 1] - legCumulative[index])
+          tripDistancesToEvents[index] +
+          fraction *
+            (tripDistancesToEvents[index + 1] - tripDistancesToEvents[index])
         );
       }
     }
-    return legCumulative[legCumulative.length - 1];
+    // Past the last arrival: the trip has covered its whole length.
+    return tripDistancesToEvents[tripDistancesToEvents.length - 1];
   }
 
   tripEndpoints(tripIndex) {
@@ -366,9 +380,11 @@ export class VehiclePositionEngine {
     this.trips.forEach((trip, tripIndex) => {
       const firstDep = trip.events[0].dep;
       const lastArr = trip.events[trip.events.length - 1].arr;
+      // Not yet departed, or already arrived.
       if (t < firstDep || t > lastArr) {
         return;
       }
+      // How far the trip has come, then where that distance lies on the ground.
       const [east, north] = this.#pointAtTripDistance(
         trip,
         this.#tripDistanceAt(trip, t),

@@ -14,7 +14,7 @@ export function sameSelectionTarget(first, second) {
     return first.station === second.station;
   }
   return (
-    first.vehicle.engineIndex === second.vehicle.engineIndex &&
+    first.vehicle.positionEngineIndex === second.vehicle.positionEngineIndex &&
     first.vehicle.tripIndex === second.vehicle.tripIndex
   );
 }
