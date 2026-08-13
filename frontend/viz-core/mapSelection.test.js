@@ -3,9 +3,9 @@ import { test } from 'node:test';
 import { MapSelection, sameSelectionTarget } from './mapSelection.js';
 
 const station = (station) => ({ kind: 'station', station });
-const vehicle = (engineIndex, tripIndex) => ({
+const vehicle = (positionEngineIndex, tripIndex) => ({
   kind: 'vehicle',
-  vehicle: { engineIndex, tripIndex },
+  vehicle: { positionEngineIndex, tripIndex },
 });
 
 test('two picks of the same station are the same target', () => {
@@ -150,7 +150,7 @@ test('hovering a station shows a popover that re-anchors each frame', () => {
 
 test('hovering a vehicle shows and follows it', () => {
   const hoverPopover = makeFakePopover();
-  const bus = { east: 5, north: 6, engineIndex: 0, tripIndex: 1 };
+  const bus = { east: 5, north: 6, positionEngineIndex: 0, tripIndex: 1 };
   const { selection } = makeSelection({
     hoverPopover,
     panel: vehiclePanel(bus, { east: 7, north: 6 }),
@@ -167,7 +167,7 @@ test('hovering a vehicle shows and follows it', () => {
 
 test('a hovered vehicle whose trip ended hides its popover', () => {
   const hoverPopover = makeFakePopover();
-  const bus = { east: 5, north: 6, engineIndex: 0, tripIndex: 1 };
+  const bus = { east: 5, north: 6, positionEngineIndex: 0, tripIndex: 1 };
   const panel = vehiclePanel(bus, { east: 7, north: 6 });
   const { selection } = makeSelection({ hoverPopover, panel });
   const canvas = makeFakeCanvas();
@@ -252,7 +252,12 @@ test('a rail station wins over a vehicle on top of it', () => {
   const revealed = [];
   const panel = {
     railStationNear: () => bern,
-    vehicleAt: () => ({ east: 5, north: 6, engineIndex: 0, tripIndex: 1 }),
+    vehicleAt: () => ({
+      east: 5,
+      north: 6,
+      positionEngineIndex: 0,
+      tripIndex: 1,
+    }),
     minorStationNear: () => null,
     revealStation: (station) => revealed.push(station),
   };
@@ -269,7 +274,12 @@ test('a vehicle wins over a nearby tram or bus stop', () => {
   const revealed = [];
   const panel = {
     railStationNear: () => null,
-    vehicleAt: () => ({ east: 5, north: 6, engineIndex: 0, tripIndex: 1 }),
+    vehicleAt: () => ({
+      east: 5,
+      north: 6,
+      positionEngineIndex: 0,
+      tripIndex: 1,
+    }),
     minorStationNear: () => ({ east: 100, north: 200, name: 'Tramhalt' }),
     revealStation: (station) => revealed.push(station),
     describeVehicle: () => ({ label: 'Tram', origin: 'A', destination: 'B' }),

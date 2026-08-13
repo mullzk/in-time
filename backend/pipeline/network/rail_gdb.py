@@ -1,9 +1,16 @@
-"""Loads the BAV rail network GDB into a RailGraph, keeping native LV95."""
+"""Loads the BAV rail network GDB into a RailGraph, keeping native LV95 so that
+edge weights are metres.
+
+Netzknoten are the nodes, Netzsegment the track between them. The source is
+reduced on the way in: parallel tracks between two nodes collapse onto the
+first, segments without geometry or with an unknown endpoint drop out, and a
+degenerate geometry becomes the straight line between its nodes. A station
+number sitting on several nodes resolves to the first."""
 
 import math
 from pathlib import Path
 
-import geopandas as gpd
+import geopandas
 from shapely import line_merge
 from shapely.geometry import LineString, MultiLineString
 from shapely.geometry import Point as ShapelyPoint
@@ -115,8 +122,8 @@ def _segment_points(
 
 
 def load_rail_graph(gdb_path: Path) -> RailGraph:
-    nodes = gpd.read_file(gdb_path, layer="Netzknoten")
-    segments = gpd.read_file(gdb_path, layer="Netzsegment")
+    nodes = geopandas.read_file(gdb_path, layer="Netzknoten")
+    segments = geopandas.read_file(gdb_path, layer="Netzsegment")
 
     node_ids = [str(value) for value in nodes["xtf_id"].tolist()]
     node_point = _node_points(node_ids, list(nodes.geometry))

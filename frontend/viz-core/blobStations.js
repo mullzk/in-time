@@ -12,35 +12,35 @@ const OFFSET_ORIGIN_NORTH = 16;
 const OFFSET_STATION_COUNT = 24;
 const OFFSET_STATIONS_SECTION = 48;
 
-const readU32Column = (view, start, count) => {
+const readU32Column = (dataView, start, count) => {
   const column = new Uint32Array(count);
   for (let index = 0; index < count; index += 1) {
-    column[index] = view.getUint32(start + index * 4, true);
+    column[index] = dataView.getUint32(start + index * 4, true);
   }
   return column;
 };
 
 export function readStationPoints(arrayBuffer) {
-  const view = new DataView(arrayBuffer);
+  const dataView = new DataView(arrayBuffer);
   const magic = String.fromCharCode(
-    view.getUint8(0),
-    view.getUint8(1),
-    view.getUint8(2),
-    view.getUint8(3),
+    dataView.getUint8(0),
+    dataView.getUint8(1),
+    dataView.getUint8(2),
+    dataView.getUint8(3),
   );
   if (magic !== MAGIC) {
     throw new Error(`not an ITSB blob: ${magic}`);
   }
-  if (view.getUint16(OFFSET_VERSION, true) !== VERSION) {
+  if (dataView.getUint16(OFFSET_VERSION, true) !== VERSION) {
     throw new Error('unsupported ITSB version');
   }
 
-  const stationCount = view.getUint32(OFFSET_STATION_COUNT, true);
-  const originEast = view.getUint32(OFFSET_ORIGIN_EAST, true);
-  const originNorth = view.getUint32(OFFSET_ORIGIN_NORTH, true);
-  const start = view.getUint32(OFFSET_STATIONS_SECTION, true);
-  const east = readU32Column(view, start, stationCount);
-  const north = readU32Column(view, start + stationCount * 4, stationCount);
+  const stationCount = dataView.getUint32(OFFSET_STATION_COUNT, true);
+  const originEast = dataView.getUint32(OFFSET_ORIGIN_EAST, true);
+  const originNorth = dataView.getUint32(OFFSET_ORIGIN_NORTH, true);
+  const start = dataView.getUint32(OFFSET_STATIONS_SECTION, true);
+  const east = readU32Column(dataView, start, stationCount);
+  const north = readU32Column(dataView, start + stationCount * 4, stationCount);
   return Array.from({ length: stationCount }, (_, index) => [
     east[index] + originEast,
     north[index] + originNorth,
