@@ -99,6 +99,17 @@ test('the network overlay stays off once the user switched it back on', () => {
   assert.equal(panel.layers.network, false);
 });
 
+test('the pulse mode draws the network and keeps it when it ends', () => {
+  const panel = new TaktPanel(RAIL_BUFFER, RAIL_STATIONS);
+
+  panel.setPulseMode(true);
+  assert.equal(panel.layers.network, true);
+  assert.equal(panel.layers.tram, false);
+
+  panel.setPulseMode(false);
+  assert.equal(panel.layers.network, true);
+});
+
 test('the pulse of the rail blob is ready right after construction', () => {
   const panel = new TaktPanel(RAIL_BUFFER, RAIL_STATIONS);
   panel.init({ camera: { zoomFraction: () => 0.5 } });

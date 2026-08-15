@@ -483,23 +483,25 @@ export class TaktPanel extends Panel {
     const input = element('input');
     input.type = 'checkbox';
     input.checked = this.pulseMode;
-    input.addEventListener('change', () => this.#setPulseMode(input.checked));
+    input.addEventListener('change', () => this.setPulseMode(input.checked));
     group.appendChild(this.#option(input, 'Basistakt zeigen'));
     return group;
   }
 
   // Entering the mode clears the picture down to trains on black -- which brings
-  // the trail with it, the black background's own style. Leaving it hands the
-  // controls back without undoing the choice, so the view stays where the user
-  // was looking.
-  #setPulseMode(on) {
+  // the trail with it, the black background's own style -- and draws the network
+  // underneath, so the beating nodes are read as places on a line rather than as
+  // dots in the dark. Leaving it hands the controls back without undoing the
+  // choice, so the view stays where the user was looking.
+  setPulseMode(on) {
     this.pulseMode = on;
+    this.holdBackground?.(on ? BLACK_BACKGROUND_ID : null);
     if (on) {
       PULSE_MODE_SUPPRESSED_LAYERS.forEach((layer) => {
         this.layers[layer] = false;
       });
+      this.layers.network = true;
     }
-    this.holdBackground?.(on ? BLACK_BACKGROUND_ID : null);
     PULSE_MODE_SUPPRESSED_LAYERS.forEach((layer) => {
       const input = this.layerOptions[layer];
       if (input) {
