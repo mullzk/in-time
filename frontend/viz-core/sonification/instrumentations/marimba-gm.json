@@ -1,0 +1,48 @@
+{
+  "instrumentation": "Marimba (GM)",
+  "sound": "marimba",
+  "fernverkehr": {
+    "note": 57,
+    "release": 1.1,
+    "gain": 0.42,
+    "duration": 0.5,
+    "arrival": { "noteAdjust": 0, "pan": "center" },
+    "departure": { "pan": "center" },
+    "dwell": {
+      "intervalSeconds": 0.3333333333333333,
+      "noteAdjust": 0,
+      "gainFactor": 0.42,
+      "attack": 0.12,
+      "decay": 1.5,
+      "sustain": 0.2,
+      "release": 0.7
+    }
+  },
+  "interregio": {
+    "note": 58,
+    "release": 0.6,
+    "gain": 0.36,
+    "duration": 0.3,
+    "dwell": { "gain": 0.05, "release": 0.3 }
+  },
+  "regionalverkehr": {
+    "note": 59,
+    "release": 0.35,
+    "duration": 0.2,
+    "dwell": { "release": 0.3 }
+  },
+  "tram": {
+    "dwellType": "none",
+    "note": 62,
+    "release": 0.08,
+    "duration": 0.06,
+    "gain": 0.25
+  },
+  "bus": {
+    "dwellType": "none",
+    "note": 61,
+    "release": 0.15,
+    "duration": 0.1,
+    "gain": 0.25
+  }
+}

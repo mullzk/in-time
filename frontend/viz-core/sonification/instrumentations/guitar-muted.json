@@ -1,0 +1,39 @@
+{
+  "instrumentation": "Gitarre (gedämpft)",
+  "sound": "muted-guitar",
+  "fernverkehr": {
+    "note": 55,
+    "sustain": 0.3,
+    "release": 0.7,
+    "gain": 0.32,
+    "duration": 0.4,
+    "arrival": { "noteAdjust": 0, "pan": "center" },
+    "departure": { "pan": "center" },
+    "dwell": { "gain": 0.05, "sustain": 0.8, "release": 0.3 }
+  },
+  "interregio": {
+    "note": 57,
+    "release": 0.5,
+    "duration": 0.3,
+    "dwell": { "release": 0.3 }
+  },
+  "regionalverkehr": {
+    "note": 59,
+    "release": 0.35,
+    "duration": 0.2,
+    "dwell": { "release": 0.3 }
+  },
+  "tram": {
+    "dwellType": "none",
+    "note": 62,
+    "release": 0.08,
+    "duration": 0.06
+  },
+  "bus": {
+    "dwellType": "none",
+    "note": 61,
+    "release": 0.15,
+    "duration": 0.1,
+    "gain": 0.25
+  }
+}
