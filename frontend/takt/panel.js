@@ -229,7 +229,6 @@ export class TaktPanel extends Panel {
     this.positionEngines = [];
     this.soundEngines = [];
     this.clusterToDidoks = new Map();
-    this.adoptSchedule(railBuffer, railStations);
     this.activeVehicles = [];
     this.layers = {
       network: false,
@@ -250,6 +249,7 @@ export class TaktPanel extends Panel {
     this.previousZoomFraction = null;
     this.layerOptions = {};
     this.camera = null;
+    this.adoptSchedule(railBuffer, railStations);
   }
 
   stationCatalog() {

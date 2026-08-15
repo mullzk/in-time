@@ -99,6 +99,18 @@ test('the network overlay stays off once the user switched it back on', () => {
   assert.equal(panel.layers.network, false);
 });
 
+test('the pulse of the rail blob is ready right after construction', () => {
+  const panel = new TaktPanel(RAIL_BUFFER, RAIL_STATIONS);
+  panel.init({ camera: { zoomFraction: () => 0.5 } });
+  panel.pulseMode = true;
+
+  // The golden rail blob holds one long-distance trip; at 10:10 it stands at
+  // its middle station.
+  panel.update(36600, 1 / 60);
+
+  assert.equal(panel.longDistancePulse.visiblePulses().length, 1);
+});
+
 test('an adopted interchange sounds its rail and bus stops as one place', () => {
   const panel = new TaktPanel(RAIL_BUFFER, RAIL_STATIONS);
   panel.init(context);
