@@ -8,6 +8,7 @@
 // steady anchor of the clock-face timetable -- always survives.
 export const TRANSPORT_GROUPS = [
   'fernverkehr',
+  'interregio',
   'regionalverkehr',
   'tram',
   'bus',
@@ -21,7 +22,7 @@ export const DWELL_MINIMUM_SECONDS = 60;
 
 const GROUP_BY_CATEGORY = new Map([
   [0, 'fernverkehr'],
-  [1, 'fernverkehr'],
+  [1, 'interregio'],
   [2, 'regionalverkehr'],
   [3, 'regionalverkehr'],
   [4, 'regionalverkehr'],
@@ -39,7 +40,7 @@ export function dropPriorityOf(group) {
 
 // Only rail groups get a dwell figure while a vehicle stands; a tram or bus stop
 // is too brief and too frequent to hold a standing sound.
-const RAIL_GROUPS = ['fernverkehr', 'regionalverkehr'];
+const RAIL_GROUPS = ['fernverkehr', 'interregio', 'regionalverkehr'];
 
 export function isRailGroup(group) {
   return RAIL_GROUPS.includes(group);

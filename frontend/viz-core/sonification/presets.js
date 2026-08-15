@@ -1,6 +1,8 @@
-// The four instrumentations the sidebar dropdown offers. Each maps the four
-// transport groups to a sound type; the merged rail groups take their flagship's
-// voice (Fernverkehr the IC/EC tone, Regionalverkehr the Regio/RE tone).
+// The four instrumentations the sidebar dropdown offers. Each maps the five
+// transport groups to a sound type; the merged Regionalverkehr group takes its
+// flagship's voice, the Regio/RE tone. The InterRegio voice is placed between
+// the Fernverkehr and the regional one -- shorter and less prominent than the
+// first, weightier than the second -- so the rail hierarchy stays audible.
 
 import { Instrumentation } from './instrumentation.js';
 import { PercussiveSoundType, PitchedSoundType } from './soundType.js';
@@ -64,6 +66,14 @@ const MARIMBA = {
 
 const soundFamilies = new Instrumentation({
   fernverkehr: new PitchedSoundType({ ...FM_BELL }),
+  interregio: new PitchedSoundType({
+    ...FM_BELL,
+    fmi: 6,
+    note: 71,
+    decay: 0.13,
+    release: 1.0,
+    gain: 0.3,
+  }),
   regionalverkehr: new PitchedSoundType({ ...FILTERED_SAWTOOTH }),
   tram: new PitchedSoundType({
     ...FM_BELL,
@@ -80,6 +90,7 @@ const soundFamilies = new Instrumentation({
 
 const drumSet = new Instrumentation({
   fernverkehr: new PercussiveSoundType({ s: 'bd', gain: 0.4, duration: 0.2 }),
+  interregio: new PercussiveSoundType({ s: 'sd', gain: 0.3, duration: 0.2 }),
   regionalverkehr: new PercussiveSoundType({
     s: 'mt',
     gain: 0.35,
@@ -100,6 +111,12 @@ const guitarShades = new Instrumentation({
     gain: 0.32,
     duration: 0.4,
     uniformEvents: true,
+  }),
+  interregio: new PitchedSoundType({
+    ...GUITAR_MUTE,
+    note: 57,
+    release: 0.5,
+    duration: 0.3,
   }),
   regionalverkehr: new PitchedSoundType({
     ...GUITAR_MUTE,
@@ -131,6 +148,13 @@ const marimbaGmShades = new Instrumentation({
     duration: 0.5,
     uniformEvents: true,
     dwellStyle: 'ring',
+  }),
+  interregio: new PitchedSoundType({
+    ...MARIMBA,
+    note: 58,
+    release: 0.6,
+    gain: 0.36,
+    duration: 0.3,
   }),
   regionalverkehr: new PitchedSoundType({
     ...MARIMBA,

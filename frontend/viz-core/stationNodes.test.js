@@ -26,6 +26,7 @@ test('nodeDiameterPixels is 5px from the second-largest step', () => {
 test('stationIsShown needs the stops layer and a visible mode', () => {
   const layers = {
     fernverkehr: true,
+    interregio: false,
     regionalverkehr: false,
     tram: false,
     bus: false,
@@ -37,16 +38,26 @@ test('stationIsShown needs the stops layer and a visible mode', () => {
   assert.equal(stationIsShown(['tram', 'rail'], true, layers), true);
 });
 
-test('stationIsShown surfaces a rail station for either rail layer', () => {
+test('stationIsShown surfaces a rail station for any rail layer', () => {
   const onlyRegional = {
     fernverkehr: false,
+    interregio: false,
     regionalverkehr: true,
     tram: false,
     bus: false,
   };
   assert.equal(stationIsShown(['rail'], true, onlyRegional), true);
+  const onlyInterregio = {
+    fernverkehr: false,
+    interregio: true,
+    regionalverkehr: false,
+    tram: false,
+    bus: false,
+  };
+  assert.equal(stationIsShown(['rail'], true, onlyInterregio), true);
   const noRail = {
     fernverkehr: false,
+    interregio: false,
     regionalverkehr: false,
     tram: true,
     bus: false,
@@ -65,6 +76,7 @@ test('fallbackLayerForStops adds regional rail only when every layer is off', ()
   assert.equal(
     fallbackLayerForStops({
       fernverkehr: false,
+      interregio: false,
       regionalverkehr: false,
       tram: false,
       bus: false,
@@ -74,6 +86,7 @@ test('fallbackLayerForStops adds regional rail only when every layer is off', ()
   assert.equal(
     fallbackLayerForStops({
       fernverkehr: false,
+      interregio: false,
       regionalverkehr: false,
       tram: true,
       bus: false,
@@ -82,7 +95,18 @@ test('fallbackLayerForStops adds regional rail only when every layer is off', ()
   );
   assert.equal(
     fallbackLayerForStops({
+      fernverkehr: false,
+      interregio: true,
+      regionalverkehr: false,
+      tram: false,
+      bus: false,
+    }),
+    null,
+  );
+  assert.equal(
+    fallbackLayerForStops({
       fernverkehr: true,
+      interregio: false,
       regionalverkehr: false,
       tram: false,
       bus: false,
@@ -94,6 +118,7 @@ test('fallbackLayerForStops adds regional rail only when every layer is off', ()
 test('layerToRevealStation switches on a mode layer only when none reveals it', () => {
   const railDefaults = {
     fernverkehr: true,
+    interregio: true,
     regionalverkehr: true,
     tram: false,
     bus: false,
@@ -111,6 +136,7 @@ test('layerToRevealStation switches on a mode layer only when none reveals it', 
 test('layerToRevealStation leaves a station alone when its layer already shows', () => {
   const busOnly = {
     fernverkehr: false,
+    interregio: false,
     regionalverkehr: false,
     tram: false,
     bus: true,

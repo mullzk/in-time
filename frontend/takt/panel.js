@@ -33,6 +33,7 @@ const CATEGORY_COLORS = [
 const FALLBACK_COLOR = [200, 200, 200];
 
 const CATEGORY_INTERCITY = 0;
+const CATEGORY_INTERREGIO = 1;
 const CATEGORY_TRAM = 5;
 const CATEGORY_BUS = 6;
 
@@ -49,12 +50,12 @@ const CATEGORY_LABELS = [
 ];
 const categoryLabel = (category) => CATEGORY_LABELS[category] ?? 'Fahrt';
 
-// Rail splits into a long-distance and a regional layer, matching the same two
-// display groups used for the sounds: Fernverkehr (categories 0-1) and
-// Regionalverkehr (2-4), plus the tram and bus layers.
+// Rail splits into a long-distance, an InterRegio and a regional layer, matching
+// the same display groups used for the sounds: Fernverkehr (category 0),
+// InterRegio (1) and Regionalverkehr (2-4), plus the tram and bus layers.
 const LAYER_BY_CATEGORY = new Map([
   [CATEGORY_INTERCITY, 'fernverkehr'],
-  [1, 'fernverkehr'],
+  [CATEGORY_INTERREGIO, 'interregio'],
   [2, 'regionalverkehr'],
   [3, 'regionalverkehr'],
   [4, 'regionalverkehr'],
@@ -111,6 +112,7 @@ const TRAIL_TAIL_ALPHA = 12;
 const TRAIL_BASE_LENGTH_SECONDS = 84;
 const TRAIL_LENGTH_FACTOR_BY_LAYER = new Map([
   ['fernverkehr', 1.25],
+  ['interregio', 1],
   ['regionalverkehr', 2 / 3],
 ]);
 const trailedLayer = (category) =>
@@ -118,10 +120,14 @@ const trailedLayer = (category) =>
 
 // The gap between samples, in schedule seconds. Long-distance trains both reach
 // furthest and move fastest, so at close zoom the same gap tears their trail
-// into separate dots; they get a tighter one. The slower, shorter services read
-// as a smear at the wide gap and would only cost samples at a tighter one.
+// into separate dots; they get the tightest one, the InterRegio a middling one.
+// The slower, shorter services read as a smear at the wide gap and would only
+// cost samples at a tighter one.
 const TRAIL_DEFAULT_SPACING_SECONDS = 7;
-const TRAIL_SPACING_SECONDS_BY_LAYER = new Map([['fernverkehr', 3]]);
+const TRAIL_SPACING_SECONDS_BY_LAYER = new Map([
+  ['fernverkehr', 3],
+  ['interregio', 5],
+]);
 
 const trailSpacingSeconds = (category) =>
   TRAIL_SPACING_SECONDS_BY_LAYER.get(layerOfCategory(category)) ??
@@ -191,6 +197,7 @@ const LAYER_LABELS = [
   ['network', 'Netz'],
   ['stops', 'Haltestellen'],
   ['fernverkehr', 'Fernverkehr'],
+  ['interregio', 'InterRegio'],
   ['regionalverkehr', 'Regionalverkehr'],
   ['tram', 'Tram'],
   ['bus', 'Bus'],
@@ -228,6 +235,7 @@ export class TaktPanel extends Panel {
       network: false,
       stops: false,
       fernverkehr: true,
+      interregio: true,
       regionalverkehr: true,
       tram: false,
       bus: false,
