@@ -14,14 +14,12 @@ import {
   eventsInLookahead,
   gainDampingForDensity,
   groupOf,
-  isRailGroup,
   LOOKAHEAD_SECONDS,
   MAXIMUM_VOICES_PER_WINDOW,
   MINIMUM_GROUP_GAP_SECONDS,
   passesGroupGap,
   passesMuteFilter,
   passesVoiceBudget,
-  TRANSPORT_GROUPS,
 } from './scheduling.js';
 
 // A rendered frame this far apart in real time is a rendering stall (a
@@ -33,7 +31,6 @@ const STALL_RESYNC_SECONDS = 0.5;
 // A fixed master level (no slider); the per-sound gains and the density damping
 // do the balancing, system volume does the rest.
 const MASTER_GAIN = 0.9;
-const DEFAULT_DURATION_SECONDS = 0.2;
 const DEFAULT_GAIN = 0.3;
 
 export class Sonifier {
@@ -105,16 +102,7 @@ export class Sonifier {
   }
 
   #sources() {
-    const sources = new Set();
-    TRANSPORT_GROUPS.forEach((group) => {
-      this.instrumentation
-        .soundTypeFor(group)
-        .sources()
-        .forEach((source) => {
-          sources.add(source);
-        });
-    });
-    return [...sources];
+    return this.instrumentation.sources();
   }
 
   #resync() {
@@ -188,46 +176,34 @@ export class Sonifier {
   }
 
   #playEvent(event, group, startAudio, timeScale) {
-    const soundType = this.instrumentation.soundTypeFor(group);
-    const play = (parameters, extraDelaySeconds = 0) => {
-      const { duration = DEFAULT_DURATION_SECONDS, ...rest } = parameters;
-      this.audioBridge.play(
-        { ...rest, gain: this.#dampedGain(rest.gain) },
-        startAudio + extraDelaySeconds,
-        duration,
-      );
-    };
-    if (event.kind === 'arrival') {
-      soundType.arrival(play);
-      if (isRailGroup(group) && event.dwellSeconds >= DWELL_MINIMUM_SECONDS) {
-        this.#startDwellVoice(soundType, group, event, startAudio, timeScale);
-      }
-    } else if (event.kind === 'departure') {
-      soundType.departure(play);
-    } else {
-      soundType.passthrough(play);
+    const { parameters, durationSeconds } = this.instrumentation.parametersFor(
+      group,
+      event.kind,
+    );
+    this.audioBridge.play(
+      { ...parameters, gain: this.#dampedGain(parameters.gain) },
+      startAudio,
+      durationSeconds,
+    );
+    if (
+      event.kind === 'arrival' &&
+      event.dwellSeconds >= DWELL_MINIMUM_SECONDS
+    ) {
+      this.#startDwellVoice(group, event, startAudio, timeScale);
     }
   }
 
-  #startDwellVoice(soundType, group, event, startAudio, timeScale) {
-    const figure = soundType.dwell();
+  #startDwellVoice(group, event, startAudio, timeScale) {
+    const figure = this.instrumentation.dwellFigureFor(group);
     if (figure === null) {
       return;
     }
-    let pattern;
-    try {
-      pattern = this.audioBridge.mini(figure.sequence);
-    } catch {
-      return;
-    }
     this.dwellVoices.push({
-      pattern,
-      parameters: figure.parameters ?? {},
-      cycleSeconds: figure.cycleSeconds ?? 1,
+      ...figure,
       group,
       startAudio,
       endAudio: startAudio + event.dwellSeconds / timeScale,
-      queriedUntilAudio: startAudio,
+      hitsPlayed: 0,
     });
   }
 
@@ -238,40 +214,40 @@ export class Sonifier {
         return false;
       }
       const until = Math.min(horizon, voice.endAudio);
-      if (until > voice.queriedUntilAudio) {
-        this.#scheduleDwellHits(voice, until, audioNow);
-        voice.queriedUntilAudio = until;
-      }
+      this.#scheduleDwellHits(voice, until, audioNow);
       return until < voice.endAudio;
     });
   }
 
-  // queryArc includes the window start and excludes its end, so back-to-back
-  // windows neither drop nor double a hit; cycle 0 begins at the voice start.
   #scheduleDwellHits(voice, until, audioNow) {
-    const fromCycle =
-      (voice.queriedUntilAudio - voice.startAudio) / voice.cycleSeconds;
-    const toCycle = (until - voice.startAudio) / voice.cycleSeconds;
-    voice.pattern.queryArc(fromCycle, toCycle).forEach((hap) => {
-      if (typeof hap.hasOnset === 'function' && !hap.hasOnset()) {
-        return;
-      }
-      const hitValue =
-        typeof hap.value === 'string' ? { s: hap.value } : hap.value;
-      const { duration = DEFAULT_DURATION_SECONDS, ...parameters } = {
-        ...voice.parameters,
-        ...hitValue,
-      };
-      const hitStart =
-        voice.startAudio + Number(hap.whole.begin) * voice.cycleSeconds;
-      const hitSeconds =
-        (Number(hap.whole.end) - Number(hap.whole.begin)) * voice.cycleSeconds;
+    const due = this.#dwellHitsBefore(voice, until);
+    due.forEach((hitStart) => {
       this.audioBridge.play(
-        { ...parameters, gain: this.#dampedGain(parameters.gain) },
+        { ...voice.parameters, gain: this.#dampedGain(voice.parameters.gain) },
         Math.max(audioNow, hitStart),
-        hitSeconds,
+        voice.durationSeconds,
       );
     });
+    voice.hitsPlayed += due.length;
+  }
+
+  // The window includes its start and excludes its end, so back-to-back windows
+  // neither drop nor double a hit. A figure struck once has nothing after its
+  // first hit.
+  #dwellHitsBefore(voice, until) {
+    if (voice.intervalSeconds === null) {
+      return voice.hitsPlayed === 0 && voice.startAudio < until
+        ? [voice.startAudio]
+        : [];
+    }
+    const dueCount = Math.ceil(
+      (until - voice.startAudio) / voice.intervalSeconds,
+    );
+    return Array.from(
+      { length: Math.max(0, dueCount - voice.hitsPlayed) },
+      (_, offset) =>
+        voice.startAudio + (voice.hitsPlayed + offset) * voice.intervalSeconds,
+    );
   }
 
   #dampedGain(gain) {

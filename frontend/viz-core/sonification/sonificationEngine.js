@@ -9,16 +9,17 @@
 //    to a short lookahead horizon; the mute filter, the per-group gap and the
 //    voice budget thin out what is left, and the schedule time is divided by the
 //    tempo to become an absolute time on the audio clock.
-// 3. What it sounds like -- three modules in one line of descent. presets.js
-//    holds the palettes the sidebar offers; each is an Instrumentation, which is
-//    no more than a map from the four transport groups to one sound type each
-//    (instrumentation.js). A sound type (soundType.js) is the behaviour: given
-//    an event kind it produces the concrete superdough parameters, marking
-//    arrival against departure by pitch and panorama, or -- for drum kits -- by
-//    sample bank. So the palette decides the timbre, the event's category
-//    decides which of its four voices speaks, and the event's kind decides how
-//    that voice is played. A standing vehicle instead gets a repeating figure,
-//    which the sonifier loops for as long as the dwell lasts.
+// 3. What it sounds like -- a document, not code. presets.js imports the
+//    instrumentations the sidebar offers from instrumentations/; each names a
+//    sound per transport group and per event, and instrumentation.js resolves a
+//    group and an event kind against it into concrete superdough parameters. The
+//    document may say as little as one sound for everything: what it leaves out
+//    comes from the transport group above it, then from the document, then from
+//    the sound itself (sounds/), then from the kind of sound (sounds/kinds.js),
+//    which is where arrival is marked against departure by pitch and panorama or
+//    -- for drums -- by speed and loudness. A standing vehicle gets a figure of
+//    its own: silence, one strike, or the same sound at a fixed interval, which
+//    the sonifier repeats for as long as the dwell lasts.
 // 4. How it is produced -- audioBridge.js, the only side-effecting layer, over
 //    the vendored superdough engine.
 //

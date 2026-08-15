@@ -7,7 +7,6 @@ import {
   eventsInLookahead,
   gainDampingForDensity,
   groupOf,
-  isRailGroup,
   MAXIMUM_VOICES_PER_WINDOW,
   MINIMUM_GROUP_GAP_SECONDS,
   passesGroupGap,
@@ -40,14 +39,6 @@ test('dropPriorityOf ranks Fernverkehr first and Bus last', () => {
   ]);
   assert.equal(dropPriorityOf('fernverkehr'), 0);
   assert.equal(dropPriorityOf('bus'), 4);
-});
-
-test('isRailGroup marks the three rail groups only', () => {
-  assert.equal(isRailGroup('fernverkehr'), true);
-  assert.equal(isRailGroup('interregio'), true);
-  assert.equal(isRailGroup('regionalverkehr'), true);
-  assert.equal(isRailGroup('tram'), false);
-  assert.equal(isRailGroup('bus'), false);
 });
 
 test('passesMuteFilter drops a hidden group only', () => {

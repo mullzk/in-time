@@ -7,12 +7,17 @@ import {
 } from 'node:fs';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { allSounds } from '../frontend/viz-core/sonification/sounds/registry.js';
 
-// The sonification presets stream two kinds of assets that must be served from
-// our own origin instead of a third-party host: GM soundfont instruments (one
-// JavaScript file each, from the webaudiofont data set) and the uzu drum kit
-// samples. This script mirrors the pinned upstream copies into frontend/vendor
-// so the runtime never reaches out to a foreign host.
+// The sonification streams two kinds of assets that must be served from our own
+// origin instead of a third-party host: GM soundfont instruments (one JavaScript
+// file each, from the webaudiofont data set) and the uzu drum kit samples. This
+// script mirrors the pinned upstream copies into frontend/vendor so the runtime
+// never reaches out to a foreign host.
+//
+// What to mirror comes from the sound registry, not from a list kept here: a
+// list of its own would drift from the sounds the app offers, and a sound whose
+// asset is missing does not fail loudly, it falls silent.
 
 const vendorRoot = fileURLToPath(
   new URL('../frontend/vendor/', import.meta.url),
@@ -21,14 +26,21 @@ const soundfontDir = `${vendorRoot}soundfonts/`;
 const drumkitDir = `${vendorRoot}samples/uzu-drumkit/`;
 
 const SOUNDFONT_BASE = 'https://felixroos.github.io/webaudiofontdata/sound';
-// The default shade (index 0) each preset's soundfont name resolves to:
-// gm_marimba and gm_electric_guitar_muted.
-const SOUNDFONT_FILES = ['0120_JCLive_sf2_file', '0280_Aspirin_sf2_file'];
-
 const DRUMKIT_MAP_URL = 'https://strudel.b-cdn.net/uzu-drumkit.json';
-// Only the banks the drum-set instrumentation strikes; the full kit ships many
-// more that no preset uses.
-const USED_DRUM_BANKS = ['bd', 'hh', 'mt', 'oh', 'rd', 'rim', 'sd'];
+
+const assetsOfType = (type) =>
+  allSounds()
+    .map((sound) => sound.asset)
+    .filter((asset) => asset !== null && asset.type === type);
+
+// The default shade (index 0) each soundfont name resolves to.
+const SOUNDFONT_FILES = [
+  ...new Set(assetsOfType('soundfont').map((asset) => asset.file)),
+].sort();
+// Only the banks the registry can strike; the full kit ships many more.
+const USED_DRUM_BANKS = [
+  ...new Set(assetsOfType('sample').map((asset) => asset.bank)),
+].sort();
 
 const writeFileEnsuringDir = (path, contents) => {
   mkdirSync(dirname(path), { recursive: true });

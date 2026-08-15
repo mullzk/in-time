@@ -38,14 +38,6 @@ export function dropPriorityOf(group) {
   return TRANSPORT_GROUPS.indexOf(group);
 }
 
-// Only rail groups get a dwell figure while a vehicle stands; a tram or bus stop
-// is too brief and too frequent to hold a standing sound.
-const RAIL_GROUPS = ['fernverkehr', 'interregio', 'regionalverkehr'];
-
-export function isRailGroup(group) {
-  return RAIL_GROUPS.includes(group);
-}
-
 export function passesMuteFilter(group, hiddenGroups) {
   return !hiddenGroups.includes(group);
 }

@@ -539,15 +539,17 @@ export class TaktPanel extends Panel {
     silent.value = '';
     silent.textContent = 'Kein Sound';
     select.appendChild(silent);
-    INSTRUMENTATIONS.forEach((_, label) => {
+    INSTRUMENTATIONS.forEach((instrumentation) => {
       const option = element('option');
-      option.value = label;
-      option.textContent = label;
+      option.value = instrumentation.name;
+      option.textContent = instrumentation.name;
       select.appendChild(option);
     });
     select.addEventListener('change', () => {
       setInstrumentation?.(
-        select.value === '' ? null : INSTRUMENTATIONS.get(select.value),
+        INSTRUMENTATIONS.find(
+          (instrumentation) => instrumentation.name === select.value,
+        ) ?? null,
       );
     });
     this.soundHint = element('p', 'sidebar-hint');
