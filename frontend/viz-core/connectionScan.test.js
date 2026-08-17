@@ -462,3 +462,65 @@ test('the tree names the connections it is made of', () => {
     [36_600, 38_000],
   );
 });
+
+test('a ride runs from where one boards to the last stop one is carried to', () => {
+  const list = listOf(
+    [trip([stop(0, 36_000), stop(1, 36_600), stop(2, 37_200)])],
+    [station(100), station(101), station(102)],
+  );
+
+  const tree = scanOf(list).from(list.stationOf(100), 36_000);
+
+  assert.deepEqual(
+    tree
+      .rides()
+      .map(({ departureTime, arrivalTime }) => [departureTime, arrivalTime]),
+    [[36_000, 37_200]],
+    'one vehicle, ridden in one go',
+  );
+});
+
+test('a ride one joins later starts where one got in', () => {
+  const list = listOf(
+    [
+      trip([stop(0, 36_000), stop(1, 36_600)]),
+      trip([stop(3, 30_000), stop(1, 37_000), stop(2, 38_000)]),
+    ],
+    [station(100), station(101), station(102), station(103)],
+  );
+
+  const tree = scanOf(list).from(list.stationOf(100), 36_000);
+
+  const joined = tree.rides().find((ride) => ride.arrivalTime === 38_000);
+  assert.equal(
+    joined.departureTime,
+    37_000,
+    'the vehicle is drawn from the stop one boards it at, not from its origin',
+  );
+});
+
+test('the tree knows when its last vehicle arrives', () => {
+  const list = listOf(
+    [
+      trip([stop(0, 36_000), stop(1, 36_600)]),
+      trip([stop(1, 37_000), stop(2, 38_500)]),
+    ],
+    [station(100), station(101), station(102)],
+  );
+
+  const tree = scanOf(list).from(list.stationOf(100), 36_000);
+
+  assert.equal(tree.latestArrival(), 38_500);
+});
+
+test('a tree that reaches nowhere ends at the moment it starts', () => {
+  const list = listOf(
+    [trip([stop(0, 36_000), stop(1, 36_600)])],
+    [station(100), station(101)],
+  );
+
+  const tree = scanOf(list).from(list.stationOf(100), 40_000);
+
+  assert.equal(tree.latestArrival(), 40_000);
+  assert.deepEqual(tree.rides(), []);
+});

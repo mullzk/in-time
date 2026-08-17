@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { DEFAULT_TEMPO, MAX_TEMPO, MIN_TEMPO, TimeModel } from './timeModel.js';
+import {
+  DEFAULT_TEMPO,
+  MAX_TEMPO,
+  MIN_TEMPO,
+  SECONDS_PER_DAY,
+  TimeModel,
+} from './timeModel.js';
 
 test('a paused model does not advance', () => {
   const time = new TimeModel(1000, 2000);
@@ -68,4 +74,48 @@ test('an operating window running past midnight is preserved', () => {
   assert.equal(time.rangeEnd, 93_600);
   time.seekToPosition(1);
   assert.equal(time.current, 93_600);
+});
+
+test('a new range starts the clock at its beginning', () => {
+  const time = new TimeModel(0, SECONDS_PER_DAY);
+  time.seekToTime(12 * 3600);
+
+  time.setRange(8 * 3600, 10 * 3600);
+
+  assert.equal(time.current, 8 * 3600);
+  assert.equal(time.scrubberPosition(), 0);
+});
+
+test('a clock in a new range runs to its end and begins again', () => {
+  const time = new TimeModel(0, SECONDS_PER_DAY);
+  time.setRange(8 * 3600, 10 * 3600);
+  time.setTempo(MAX_TEMPO);
+  time.play();
+
+  time.advance(4);
+
+  assert.equal(time.current, 8 * 3600 + 4 * MAX_TEMPO);
+
+  time.advance(5);
+
+  assert.equal(
+    time.current,
+    8 * 3600 + (9 * MAX_TEMPO - 2 * 3600),
+    'past the end it starts over',
+  );
+});
+
+test('a clock that does not repeat stops at the end of its range', () => {
+  const time = new TimeModel(8 * 3600, 10 * 3600, { repeats: false });
+  time.setTempo(MAX_TEMPO);
+  time.play();
+
+  time.advance(4);
+
+  assert.equal(time.current, 8 * 3600 + 4 * MAX_TEMPO, 'still under way');
+
+  time.advance(60);
+
+  assert.equal(time.current, 10 * 3600, 'and comes to rest at the end');
+  assert.equal(time.playing, false);
 });

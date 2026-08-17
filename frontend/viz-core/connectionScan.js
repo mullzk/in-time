@@ -107,6 +107,39 @@ export class ReachabilityTree {
     return reversed.reverse();
   }
 
+  // The vehicles one really rides: a trip boarded once and stayed in until the
+  // last stop it brings one to. Legs the tree drops in between -- a stop one
+  // could already be at earlier -- do not break the ride apart, since one keeps
+  // sitting in the vehicle through them.
+  rides() {
+    const rides = new Map();
+    this.connections().forEach((connection) => {
+      const trip = this._list.trips[connection];
+      const arrivalTime = this._list.arrivalTimes[connection];
+      const ride = rides.get(trip);
+      if (ride === undefined) {
+        rides.set(trip, {
+          trip,
+          departureTime: this._list.departureTimes[this._boardedOn[trip]],
+          arrivalTime,
+        });
+      } else if (arrivalTime > ride.arrivalTime) {
+        ride.arrivalTime = arrivalTime;
+      }
+    });
+    return [...rides.values()];
+  }
+
+  // When the spread comes to rest: the last arrival anywhere. A tree that
+  // reaches nowhere is over the moment it begins.
+  latestArrival() {
+    return this._arrivals.reduce(
+      (latest, arrival) =>
+        arrival === UNREACHED ? latest : Math.max(latest, arrival),
+      this._startTime,
+    );
+  }
+
   // Every leg the tree is made of, each once -- what a panel draws. One leg can
   // stand for several stations at once when it serves an interchange.
   connections() {
