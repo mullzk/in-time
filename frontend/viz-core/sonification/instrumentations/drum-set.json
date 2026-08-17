@@ -1,20 +1,45 @@
 {
   "instrumentation": "Schlagzeug",
   "sound": "bass-drum",
-  "fernverkehr": { "gain": 0.4, "duration": 0.2 },
-  "interregio": { "sound": "snare", "gain": 0.3, "duration": 0.2 },
+  "fernverkehr": {
+    "gain": 0.6,
+    "duration": 0.2,
+    "dwell": {
+      "sound": "closed-hihat",
+      "gain": 0.5
+    }
+  },
+  "interregio": {
+    "dwellType": "none",
+    "sound": "snare",
+    "gain": 0.2,
+    "duration": 0.2
+  },
   "regionalverkehr": {
+    "dwellType": "none",
     "sound": "mid-tom",
     "gain": 0.35,
     "duration": 0.25,
-    "arrival": { "sound": "low-tom", "speed": 1 },
-    "departure": { "sound": "high-tom", "gainFactor": 1 }
+    "arrival": {
+      "sound": "low-tom",
+      "speed": 1
+    },
+    "departure": {
+      "sound": "high-tom",
+      "gainFactor": 1
+    }
   },
   "tram": {
     "dwellType": "none",
     "sound": "ride-cymbal",
-    "gain": 0.3,
+    "gain": 0.2,
     "duration": 0.4
   },
-  "bus": { "dwellType": "none", "gain": 0.25, "duration": 0.2 }
+  "bus": {
+    "sound": "rimshot",
+    "dwellType": "none",
+    "gain": 0.25,
+    "duration": 0.2,
+    "decay": 0.001
+  }
 }

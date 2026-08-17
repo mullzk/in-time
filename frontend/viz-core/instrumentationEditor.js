@@ -2,7 +2,7 @@ import { element } from './dom.js';
 import { seedTextFrom } from './sonification/customInstrumentation.js';
 import { allSounds } from './sonification/sounds/registry.js';
 
-const DOWNLOAD_FILE_NAME = 'eigene-vertonung.json';
+const FALLBACK_FILE_STEM = 'eigene-vertonung';
 
 const KIND_LABELS = {
   pitched: 'Klangfarben mit Tonhöhe',
@@ -34,6 +34,15 @@ const FORMAT_NOTES = [
     'gain, note, pan (left, center, right oder 0 bis 1), attack, decay, sustain, release, speed, cutoff. Dazu duration als Haltedauer, noteAdjust (Halbtöne auf note) und gainFactor (Faktor auf gain).',
   ],
 ];
+
+// The name is written by hand, so everything a file system could stumble over
+// becomes a hyphen; a name made of nothing else falls back to a fixed stem.
+export function downloadFileNameFor(instrumentationName) {
+  const stem = instrumentationName
+    .replace(/[^\p{Letter}\p{Number}]+/gu, '-')
+    .replace(/^-+|-+$/g, '');
+  return `${stem || FALLBACK_FILE_STEM}.json`;
+}
 
 const soundNameRows = () =>
   Object.entries(KIND_LABELS).map(([kind, label]) => [
@@ -174,6 +183,7 @@ export class InstrumentationEditor {
     this.messageLine.textContent = error ?? '';
     this.downloadButton.disabled = error !== undefined;
     if (instrumentation) {
+      this.instrumentationName = instrumentation.name;
       this.onInstrumentationChanged(instrumentation);
     }
   }
@@ -187,7 +197,7 @@ export class InstrumentationEditor {
     );
     const link = element('a');
     link.href = url;
-    link.download = DOWNLOAD_FILE_NAME;
+    link.download = downloadFileNameFor(this.instrumentationName);
     this.panel.appendChild(link);
     link.click();
     link.remove();
