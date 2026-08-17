@@ -90,3 +90,7 @@ def stations_road(request: HttpRequest) -> HttpResponse:
 
 def takt(request: HttpRequest) -> HttpResponse:
     return render(request, "web/takt.html")
+
+
+def reisezeit(request: HttpRequest) -> HttpResponse:
+    return render(request, "web/reisezeit.html")

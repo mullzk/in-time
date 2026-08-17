@@ -27,6 +27,10 @@ import {
 const isExhibition = () =>
   new URLSearchParams(window.location.search).get('mode') === 'exhibition';
 
+const BLACK_BACKGROUND = BACKGROUNDS.find(
+  (background) => background.id === 'black',
+);
+
 // The frame every panel runs in: it owns the camera, the render core and all
 // global controls (background, zoom, info, fullscreen, search, cockpit), and
 // mounts the sections the panel supplies. The panel is asked for its own
@@ -38,7 +42,11 @@ export class PanelShell {
     this.panel = panel;
     this.time = time;
     this.exhibition = isExhibition();
-    this.background = BACKGROUNDS[0];
+    // A panel that draws no map has no use for a ground under it: it gets the
+    // black one and no chooser, rather than a relief nobody can see.
+    this.background = panel.capabilities.mapBackground
+      ? BACKGROUNDS[0]
+      : BLACK_BACKGROUND;
     this.camera = new Camera(root.clientWidth, root.clientHeight);
     this.context = new PanelContext({
       camera: this.camera,
@@ -66,16 +74,16 @@ export class PanelShell {
     }
     this.stationSearch = this.panel.capabilities.stationSearch
       ? new StationSearch(this.root, this.panel.stationCatalog(), {
-          onSelect: (station) => this.selection.revealStation(station),
+          onSelect: (station) => this.#chooseStation(station),
         })
       : null;
-    this.selection = new MapSelection(this.root, this.panel, this.context, {
-      onStationChosen: (station) => {
-        this.sonifier?.setStation(station);
-        this.panel.setSonifiedStation?.(station);
-        this.stationSearch?.showSelection(station);
-      },
-    });
+    // Picking on the canvas needs a map to pick on: only a panel drawing one
+    // gets tap, hover and their popovers. Elsewhere a station is chosen by name.
+    this.selection = this.panel.capabilities.stationPicking
+      ? new MapSelection(this.root, this.panel, this.context, {
+          onStationChosen: (station) => this.#adoptStation(station),
+        })
+      : null;
     this.infoModal = new InfoModal(this.root, this.panel.infoContent());
     this.root.appendChild(this.#fullscreenToggle());
 
@@ -87,8 +95,25 @@ export class PanelShell {
     });
     new VizCore(this.root, this.panel, this.context, {
       onFrameRendered: () => this.#onFrameRendered(),
-      onCanvasReady: (canvasElement) => this.selection.attachTo(canvasElement),
+      onCanvasReady: (canvasElement) => this.selection?.attachTo(canvasElement),
     });
+  }
+
+  // Choosing by name goes the same way as choosing on the map, so a panel is
+  // told once, however the station was reached.
+  #chooseStation(station) {
+    if (this.selection) {
+      this.selection.revealStation(station);
+      return;
+    }
+    this.panel.revealStation(station);
+    this.#adoptStation(station);
+  }
+
+  #adoptStation(station) {
+    this.sonifier?.setStation(station);
+    this.panel.setSonifiedStation?.(station);
+    this.stationSearch?.showSelection(station);
   }
 
   // An own instrumentation outlives the page it was written on, so it is offered
@@ -157,7 +182,7 @@ export class PanelShell {
 
   #onFrameRendered() {
     this.cockpit.sync();
-    this.selection.onFrameRendered();
+    this.selection?.onFrameRendered();
     this.sonifier?.onFrameRendered();
     this.#syncZoomSlider();
   }
@@ -173,12 +198,16 @@ export class PanelShell {
     });
     return sectionsToMount(
       [
-        {
-          id: 'background',
-          title: 'Hintergrund',
-          element: this.#backgroundControl(),
-          keepInExhibition: true,
-        },
+        ...(this.panel.capabilities.mapBackground
+          ? [
+              {
+                id: 'background',
+                title: 'Hintergrund',
+                element: this.#backgroundControl(),
+                keepInExhibition: true,
+              },
+            ]
+          : []),
         {
           id: 'zoom',
           title: 'Zoom',

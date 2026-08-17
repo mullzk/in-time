@@ -37,6 +37,13 @@ export class ReachabilityTree {
       : null;
   }
 
+  // The connection one arrived on, which also names where one came from -- the
+  // edge of the tree that ends at this station.
+  arrivedOn(stationIndex) {
+    const connection = this._arrivedOn[stationIndex];
+    return connection === NO_CONNECTION ? null : connection;
+  }
+
   reachedStations() {
     return Array.from(this._arrivals).flatMap((arrival, stationIndex) =>
       arrival === UNREACHED ? [] : [stationIndex],

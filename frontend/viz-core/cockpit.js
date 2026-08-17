@@ -36,7 +36,11 @@ export class Cockpit {
       this.root.appendChild(this.#buildScrubber());
     }
 
-    container.appendChild(this.root);
+    // A panel that declares no time controls leaves nothing to show; an empty
+    // cockpit would still float over the canvas as a bare pill.
+    if (this.root.childElementCount > 0) {
+      container.appendChild(this.root);
+    }
   }
 
   #buildTempo() {

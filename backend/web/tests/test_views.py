@@ -143,3 +143,12 @@ def test_takt_serves_the_html_shell(client: Client, published: Path) -> None:
     markup = response.content.decode("utf-8")
     assert "/api/config" in markup
     assert "/static/" in markup
+
+
+def test_reisezeit_serves_its_own_shell(client: Client, published: Path) -> None:
+    response = client.get("/reisezeit")
+
+    assert response.status_code == 200
+    markup = response.content.decode("utf-8")
+    assert "/api/config" in markup
+    assert "reisezeit/main" in markup

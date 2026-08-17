@@ -108,6 +108,10 @@ export class StationCatalog {
     });
   }
 
+  entryOf(didok) {
+    return this._byDidok.get(didok) ?? null;
+  }
+
   matching(query) {
     const normalized = normalizeForSearch(query);
     if (normalized === '') {

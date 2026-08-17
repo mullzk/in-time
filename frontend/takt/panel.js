@@ -236,6 +236,8 @@ export class TaktPanel extends Panel {
     simulationSpeed: true,
     fullDayScrubber: true,
     stationSearch: true,
+    stationPicking: true,
+    mapBackground: true,
     sonification: true,
   };
 
