@@ -11,16 +11,25 @@
 // to each other at no cost, and the transfer time is paid once, on boarding.
 export const MINIMUM_TRANSFER_SECONDS = 120;
 
+// Nobody stands two hours on a platform to get somewhere. A departure further
+// away than this is not boarded, and whatever it alone would have opened up is
+// not reached -- the picture shows where one travels to, not where one could end
+// up after an evening on a bench. Sitting in a vehicle is not waiting, however
+// long it stands.
+export const MAXIMUM_WAIT_SECONDS = 2 * 3600;
+
 const UNREACHED = Number.POSITIVE_INFINITY;
+const NO_DEPARTURE_WINDOW = Number.NEGATIVE_INFINITY;
 const NO_CONNECTION = -1;
 
 export class ReachabilityTree {
-  constructor(list, startStation, startTime, arrivals, arrivedOn) {
+  constructor(list, startStation, startTime, arrivals, arrivedOn, boardedOn) {
     this._list = list;
     this._startStation = startStation;
     this._startTime = startTime;
     this._arrivals = arrivals;
     this._arrivedOn = arrivedOn;
+    this._boardedOn = boardedOn;
   }
 
   isReached(stationIndex) {
@@ -44,6 +53,41 @@ export class ReachabilityTree {
     return connection === NO_CONNECTION ? null : connection;
   }
 
+  // How one came to a station: the ride that ends there, told from where one
+  // got in. Usually that is the stop before, but a vehicle boarded earlier
+  // passes stops one could have been at long ago by another route -- sitting in
+  // it is no wait, and the leg must not pretend one stood there.
+  legInto(stationIndex) {
+    const arriving = this._arrivedOn[stationIndex];
+    if (arriving === NO_CONNECTION) {
+      return null;
+    }
+    const trip = this._list.trips[arriving];
+    const rodeThrough = this.#rodeThroughTheStopBefore(arriving);
+    const boarding = rodeThrough ? arriving : this._boardedOn[trip];
+    const fromStation = this._list.departureStations[boarding];
+    const departureTime = this._list.departureTimes[boarding];
+    return {
+      fromStation,
+      departureTime,
+      arrivalTime: this._list.arrivalTimes[arriving],
+      trip,
+      // Sitting in the vehicle is not waiting, however long it stands; only
+      // what passes before one gets in counts.
+      waitSeconds: rodeThrough
+        ? 0
+        : departureTime - this._arrivals[fromStation],
+    };
+  }
+
+  #rodeThroughTheStopBefore(connection) {
+    const before = this._arrivedOn[this._list.departureStations[connection]];
+    return (
+      before !== NO_CONNECTION &&
+      this._list.trips[before] === this._list.trips[connection]
+    );
+  }
+
   reachedStations() {
     return Array.from(this._arrivals).flatMap((arrival, stationIndex) =>
       arrival === UNREACHED ? [] : [stationIndex],
@@ -57,9 +101,8 @@ export class ReachabilityTree {
     const reversed = [];
     let station = stationIndex;
     while (station !== this._startStation && this.isReached(station)) {
-      const connection = this._arrivedOn[station];
-      reversed.push(connection);
-      station = this._list.departureStations[connection];
+      reversed.push(this._arrivedOn[station]);
+      station = this.legInto(station).fromStation;
     }
     return reversed.reverse();
   }
@@ -80,23 +123,40 @@ export class ReachabilityTree {
 export class ConnectionScan {
   constructor(
     list,
-    { minimumTransferSeconds = MINIMUM_TRANSFER_SECONDS } = {},
+    {
+      minimumTransferSeconds = MINIMUM_TRANSFER_SECONDS,
+      maximumWaitSeconds = MAXIMUM_WAIT_SECONDS,
+    } = {},
   ) {
     this._list = list;
     this._minimumTransferSeconds = minimumTransferSeconds;
+    this._maximumWaitSeconds = maximumWaitSeconds;
     this._arrivals = new Float64Array(list.stationCount);
     this._boardableFrom = new Float64Array(list.stationCount);
+    this._boardableUntil = new Float64Array(list.stationCount);
     this._arrivedOn = new Int32Array(list.stationCount);
     this._boarded = new Uint8Array(list.tripCount);
+    this._boardedOn = new Int32Array(list.tripCount);
   }
 
   from(startStation, startTimeSeconds) {
     this._arrivals.fill(UNREACHED);
     this._boardableFrom.fill(UNREACHED);
+    this._boardableUntil.fill(NO_DEPARTURE_WINDOW);
     this._arrivedOn.fill(NO_CONNECTION);
     this._boarded.fill(0);
+    this._boardedOn.fill(NO_CONNECTION);
     this._arrivals[startStation] = startTimeSeconds;
     this._boardableFrom[startStation] = startTimeSeconds;
+    this._boardableUntil[startStation] =
+      startTimeSeconds + this._maximumWaitSeconds;
+    // One is not only at the stop one named but at its whole interchange: the
+    // bus stop in front of the station is where one already stands, reached at
+    // no cost, boardable once one has walked across.
+    this._list.clusterSiblingsOf(startStation).forEach((sibling) => {
+      this._arrivals[sibling] = startTimeSeconds;
+      this.#allowBoardingAt(sibling, startTimeSeconds);
+    });
     this.#scanFrom(this.#firstConnectionLeavingAt(startTimeSeconds));
     return new ReachabilityTree(
       this._list,
@@ -104,6 +164,7 @@ export class ConnectionScan {
       startTimeSeconds,
       Float64Array.from(this._arrivals),
       Int32Array.from(this._arrivedOn),
+      Int32Array.from(this._boardedOn),
     );
   }
 
@@ -134,12 +195,17 @@ export class ConnectionScan {
     let connection = firstConnection;
     while (connection < list.connectionCount) {
       const trip = list.trips[connection];
+      const from = list.departureStations[connection];
+      const departure = list.departureTimes[connection];
       const boardable =
         this._boarded[trip] === 1 ||
-        this._boardableFrom[list.departureStations[connection]] <=
-          list.departureTimes[connection];
+        (this._boardableFrom[from] <= departure &&
+          departure <= this._boardableUntil[from]);
       if (boardable) {
-        this._boarded[trip] = 1;
+        if (this._boarded[trip] === 0) {
+          this._boarded[trip] = 1;
+          this._boardedOn[trip] = connection;
+        }
         this.#arrive(connection);
       }
       connection += 1;
@@ -164,10 +230,13 @@ export class ConnectionScan {
     });
   }
 
+  // Arriving at a place opens a window on its departures: from the moment one
+  // can have changed vehicles until patience runs out.
   #allowBoardingAt(station, arrival) {
     const boardable = arrival + this._minimumTransferSeconds;
     if (boardable < this._boardableFrom[station]) {
       this._boardableFrom[station] = boardable;
+      this._boardableUntil[station] = arrival + this._maximumWaitSeconds;
     }
   }
 }
