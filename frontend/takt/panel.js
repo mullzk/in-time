@@ -215,6 +215,22 @@ const didokToIndex = (stations) =>
 const SOUND_STATION_HINT =
   'Sound erklingt erst, wenn eine Station gewählt ist.';
 
+// The dropdown is keyed by option value, not by name: an own instrumentation may
+// carry the name of a delivered one, and then only the value tells them apart.
+export const SILENT_OPTION_VALUE = '';
+export const CUSTOM_OPTION_VALUE = 'custom';
+export const presetOptionValue = (index) => `preset-${index}`;
+
+export function instrumentationForOptionValue(value, customInstrumentation) {
+  if (value === CUSTOM_OPTION_VALUE) {
+    return customInstrumentation;
+  }
+  return (
+    INSTRUMENTATIONS.find((_, index) => presetOptionValue(index) === value) ??
+    null
+  );
+}
+
 export class TaktPanel extends Panel {
   capabilities = {
     simulationSpeed: true,
@@ -244,6 +260,8 @@ export class TaktPanel extends Panel {
     this.currentTimeSeconds = 0;
     this.sonifiedStation = null;
     this.soundHint = null;
+    this.customInstrumentation = null;
+    this.customOption = null;
     this.holdBackground = null;
     this.background = BACKGROUNDS[0];
     this.previousZoomFraction = null;
@@ -450,7 +468,11 @@ export class TaktPanel extends Panel {
       : (CATEGORY_COLORS[category] ?? FALLBACK_COLOR);
   }
 
-  sidebarSections({ setInstrumentation, holdBackground } = {}) {
+  sidebarSections({
+    setInstrumentation,
+    toggleInstrumentationEditor,
+    holdBackground,
+  } = {}) {
     this.holdBackground = holdBackground;
     const sections = [
       {
@@ -471,7 +493,10 @@ export class TaktPanel extends Panel {
       sections.push({
         id: 'sound',
         title: 'Sound',
-        element: this.#soundControl(setInstrumentation),
+        element: this.#soundControl(
+          setInstrumentation,
+          toggleInstrumentationEditor,
+        ),
         keepInExhibition: true,
       });
     }
@@ -530,33 +555,98 @@ export class TaktPanel extends Panel {
     }
   }
 
-  // A single dropdown selects the instrumentation; "Kein Sound" is silence. The
+  // A single dropdown selects the instrumentation; "Kein Sound" is silence. An
+  // own instrumentation joins the list only once one has been written, and the
+  // way to write one sits right under the dropdown -- it is a further way to
+  // choose a sound, not a topic of its own. Without a way to reach the drawer
+  // the button stays away, which is how the exhibition does without it. The
   // sonified station, tempo and per-group mutes come from the existing controls.
-  #soundControl(setInstrumentation) {
+  #soundControl(setInstrumentation, toggleInstrumentationEditor) {
     const group = element('div', 'sidebar-options');
-    const select = element('select', 'sidebar-select');
-    const silent = element('option');
-    silent.value = '';
-    silent.textContent = 'Kein Sound';
-    select.appendChild(silent);
-    INSTRUMENTATIONS.forEach((instrumentation) => {
-      const option = element('option');
-      option.value = instrumentation.name;
-      option.textContent = instrumentation.name;
-      select.appendChild(option);
-    });
-    select.addEventListener('change', () => {
-      setInstrumentation?.(
-        INSTRUMENTATIONS.find(
-          (instrumentation) => instrumentation.name === select.value,
-        ) ?? null,
+    this.soundSelect = element('select', 'sidebar-select');
+    this.soundSelect.appendChild(
+      this.#soundOption(SILENT_OPTION_VALUE, 'Kein Sound'),
+    );
+    INSTRUMENTATIONS.forEach((instrumentation, index) => {
+      this.soundSelect.appendChild(
+        this.#soundOption(presetOptionValue(index), instrumentation.name),
       );
     });
+    this.soundSelect.addEventListener('change', () =>
+      setInstrumentation?.(this.#selectedInstrumentation()),
+    );
     this.soundHint = element('p', 'sidebar-hint');
     this.soundHint.textContent = SOUND_STATION_HINT;
     this.#syncSoundHint();
-    group.append(select, this.soundHint);
+    group.append(this.soundSelect, this.soundHint);
+    if (toggleInstrumentationEditor) {
+      group.appendChild(this.#ownSoundButton(toggleInstrumentationEditor));
+    }
     return group;
+  }
+
+  #soundOption(value, label) {
+    const option = element('option');
+    option.value = value;
+    option.textContent = label;
+    return option;
+  }
+
+  #ownSoundButton(toggleInstrumentationEditor) {
+    const button = element('button', 'instrumentation-editor-open');
+    button.type = 'button';
+    button.textContent = 'Selber vertonen';
+    button.addEventListener('click', () =>
+      toggleInstrumentationEditor(this.#templateDocument()),
+    );
+    return button;
+  }
+
+  // What a new own instrumentation starts from: what is being listened to right
+  // now, or the first delivered one while nothing sounds.
+  #templateDocument() {
+    return (this.#selectedInstrumentation() ?? INSTRUMENTATIONS[0]).document;
+  }
+
+  #selectedInstrumentation() {
+    return instrumentationForOptionValue(
+      this.soundSelect.value,
+      this.customInstrumentation,
+    );
+  }
+
+  // The editor announces every version that plays; the dropdown carries it under
+  // its current name, so renaming it in the document renames it here.
+  offerCustomInstrumentation(instrumentation) {
+    this.customInstrumentation = instrumentation;
+    if (!this.customOption) {
+      this.customOption = this.#soundOption(CUSTOM_OPTION_VALUE, '');
+      this.soundSelect.appendChild(this.customOption);
+    }
+    this.customOption.textContent = instrumentation.name;
+  }
+
+  // While the drawer is open, its document is what is being listened to --
+  // otherwise writing it would say nothing about how it sounds.
+  useCustomInstrumentation(instrumentation) {
+    this.offerCustomInstrumentation(instrumentation);
+    this.soundSelect.value = CUSTOM_OPTION_VALUE;
+  }
+
+  // The discarded document leaves the dropdown with it. Whoever was listening to
+  // it falls back to silence, while a listener who had meanwhile picked a
+  // delivered instrumentation keeps hearing it -- hence the answer of what plays
+  // now rather than a fixed one.
+  forgetCustomInstrumentation() {
+    const remaining =
+      this.soundSelect.value === CUSTOM_OPTION_VALUE
+        ? SILENT_OPTION_VALUE
+        : this.soundSelect.value;
+    this.customInstrumentation = null;
+    this.customOption?.remove();
+    this.customOption = null;
+    this.soundSelect.value = remaining;
+    return this.#selectedInstrumentation();
   }
 
   // An instrument on its own stays silent: the sonifier voices one chosen

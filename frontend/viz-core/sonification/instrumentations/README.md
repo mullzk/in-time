@@ -3,9 +3,16 @@
 An instrumentation is a JSON document that says what a station sounds like:
 which sound each transport group plays, and how its events differ. The four
 documents in this directory are what the sidebar offers; they use nothing a
-document of your own could not use. Bringing one along still wants a way to
-choose the file, which does not exist yet — for now a document joins the four by
-being added here and imported in `../presets.js`.
+document of your own could not use.
+
+To write one, open the sidebar's _Selber vertonen_ and edit the document in the
+drawer that appears on the right. Every keystroke is checked: as long as it
+plays, it is heard at the chosen station right away and kept in the browser, so
+it survives a reload and stays in the dropdown; while it does not, the drawer
+names the mistake and the last working version keeps playing. _Herunterladen_
+hands the document out as a file — it lives in the browser only, never on the
+server. A document joins the four delivered ones by being added here and
+imported in `../presets.js`.
 
 ## The shape of a document
 

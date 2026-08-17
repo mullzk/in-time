@@ -1,114 +1,170 @@
 {
-  "Sound-Familien": {
+  "Marimba": {
     "fernverkehr": {
       "arrival": {
-        "durationSeconds": 0.3,
+        "durationSeconds": 0.5,
         "parameters": {
-          "s": "sine",
-          "attack": 0.002,
-          "decay": 0.15,
-          "sustain": 0.15,
-          "release": 1.2,
-          "gain": 0.35,
-          "fmi": 8,
-          "fmh": 3.01,
-          "note": 71,
-          "pan": 0.35
+          "s": "gm_marimba",
+          "attack": 0.001,
+          "decay": 0.05,
+          "sustain": 1,
+          "release": 1.1,
+          "gain": 0.42,
+          "note": 57,
+          "pan": 0.5
         }
       },
       "departure": {
-        "durationSeconds": 0.3,
+        "durationSeconds": 0.5,
         "parameters": {
-          "s": "sine",
-          "attack": 0.002,
-          "decay": 0.15,
-          "sustain": 0.15,
-          "release": 1.2,
-          "gain": 0.35,
-          "fmi": 8,
-          "fmh": 3.01,
-          "note": 76,
-          "pan": 0.65
+          "s": "gm_marimba",
+          "attack": 0.001,
+          "decay": 0.05,
+          "sustain": 1,
+          "release": 1.1,
+          "gain": 0.42,
+          "note": 57,
+          "pan": 0.5
         }
       },
       "passthrough": {
-        "durationSeconds": 0.3,
+        "durationSeconds": 0.5,
         "parameters": {
-          "s": "sine",
-          "attack": 0.002,
-          "decay": 0.15,
-          "sustain": 0.15,
-          "release": 1.2,
-          "gain": 0.35,
-          "fmi": 8,
-          "fmh": 3.01,
-          "note": 76,
+          "s": "gm_marimba",
+          "attack": 0.001,
+          "decay": 0.05,
+          "sustain": 1,
+          "release": 1.1,
+          "gain": 0.42,
+          "note": 57,
           "pan": 0.5
         }
       },
       "dwell": [
         {
           "offsetSeconds": 0,
-          "durationSeconds": 2,
+          "durationSeconds": 0.3333333333333333,
           "parameters": {
-            "s": "sine",
-            "attack": 0.05,
-            "decay": 0.1,
-            "sustain": 0.8,
-            "release": 0.3,
-            "gain": 0.05,
-            "fmi": 8,
-            "fmh": 3.01,
-            "note": 64,
+            "s": "gm_marimba",
+            "attack": 0.12,
+            "decay": 1.5,
+            "sustain": 0.2,
+            "release": 0.7,
+            "gain": 0.17639999999999997,
+            "note": 57,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 0.3333333333333333,
+          "durationSeconds": 0.3333333333333333,
+          "parameters": {
+            "s": "gm_marimba",
+            "attack": 0.12,
+            "decay": 1.5,
+            "sustain": 0.2,
+            "release": 0.7,
+            "gain": 0.17639999999999997,
+            "note": 57,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 0.6666666666666666,
+          "durationSeconds": 0.33333333333333337,
+          "parameters": {
+            "s": "gm_marimba",
+            "attack": 0.12,
+            "decay": 1.5,
+            "sustain": 0.2,
+            "release": 0.7,
+            "gain": 0.17639999999999997,
+            "note": 57,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 1,
+          "durationSeconds": 0.33333333333333326,
+          "parameters": {
+            "s": "gm_marimba",
+            "attack": 0.12,
+            "decay": 1.5,
+            "sustain": 0.2,
+            "release": 0.7,
+            "gain": 0.17639999999999997,
+            "note": 57,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 1.3333333333333333,
+          "durationSeconds": 0.3333333333333335,
+          "parameters": {
+            "s": "gm_marimba",
+            "attack": 0.12,
+            "decay": 1.5,
+            "sustain": 0.2,
+            "release": 0.7,
+            "gain": 0.17639999999999997,
+            "note": 57,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 1.6666666666666667,
+          "durationSeconds": 0.33333333333333326,
+          "parameters": {
+            "s": "gm_marimba",
+            "attack": 0.12,
+            "decay": 1.5,
+            "sustain": 0.2,
+            "release": 0.7,
+            "gain": 0.17639999999999997,
+            "note": 57,
             "pan": 0.5
           }
         }
       ],
-      "sources": ["sine"]
+      "sources": ["gm_marimba"]
     },
     "interregio": {
       "arrival": {
         "durationSeconds": 0.3,
         "parameters": {
-          "s": "sine",
-          "attack": 0.002,
-          "decay": 0.13,
-          "sustain": 0.15,
-          "release": 1,
-          "gain": 0.3,
-          "fmi": 6,
-          "fmh": 3.01,
-          "note": 66,
+          "s": "gm_marimba",
+          "attack": 0.001,
+          "decay": 0.05,
+          "sustain": 1,
+          "release": 0.6,
+          "gain": 0.36,
+          "note": 53,
           "pan": 0.35
         }
       },
       "departure": {
         "durationSeconds": 0.3,
         "parameters": {
-          "s": "sine",
-          "attack": 0.002,
-          "decay": 0.13,
-          "sustain": 0.15,
-          "release": 1,
-          "gain": 0.3,
-          "fmi": 6,
-          "fmh": 3.01,
-          "note": 71,
+          "s": "gm_marimba",
+          "attack": 0.001,
+          "decay": 0.05,
+          "sustain": 1,
+          "release": 0.6,
+          "gain": 0.36,
+          "note": 58,
           "pan": 0.65
         }
       },
       "passthrough": {
         "durationSeconds": 0.3,
         "parameters": {
-          "s": "sine",
-          "attack": 0.002,
-          "decay": 0.13,
-          "sustain": 0.15,
-          "release": 1,
-          "gain": 0.3,
-          "fmi": 6,
-          "fmh": 3.01,
-          "note": 71,
+          "s": "gm_marimba",
+          "attack": 0.001,
+          "decay": 0.05,
+          "sustain": 1,
+          "release": 0.6,
+          "gain": 0.36,
+          "note": 58,
           "pan": 0.5
         }
       },
@@ -117,64 +173,56 @@
           "offsetSeconds": 0,
           "durationSeconds": 2,
           "parameters": {
-            "s": "sine",
+            "s": "gm_marimba",
             "attack": 0.05,
             "decay": 0.1,
             "sustain": 0.8,
             "release": 0.3,
             "gain": 0.05,
-            "fmi": 6,
-            "fmh": 3.01,
-            "note": 59,
+            "note": 46,
             "pan": 0.5
           }
         }
       ],
-      "sources": ["sine"]
+      "sources": ["gm_marimba"]
     },
     "regionalverkehr": {
       "arrival": {
         "durationSeconds": 0.2,
         "parameters": {
-          "s": "sawtooth",
-          "attack": 0.005,
-          "decay": 0.18,
-          "sustain": 0,
-          "release": 0.25,
-          "gain": 0.25,
-          "cutoff": 1400,
-          "resonance": 8,
-          "note": 52,
+          "s": "gm_marimba",
+          "attack": 0.001,
+          "decay": 0.05,
+          "sustain": 1,
+          "release": 0.35,
+          "gain": 0.3,
+          "note": 54,
           "pan": 0.35
         }
       },
       "departure": {
         "durationSeconds": 0.2,
         "parameters": {
-          "s": "sawtooth",
-          "attack": 0.005,
-          "decay": 0.18,
-          "sustain": 0,
-          "release": 0.25,
-          "gain": 0.25,
-          "cutoff": 1400,
-          "resonance": 8,
-          "note": 57,
+          "s": "gm_marimba",
+          "attack": 0.001,
+          "decay": 0.05,
+          "sustain": 1,
+          "release": 0.35,
+          "gain": 0.3,
+          "note": 59,
           "pan": 0.65
         }
       },
       "passthrough": {
         "durationSeconds": 0.2,
         "parameters": {
-          "s": "sawtooth",
-          "attack": 0.005,
-          "decay": 0.18,
-          "sustain": 0,
-          "release": 0.25,
-          "gain": 0.25,
-          "cutoff": 1400,
-          "resonance": 8,
-          "note": 57,
+          "s": "gm_marimba",
+          "attack": 0.001,
+          "decay": 0.05,
+          "sustain": 1,
+          "release": 0.35,
+          "gain": 0.3,
+          "note": 59,
           "pan": 0.5
         }
       },
@@ -183,115 +231,104 @@
           "offsetSeconds": 0,
           "durationSeconds": 2,
           "parameters": {
-            "s": "sawtooth",
+            "s": "gm_marimba",
             "attack": 0.05,
             "decay": 0.1,
             "sustain": 0.8,
             "release": 0.3,
             "gain": 0.05,
-            "cutoff": 1400,
-            "resonance": 8,
-            "note": 45,
+            "note": 47,
             "pan": 0.5
           }
         }
       ],
-      "sources": ["sawtooth"]
+      "sources": ["gm_marimba"]
     },
     "tram": {
       "arrival": {
-        "durationSeconds": 0.25,
+        "durationSeconds": 0.06,
         "parameters": {
-          "s": "sine",
-          "attack": 0.002,
-          "decay": 0.12,
-          "sustain": 0.1,
-          "release": 0.8,
-          "gain": 0.35,
-          "fmi": 5,
-          "fmh": 2,
-          "note": 64,
+          "s": "gm_marimba",
+          "attack": 0.001,
+          "decay": 0.05,
+          "sustain": 1,
+          "release": 0.08,
+          "gain": 0.25,
+          "note": 57,
           "pan": 0.35
         }
       },
       "departure": {
-        "durationSeconds": 0.25,
+        "durationSeconds": 0.06,
         "parameters": {
-          "s": "sine",
-          "attack": 0.002,
-          "decay": 0.12,
-          "sustain": 0.1,
-          "release": 0.8,
-          "gain": 0.35,
-          "fmi": 5,
-          "fmh": 2,
-          "note": 69,
+          "s": "gm_marimba",
+          "attack": 0.001,
+          "decay": 0.05,
+          "sustain": 1,
+          "release": 0.08,
+          "gain": 0.25,
+          "note": 62,
           "pan": 0.65
         }
       },
       "passthrough": {
-        "durationSeconds": 0.25,
+        "durationSeconds": 0.06,
         "parameters": {
-          "s": "sine",
-          "attack": 0.002,
-          "decay": 0.12,
-          "sustain": 0.1,
-          "release": 0.8,
-          "gain": 0.35,
-          "fmi": 5,
-          "fmh": 2,
-          "note": 69,
+          "s": "gm_marimba",
+          "attack": 0.001,
+          "decay": 0.05,
+          "sustain": 1,
+          "release": 0.08,
+          "gain": 0.25,
+          "note": 62,
           "pan": 0.5
         }
       },
       "dwell": null,
-      "sources": ["sine"]
+      "sources": ["gm_marimba"]
     },
     "bus": {
       "arrival": {
-        "durationSeconds": 0.08,
+        "durationSeconds": 0.1,
         "parameters": {
-          "s": "pink",
+          "s": "gm_marimba",
           "attack": 0.001,
           "decay": 0.05,
-          "sustain": 0,
-          "release": 0.05,
-          "gain": 0.18,
-          "bandf": 900,
-          "bandq": 6,
+          "sustain": 1,
+          "release": 0.15,
+          "gain": 0.25,
+          "note": 56,
           "pan": 0.35
         }
       },
       "departure": {
-        "durationSeconds": 0.08,
+        "durationSeconds": 0.1,
         "parameters": {
-          "s": "pink",
+          "s": "gm_marimba",
           "attack": 0.001,
           "decay": 0.05,
-          "sustain": 0,
-          "release": 0.05,
-          "gain": 0.18,
-          "bandf": 900,
-          "bandq": 6,
+          "sustain": 1,
+          "release": 0.15,
+          "gain": 0.25,
+          "note": 61,
           "pan": 0.65
         }
       },
       "passthrough": {
-        "durationSeconds": 0.08,
+        "durationSeconds": 0.1,
         "parameters": {
-          "s": "pink",
+          "s": "gm_marimba",
           "attack": 0.001,
           "decay": 0.05,
-          "sustain": 0,
-          "release": 0.05,
-          "gain": 0.18,
-          "bandf": 900,
-          "bandq": 6,
+          "sustain": 1,
+          "release": 0.15,
+          "gain": 0.25,
+          "note": 61,
           "pan": 0.5
         }
       },
       "dwell": null,
-      "sources": ["pink"]
+      "sources": ["gm_marimba"]
     }
   },
   "Schlagzeug": {
@@ -876,7 +913,7 @@
       "sources": ["bd"]
     }
   },
-  "Gitarre (gedämpft)": {
+  "Gitarre": {
     "fernverkehr": {
       "arrival": {
         "durationSeconds": 0.4,
@@ -1138,172 +1175,116 @@
       "sources": ["gm_electric_guitar_muted"]
     }
   },
-  "Marimba (GM)": {
+  "Synths": {
     "fernverkehr": {
       "arrival": {
-        "durationSeconds": 0.5,
+        "durationSeconds": 0.3,
         "parameters": {
-          "s": "gm_marimba",
-          "attack": 0.001,
-          "decay": 0.05,
-          "sustain": 1,
-          "release": 1.1,
-          "gain": 0.42,
-          "note": 57,
-          "pan": 0.5
+          "s": "sine",
+          "attack": 0.002,
+          "decay": 0.15,
+          "sustain": 0.15,
+          "release": 1.2,
+          "gain": 0.35,
+          "fmi": 8,
+          "fmh": 3.01,
+          "note": 71,
+          "pan": 0.35
         }
       },
       "departure": {
-        "durationSeconds": 0.5,
+        "durationSeconds": 0.3,
         "parameters": {
-          "s": "gm_marimba",
-          "attack": 0.001,
-          "decay": 0.05,
-          "sustain": 1,
-          "release": 1.1,
-          "gain": 0.42,
-          "note": 57,
-          "pan": 0.5
+          "s": "sine",
+          "attack": 0.002,
+          "decay": 0.15,
+          "sustain": 0.15,
+          "release": 1.2,
+          "gain": 0.35,
+          "fmi": 8,
+          "fmh": 3.01,
+          "note": 76,
+          "pan": 0.65
         }
       },
       "passthrough": {
-        "durationSeconds": 0.5,
+        "durationSeconds": 0.3,
         "parameters": {
-          "s": "gm_marimba",
-          "attack": 0.001,
-          "decay": 0.05,
-          "sustain": 1,
-          "release": 1.1,
-          "gain": 0.42,
-          "note": 57,
+          "s": "sine",
+          "attack": 0.002,
+          "decay": 0.15,
+          "sustain": 0.15,
+          "release": 1.2,
+          "gain": 0.35,
+          "fmi": 8,
+          "fmh": 3.01,
+          "note": 76,
           "pan": 0.5
         }
       },
       "dwell": [
         {
           "offsetSeconds": 0,
-          "durationSeconds": 0.3333333333333333,
+          "durationSeconds": 2,
           "parameters": {
-            "s": "gm_marimba",
-            "attack": 0.12,
-            "decay": 1.5,
-            "sustain": 0.2,
-            "release": 0.7,
-            "gain": 0.17639999999999997,
-            "note": 57,
-            "pan": 0.5
-          }
-        },
-        {
-          "offsetSeconds": 0.3333333333333333,
-          "durationSeconds": 0.3333333333333333,
-          "parameters": {
-            "s": "gm_marimba",
-            "attack": 0.12,
-            "decay": 1.5,
-            "sustain": 0.2,
-            "release": 0.7,
-            "gain": 0.17639999999999997,
-            "note": 57,
-            "pan": 0.5
-          }
-        },
-        {
-          "offsetSeconds": 0.6666666666666666,
-          "durationSeconds": 0.33333333333333337,
-          "parameters": {
-            "s": "gm_marimba",
-            "attack": 0.12,
-            "decay": 1.5,
-            "sustain": 0.2,
-            "release": 0.7,
-            "gain": 0.17639999999999997,
-            "note": 57,
-            "pan": 0.5
-          }
-        },
-        {
-          "offsetSeconds": 1,
-          "durationSeconds": 0.33333333333333326,
-          "parameters": {
-            "s": "gm_marimba",
-            "attack": 0.12,
-            "decay": 1.5,
-            "sustain": 0.2,
-            "release": 0.7,
-            "gain": 0.17639999999999997,
-            "note": 57,
-            "pan": 0.5
-          }
-        },
-        {
-          "offsetSeconds": 1.3333333333333333,
-          "durationSeconds": 0.3333333333333335,
-          "parameters": {
-            "s": "gm_marimba",
-            "attack": 0.12,
-            "decay": 1.5,
-            "sustain": 0.2,
-            "release": 0.7,
-            "gain": 0.17639999999999997,
-            "note": 57,
-            "pan": 0.5
-          }
-        },
-        {
-          "offsetSeconds": 1.6666666666666667,
-          "durationSeconds": 0.33333333333333326,
-          "parameters": {
-            "s": "gm_marimba",
-            "attack": 0.12,
-            "decay": 1.5,
-            "sustain": 0.2,
-            "release": 0.7,
-            "gain": 0.17639999999999997,
-            "note": 57,
+            "s": "sine",
+            "attack": 0.05,
+            "decay": 0.1,
+            "sustain": 0.8,
+            "release": 0.3,
+            "gain": 0.05,
+            "fmi": 8,
+            "fmh": 3.01,
+            "note": 64,
             "pan": 0.5
           }
         }
       ],
-      "sources": ["gm_marimba"]
+      "sources": ["sine"]
     },
     "interregio": {
       "arrival": {
         "durationSeconds": 0.3,
         "parameters": {
-          "s": "gm_marimba",
-          "attack": 0.001,
-          "decay": 0.05,
-          "sustain": 1,
-          "release": 0.6,
-          "gain": 0.36,
-          "note": 53,
+          "s": "sine",
+          "attack": 0.002,
+          "decay": 0.13,
+          "sustain": 0.15,
+          "release": 1,
+          "gain": 0.3,
+          "fmi": 6,
+          "fmh": 3.01,
+          "note": 66,
           "pan": 0.35
         }
       },
       "departure": {
         "durationSeconds": 0.3,
         "parameters": {
-          "s": "gm_marimba",
-          "attack": 0.001,
-          "decay": 0.05,
-          "sustain": 1,
-          "release": 0.6,
-          "gain": 0.36,
-          "note": 58,
+          "s": "sine",
+          "attack": 0.002,
+          "decay": 0.13,
+          "sustain": 0.15,
+          "release": 1,
+          "gain": 0.3,
+          "fmi": 6,
+          "fmh": 3.01,
+          "note": 71,
           "pan": 0.65
         }
       },
       "passthrough": {
         "durationSeconds": 0.3,
         "parameters": {
-          "s": "gm_marimba",
-          "attack": 0.001,
-          "decay": 0.05,
-          "sustain": 1,
-          "release": 0.6,
-          "gain": 0.36,
-          "note": 58,
+          "s": "sine",
+          "attack": 0.002,
+          "decay": 0.13,
+          "sustain": 0.15,
+          "release": 1,
+          "gain": 0.3,
+          "fmi": 6,
+          "fmh": 3.01,
+          "note": 71,
           "pan": 0.5
         }
       },
@@ -1312,56 +1293,64 @@
           "offsetSeconds": 0,
           "durationSeconds": 2,
           "parameters": {
-            "s": "gm_marimba",
+            "s": "sine",
             "attack": 0.05,
             "decay": 0.1,
             "sustain": 0.8,
             "release": 0.3,
             "gain": 0.05,
-            "note": 46,
+            "fmi": 6,
+            "fmh": 3.01,
+            "note": 59,
             "pan": 0.5
           }
         }
       ],
-      "sources": ["gm_marimba"]
+      "sources": ["sine"]
     },
     "regionalverkehr": {
       "arrival": {
         "durationSeconds": 0.2,
         "parameters": {
-          "s": "gm_marimba",
-          "attack": 0.001,
-          "decay": 0.05,
-          "sustain": 1,
-          "release": 0.35,
-          "gain": 0.3,
-          "note": 54,
+          "s": "sawtooth",
+          "attack": 0.005,
+          "decay": 0.18,
+          "sustain": 0,
+          "release": 0.25,
+          "gain": 0.25,
+          "cutoff": 1400,
+          "resonance": 8,
+          "note": 52,
           "pan": 0.35
         }
       },
       "departure": {
         "durationSeconds": 0.2,
         "parameters": {
-          "s": "gm_marimba",
-          "attack": 0.001,
-          "decay": 0.05,
-          "sustain": 1,
-          "release": 0.35,
-          "gain": 0.3,
-          "note": 59,
+          "s": "sawtooth",
+          "attack": 0.005,
+          "decay": 0.18,
+          "sustain": 0,
+          "release": 0.25,
+          "gain": 0.25,
+          "cutoff": 1400,
+          "resonance": 8,
+          "note": 57,
           "pan": 0.65
         }
       },
       "passthrough": {
         "durationSeconds": 0.2,
         "parameters": {
-          "s": "gm_marimba",
-          "attack": 0.001,
-          "decay": 0.05,
-          "sustain": 1,
-          "release": 0.35,
-          "gain": 0.3,
-          "note": 59,
+          "s": "sawtooth",
+          "attack": 0.005,
+          "decay": 0.18,
+          "sustain": 0,
+          "release": 0.25,
+          "gain": 0.25,
+          "cutoff": 1400,
+          "resonance": 8,
+          "note": 57,
           "pan": 0.5
         }
       },
@@ -1370,104 +1359,115 @@
           "offsetSeconds": 0,
           "durationSeconds": 2,
           "parameters": {
-            "s": "gm_marimba",
+            "s": "sawtooth",
             "attack": 0.05,
             "decay": 0.1,
             "sustain": 0.8,
             "release": 0.3,
             "gain": 0.05,
-            "note": 47,
+            "cutoff": 1400,
+            "resonance": 8,
+            "note": 45,
             "pan": 0.5
           }
         }
       ],
-      "sources": ["gm_marimba"]
+      "sources": ["sawtooth"]
     },
     "tram": {
       "arrival": {
-        "durationSeconds": 0.06,
+        "durationSeconds": 0.25,
         "parameters": {
-          "s": "gm_marimba",
-          "attack": 0.001,
-          "decay": 0.05,
-          "sustain": 1,
-          "release": 0.08,
-          "gain": 0.25,
-          "note": 57,
+          "s": "sine",
+          "attack": 0.002,
+          "decay": 0.12,
+          "sustain": 0.1,
+          "release": 0.8,
+          "gain": 0.35,
+          "fmi": 5,
+          "fmh": 2,
+          "note": 64,
           "pan": 0.35
         }
       },
       "departure": {
-        "durationSeconds": 0.06,
+        "durationSeconds": 0.25,
         "parameters": {
-          "s": "gm_marimba",
-          "attack": 0.001,
-          "decay": 0.05,
-          "sustain": 1,
-          "release": 0.08,
-          "gain": 0.25,
-          "note": 62,
+          "s": "sine",
+          "attack": 0.002,
+          "decay": 0.12,
+          "sustain": 0.1,
+          "release": 0.8,
+          "gain": 0.35,
+          "fmi": 5,
+          "fmh": 2,
+          "note": 69,
           "pan": 0.65
         }
       },
       "passthrough": {
-        "durationSeconds": 0.06,
+        "durationSeconds": 0.25,
         "parameters": {
-          "s": "gm_marimba",
-          "attack": 0.001,
-          "decay": 0.05,
-          "sustain": 1,
-          "release": 0.08,
-          "gain": 0.25,
-          "note": 62,
+          "s": "sine",
+          "attack": 0.002,
+          "decay": 0.12,
+          "sustain": 0.1,
+          "release": 0.8,
+          "gain": 0.35,
+          "fmi": 5,
+          "fmh": 2,
+          "note": 69,
           "pan": 0.5
         }
       },
       "dwell": null,
-      "sources": ["gm_marimba"]
+      "sources": ["sine"]
     },
     "bus": {
       "arrival": {
-        "durationSeconds": 0.1,
+        "durationSeconds": 0.08,
         "parameters": {
-          "s": "gm_marimba",
+          "s": "pink",
           "attack": 0.001,
           "decay": 0.05,
-          "sustain": 1,
-          "release": 0.15,
-          "gain": 0.25,
-          "note": 56,
+          "sustain": 0,
+          "release": 0.05,
+          "gain": 0.18,
+          "bandf": 900,
+          "bandq": 6,
           "pan": 0.35
         }
       },
       "departure": {
-        "durationSeconds": 0.1,
+        "durationSeconds": 0.08,
         "parameters": {
-          "s": "gm_marimba",
+          "s": "pink",
           "attack": 0.001,
           "decay": 0.05,
-          "sustain": 1,
-          "release": 0.15,
-          "gain": 0.25,
-          "note": 61,
+          "sustain": 0,
+          "release": 0.05,
+          "gain": 0.18,
+          "bandf": 900,
+          "bandq": 6,
           "pan": 0.65
         }
       },
       "passthrough": {
-        "durationSeconds": 0.1,
+        "durationSeconds": 0.08,
         "parameters": {
-          "s": "gm_marimba",
+          "s": "pink",
           "attack": 0.001,
           "decay": 0.05,
-          "sustain": 1,
-          "release": 0.15,
-          "gain": 0.25,
-          "note": 61,
+          "sustain": 0,
+          "release": 0.05,
+          "gain": 0.18,
+          "bandf": 900,
+          "bandq": 6,
           "pan": 0.5
         }
       },
       "dwell": null,
-      "sources": ["gm_marimba"]
+      "sources": ["pink"]
     }
   }
 }

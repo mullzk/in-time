@@ -1,8 +1,16 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
+import { Instrumentation } from '../viz-core/sonification/instrumentation.js';
+import { INSTRUMENTATIONS } from '../viz-core/sonification/presets.js';
 import { BACKGROUNDS } from '../viz-core/tiles/tileSource.js';
-import { TaktPanel } from './panel.js';
+import {
+  CUSTOM_OPTION_VALUE,
+  instrumentationForOptionValue,
+  presetOptionValue,
+  SILENT_OPTION_VALUE,
+  TaktPanel,
+} from './panel.js';
 
 const fixture = (name) => {
   const bytes = readFileSync(
@@ -138,5 +146,25 @@ test('an adopted interchange sounds its rail and bus stops as one place', () => 
   assert.deepEqual(
     merged.map((event) => event.time),
     [...merged.map((event) => event.time)].sort((a, b) => a - b),
+  );
+});
+
+test('the sound options are told apart by value, not by name', () => {
+  const namesake = Instrumentation.fromDocument({
+    instrumentation: INSTRUMENTATIONS[0].name,
+    sound: 'snare',
+  });
+
+  assert.equal(
+    instrumentationForOptionValue(CUSTOM_OPTION_VALUE, namesake),
+    namesake,
+  );
+  assert.equal(
+    instrumentationForOptionValue(presetOptionValue(0), namesake),
+    INSTRUMENTATIONS[0],
+  );
+  assert.equal(
+    instrumentationForOptionValue(SILENT_OPTION_VALUE, namesake),
+    null,
   );
 });

@@ -117,6 +117,11 @@ plugs into it:
   the kind of sound it is. The sounds it may name are the registry in
   `sonification/sounds/`, and that same registry is what the vendoring script
   mirrors — so a sound the app offers is one it can play.
+- **A listener may write one.** The `InstrumentationEditor` is a drawer opposite
+  the sidebar in which such a document is typed and checked on every keystroke;
+  what plays is heard at once and kept in the browser's local storage, so it
+  outlasts the page and joins the dropdown. It never reaches the server, and the
+  exhibition mode does not build it.
 - **Styling** follows [SMACSS](http://smacss.com/) as static CSS under
   `frontend/styles/` (base with design tokens, layout, one file per module) — no
   inline styles, bundler-free, biome-formatted. A base template carries the

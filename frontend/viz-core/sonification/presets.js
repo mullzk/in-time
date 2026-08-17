@@ -16,8 +16,8 @@ import soundFamilies from './instrumentations/sound-families.json' with {
 };
 
 export const INSTRUMENTATIONS = [
-  soundFamilies,
+  marimbaGm,
   drumSet,
   guitarMuted,
-  marimbaGm,
+  soundFamilies,
 ].map((document) => Instrumentation.fromDocument(document));
