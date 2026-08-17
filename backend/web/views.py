@@ -92,5 +92,9 @@ def takt(request: HttpRequest) -> HttpResponse:
     return render(request, "web/takt.html")
 
 
+def ausbreitung(request: HttpRequest) -> HttpResponse:
+    return render(request, "web/ausbreitung.html")
+
+
 def reisezeit(request: HttpRequest) -> HttpResponse:
     return render(request, "web/reisezeit.html")

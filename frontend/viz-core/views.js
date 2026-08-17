@@ -3,6 +3,7 @@
 // carries one panel until its end, so there is nothing to hand over.
 export const VIEWS = [
   { path: '/takt', label: 'Takt' },
+  { path: '/ausbreitung', label: 'Ausbreitung' },
   { path: '/reisezeit', label: 'Reisezeit' },
 ];
 

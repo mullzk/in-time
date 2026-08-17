@@ -126,7 +126,8 @@
   font-weight: 600;
 }
 
-.sidebar-zoom {
+.sidebar-zoom,
+.sidebar-departure {
   width: 100%;
 }
 
