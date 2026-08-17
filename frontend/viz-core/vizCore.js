@@ -1,5 +1,6 @@
 import p5 from '../vendor/p5.esm.min.js';
 import { CameraControls } from './cameraControls.js';
+import { applyCameraTransform } from './cameraTransform.js';
 
 // The vendored build still ships p5's friendly-error system, which re-fetches
 // and regex-scans our modules at startup and false-flags domain names like
@@ -67,11 +68,8 @@ export class VizCore {
   // pixels exactly as Camera.worldToScreen does, so one loop keeps geometry (and
   // later tiles) coincident. The negative y scale is the north-up flip.
   #drawThroughCamera(p) {
-    const camera = this.context.camera;
     p.push();
-    p.translate(camera.viewportWidth / 2, camera.viewportHeight / 2);
-    p.scale(camera.scale, -camera.scale);
-    p.translate(-camera.centerEast, -camera.centerNorth);
+    applyCameraTransform(p, this.context.camera);
     this.panel.drawWorld(p, this.context);
     p.pop();
   }

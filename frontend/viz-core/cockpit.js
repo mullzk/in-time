@@ -1,14 +1,6 @@
+import { formatTimeOfDay } from './clock.js';
 import { element } from './dom.js';
-import { MAX_TEMPO, MIN_TEMPO, SECONDS_PER_DAY } from './timeModel.js';
-
-const pad = (value) => String(value).padStart(2, '0');
-
-// Operating time runs past 24:00; show it as wall-clock hours and minutes
-// (01:04, not 25:04:xx).
-const formatClock = (seconds) => {
-  const whole = Math.floor(seconds) % SECONDS_PER_DAY;
-  return `${pad(Math.floor(whole / 3600))}:${pad(Math.floor((whole % 3600) / 60))}`;
-};
+import { MAX_TEMPO, MIN_TEMPO } from './timeModel.js';
 
 // Tempo is schedule-seconds advanced per real second; show the wall-clock span
 // one real second covers.
@@ -127,7 +119,7 @@ export class Cockpit {
       this.tempoSlider.value = String(this.time.playing ? this.time.tempo : 0);
     }
     if (this.timeLabel) {
-      this.timeLabel.textContent = formatClock(this.time.current);
+      this.timeLabel.textContent = formatTimeOfDay(this.time.current);
     }
     if (this.scrubber && !this.scrubbing) {
       this.scrubber.value = String(this.time.scrubberPosition());
