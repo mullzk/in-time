@@ -2,16 +2,17 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { Sonifier } from './sonifier.js';
 
-// A minimal sound type: every event fires one plain one-shot, no dwell figure,
-// so a played event shows up as exactly one audioBridge.play call.
-const soundType = {
-  arrival: (play) => play({ gain: 0.3 }),
-  departure: (play) => play({ gain: 0.3 }),
-  passthrough: (play) => play({ gain: 0.3 }),
-  dwell: () => null,
+// A minimal instrumentation: every event is one plain one-shot and nothing
+// sounds while a vehicle stands, so a played event shows up as exactly one
+// audioBridge.play call.
+const instrumentation = {
+  parametersFor: () => ({
+    durationSeconds: 0.2,
+    parameters: { s: 'sine', gain: 0.3 },
+  }),
+  dwellFigureFor: () => null,
   sources: () => ['sine'],
 };
-const instrumentation = { soundTypeFor: () => soundType };
 
 class FakeAudioBridge {
   constructor() {
@@ -24,9 +25,6 @@ class FakeAudioBridge {
   // for a load whose completion the test times explicitly.
   async start() {}
   async warmUp() {}
-  mini() {
-    return { queryArc: () => [] };
-  }
 
   play(parameters, deadline, duration) {
     this.plays.push({ parameters, deadline, duration });

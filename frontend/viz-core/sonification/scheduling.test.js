@@ -7,7 +7,6 @@ import {
   eventsInLookahead,
   gainDampingForDensity,
   groupOf,
-  isRailGroup,
   MAXIMUM_VOICES_PER_WINDOW,
   MINIMUM_GROUP_GAP_SECONDS,
   passesGroupGap,
@@ -16,9 +15,9 @@ import {
   TRANSPORT_GROUPS,
 } from './scheduling.js';
 
-test('groupOf splits rail into long-distance and regional', () => {
+test('groupOf splits rail into long-distance, InterRegio and regional', () => {
   assert.equal(groupOf(0), 'fernverkehr');
-  assert.equal(groupOf(1), 'fernverkehr');
+  assert.equal(groupOf(1), 'interregio');
   assert.equal(groupOf(2), 'regionalverkehr');
   assert.equal(groupOf(3), 'regionalverkehr');
   assert.equal(groupOf(4), 'regionalverkehr');
@@ -33,19 +32,13 @@ test('groupOf falls back to regional rail for an unknown category', () => {
 test('dropPriorityOf ranks Fernverkehr first and Bus last', () => {
   assert.deepEqual(TRANSPORT_GROUPS, [
     'fernverkehr',
+    'interregio',
     'regionalverkehr',
     'tram',
     'bus',
   ]);
   assert.equal(dropPriorityOf('fernverkehr'), 0);
-  assert.equal(dropPriorityOf('bus'), 3);
-});
-
-test('isRailGroup marks the two rail groups only', () => {
-  assert.equal(isRailGroup('fernverkehr'), true);
-  assert.equal(isRailGroup('regionalverkehr'), true);
-  assert.equal(isRailGroup('tram'), false);
-  assert.equal(isRailGroup('bus'), false);
+  assert.equal(dropPriorityOf('bus'), 4);
 });
 
 test('passesMuteFilter drops a hidden group only', () => {

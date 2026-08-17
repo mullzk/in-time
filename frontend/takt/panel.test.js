@@ -1,8 +1,16 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
+import { Instrumentation } from '../viz-core/sonification/instrumentation.js';
+import { INSTRUMENTATIONS } from '../viz-core/sonification/presets.js';
 import { BACKGROUNDS } from '../viz-core/tiles/tileSource.js';
-import { TaktPanel } from './panel.js';
+import {
+  CUSTOM_OPTION_VALUE,
+  instrumentationForOptionValue,
+  presetOptionValue,
+  SILENT_OPTION_VALUE,
+  TaktPanel,
+} from './panel.js';
 
 const fixture = (name) => {
   const bytes = readFileSync(
@@ -99,6 +107,29 @@ test('the network overlay stays off once the user switched it back on', () => {
   assert.equal(panel.layers.network, false);
 });
 
+test('the pulse mode draws the network and keeps it when it ends', () => {
+  const panel = new TaktPanel(RAIL_BUFFER, RAIL_STATIONS);
+
+  panel.setPulseMode(true);
+  assert.equal(panel.layers.network, true);
+  assert.equal(panel.layers.tram, false);
+
+  panel.setPulseMode(false);
+  assert.equal(panel.layers.network, true);
+});
+
+test('the pulse of the rail blob is ready right after construction', () => {
+  const panel = new TaktPanel(RAIL_BUFFER, RAIL_STATIONS);
+  panel.init({ camera: { zoomFraction: () => 0.5 } });
+  panel.pulseMode = true;
+
+  // The golden rail blob holds one long-distance trip; at 10:10 it stands at
+  // its middle station.
+  panel.update(36600, 1 / 60);
+
+  assert.equal(panel.longDistancePulse.visiblePulses().length, 1);
+});
+
 test('an adopted interchange sounds its rail and bus stops as one place', () => {
   const panel = new TaktPanel(RAIL_BUFFER, RAIL_STATIONS);
   panel.init(context);
@@ -115,5 +146,25 @@ test('an adopted interchange sounds its rail and bus stops as one place', () => 
   assert.deepEqual(
     merged.map((event) => event.time),
     [...merged.map((event) => event.time)].sort((a, b) => a - b),
+  );
+});
+
+test('the sound options are told apart by value, not by name', () => {
+  const namesake = Instrumentation.fromDocument({
+    instrumentation: INSTRUMENTATIONS[0].name,
+    sound: 'snare',
+  });
+
+  assert.equal(
+    instrumentationForOptionValue(CUSTOM_OPTION_VALUE, namesake),
+    namesake,
+  );
+  assert.equal(
+    instrumentationForOptionValue(presetOptionValue(0), namesake),
+    INSTRUMENTATIONS[0],
+  );
+  assert.equal(
+    instrumentationForOptionValue(SILENT_OPTION_VALUE, namesake),
+    null,
   );
 });

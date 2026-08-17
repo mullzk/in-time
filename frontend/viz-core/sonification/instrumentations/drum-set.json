@@ -1,0 +1,20 @@
+{
+  "instrumentation": "Schlagzeug",
+  "sound": "bass-drum",
+  "fernverkehr": { "gain": 0.4, "duration": 0.2 },
+  "interregio": { "sound": "snare", "gain": 0.3, "duration": 0.2 },
+  "regionalverkehr": {
+    "sound": "mid-tom",
+    "gain": 0.35,
+    "duration": 0.25,
+    "arrival": { "sound": "low-tom", "speed": 1 },
+    "departure": { "sound": "high-tom", "gainFactor": 1 }
+  },
+  "tram": {
+    "dwellType": "none",
+    "sound": "ride-cymbal",
+    "gain": 0.3,
+    "duration": 0.4
+  },
+  "bus": { "dwellType": "none", "gain": 0.25, "duration": 0.2 }
+}

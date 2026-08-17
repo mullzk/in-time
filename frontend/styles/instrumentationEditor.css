@@ -1,0 +1,150 @@
+/* SMACSS Module: the instrumentation editor — a drawer on the right in which an
+   own instrumentation is written, opposite the sidebar so its switches stay
+   reachable while the document is being tuned. The open state lives as
+   `is-open` on the drawer. Below the narrow breakpoint the sidebar claims the
+   whole width, so drawer and opening button step aside entirely; CSS alone
+   decides that, and widening the window brings the drawer back as it was. */
+/* Above the top-right corner buttons rather than under them: while the drawer is
+   open there is nothing to go fullscreen for, and a button lying on top of it
+   would only be in the way. */
+.instrumentation-editor {
+  position: absolute;
+  z-index: 14;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s);
+  width: 420px;
+  max-width: calc(100vw - var(--sidebar-width));
+  padding: var(--space-m);
+  overflow-y: auto;
+  background: var(--color-surface);
+  backdrop-filter: blur(6px);
+  transform: translateX(100%);
+  transition: transform var(--transition-panel);
+}
+
+.instrumentation-editor.is-open {
+  transform: translateX(0);
+}
+
+.instrumentation-editor-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.7;
+}
+
+.instrumentation-editor-actions {
+  display: flex;
+  gap: var(--space-s);
+}
+
+/* Discarding cannot be taken back, so it stands apart from the two harmless
+   actions rather than next to them. */
+.instrumentation-editor-discard {
+  margin-left: auto;
+}
+
+.instrumentation-editor-action {
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--color-control);
+  color: var(--color-control-text);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.instrumentation-editor-action:hover:enabled {
+  background: var(--color-control-hover);
+}
+
+.instrumentation-editor-discard:hover {
+  color: var(--color-warning);
+}
+
+.instrumentation-editor-action:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* Grows into whatever the opened accordions leave over, but never below the
+   height at which a document stops being readable -- past that the drawer
+   scrolls instead. */
+.instrumentation-editor-text {
+  flex: 1;
+  min-height: 12em;
+  padding: var(--space-s);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-background);
+  color: var(--color-text);
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  resize: none;
+  tab-size: 2;
+}
+
+/* Empty while the document plays, so the line draws attention only when it
+   carries something to read. */
+.instrumentation-editor-message {
+  margin: 0;
+  min-height: 1.4em;
+  color: var(--color-warning);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.instrumentation-editor-reference {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.instrumentation-editor-reference summary {
+  cursor: pointer;
+}
+
+.instrumentation-editor-reference p {
+  margin: var(--space-s) 0 0;
+  line-height: 1.5;
+}
+
+.instrumentation-editor-notes {
+  margin: var(--space-s) 0 0;
+}
+
+.instrumentation-editor-notes dt {
+  margin-top: var(--space-s);
+  font-weight: 600;
+}
+
+.instrumentation-editor-notes dd {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.instrumentation-editor-open {
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--color-control);
+  color: var(--color-control-text);
+  cursor: pointer;
+}
+
+.instrumentation-editor-open:hover {
+  background: var(--color-control-hover);
+}
+
+@media (max-width: 720px) {
+  .instrumentation-editor,
+  .instrumentation-editor-open {
+    display: none;
+  }
+}
