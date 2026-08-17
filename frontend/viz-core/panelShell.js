@@ -17,6 +17,7 @@ import { Sonifier } from './sonification/sonifier.js';
 import { StationSearch } from './stationSearch.js';
 import { TileLayer } from './tiles/tileLayer.js';
 import { BACKGROUNDS } from './tiles/tileSource.js';
+import { VIEWS, viewAt } from './views.js';
 import { VizCore } from './vizCore.js';
 import {
   ZOOM_STEPS,
@@ -198,6 +199,12 @@ export class PanelShell {
     });
     return sectionsToMount(
       [
+        {
+          id: 'view',
+          title: 'Ansicht',
+          element: this.#viewSwitcher(),
+          keepInExhibition: false,
+        },
         ...(this.panel.capabilities.mapBackground
           ? [
               {
@@ -218,6 +225,34 @@ export class PanelShell {
       ],
       { exhibition: this.exhibition },
     );
+  }
+
+  // Plain links, because switching views is a page load: they can be opened in a
+  // new tab, and the current one is marked rather than made clickable to
+  // nowhere. The exhibition shows one view, so the section is not mounted there.
+  #viewSwitcher() {
+    const group = element('div', 'sidebar-views');
+    const current = viewAt(window.location.pathname);
+    VIEWS.forEach((view) => {
+      group.appendChild(
+        view === current ? this.#currentView(view) : this.#viewLink(view),
+      );
+    });
+    return group;
+  }
+
+  #currentView(view) {
+    const marked = element('span', 'sidebar-view is-current');
+    marked.textContent = view.label;
+    marked.setAttribute('aria-current', 'page');
+    return marked;
+  }
+
+  #viewLink(view) {
+    const link = element('a', 'sidebar-view');
+    link.textContent = view.label;
+    link.href = view.path + window.location.search;
+    return link;
   }
 
   #backgroundControl() {

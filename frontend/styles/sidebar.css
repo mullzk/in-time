@@ -103,6 +103,29 @@
   cursor: pointer;
 }
 
+/* The gallery: one entry per view, the current one marked rather than linked. */
+.sidebar-views {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sidebar-view {
+  padding: 4px 8px;
+  border-radius: 6px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.sidebar-view:hover {
+  background: var(--color-control);
+}
+
+.sidebar-view.is-current {
+  background: var(--color-control);
+  font-weight: 600;
+}
+
 .sidebar-zoom {
   width: 100%;
 }
