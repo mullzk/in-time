@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import { buildConnectionList } from './connectionList.js';
 import { VehiclePositionEngine } from './vehiclePositionEngine.js';
 
-const trip = (events) => ({ category: 0, events });
+const trip = (events, category = 0) => ({ category, events });
 
 const stop = (station, arrival, departure = arrival) => ({
   station,
@@ -179,6 +179,21 @@ test('the trip count spans all networks', () => {
   ]);
 
   assert.equal(list.tripCount, 3);
+});
+
+test('a trip keeps the kind of vehicle that runs it', () => {
+  const CATEGORY_BUS = 6;
+  const list = buildConnectionList([
+    network([trip([stop(0, 36_000), stop(1, 36_600)])], 100, 101),
+    {
+      trips: [trip([stop(0, 37_000), stop(1, 37_600)], CATEGORY_BUS)],
+      stations: catalog(200, 201),
+    },
+  ]);
+
+  const [rail, road] = connectionsOf(list);
+  assert.equal(list.categoryOfTrip(rail.trip), 0);
+  assert.equal(list.categoryOfTrip(road.trip), CATEGORY_BUS);
 });
 
 test('the stops of an interchange know each other', () => {

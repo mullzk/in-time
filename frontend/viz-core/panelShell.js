@@ -96,7 +96,17 @@ export class PanelShell {
     });
     new VizCore(this.root, this.panel, this.context, {
       onFrameRendered: () => this.#onFrameRendered(),
-      onCanvasReady: (canvasElement) => this.selection?.attachTo(canvasElement),
+      onCanvasReady: (canvasElement) => this.#onCanvasReady(canvasElement),
+    });
+  }
+
+  // A panel drawing something other than a map picks on the canvas itself, in
+  // its own coordinates. It is handed the canvas and the one way in that keeps
+  // the search field and the sound in step with what it chose.
+  #onCanvasReady(canvasElement) {
+    this.selection?.attachTo(canvasElement);
+    this.panel.attachToCanvas?.(canvasElement, {
+      chooseStation: (station) => this.#chooseStation(station),
     });
   }
 

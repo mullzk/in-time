@@ -7,6 +7,10 @@ import { CameraControls } from './cameraControls.js';
 // noise in this bundler-free app.
 p5.disableFriendlyErrors = true;
 
+// The ground a map is drawn on: dark, so the relief and the vehicles carry the
+// light. A panel that wants another one says so.
+const DEFAULT_GROUND_COLOR = [16, 18, 22];
+
 // Owns the single p5 instance-mode loop and drives the active panel. Panels draw
 // in world coordinates (LV95); VizCore pushes the camera transform so geometry
 // and, later, tiles stay coincident in one render loop.
@@ -23,6 +27,7 @@ export class VizCore {
     this.onFrameRendered = onFrameRendered;
     this.onCanvasReady = onCanvasReady;
     this.onZoomGesture = onZoomGesture;
+    this.groundColor = panel.groundColor?.() ?? DEFAULT_GROUND_COLOR;
     this.instance = new p5((p) => this.#sketch(p), container);
   }
 
@@ -52,7 +57,7 @@ export class VizCore {
     this.context.time.advance(deltaSeconds);
     this.panel.update?.(this.context.time.current, deltaSeconds);
 
-    p.background(16, 18, 22);
+    p.background(...this.groundColor);
     this.#drawThroughCamera(p);
     this.panel.drawOverlay?.(p, this.context);
     this.onFrameRendered?.();

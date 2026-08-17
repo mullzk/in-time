@@ -42,6 +42,10 @@ class StationSpace {
     return this._indexByDidok.get(didok);
   }
 
+  clusterOfStation(index) {
+    return this._clusterOfIndex[index];
+  }
+
   // Every stop of an interchange, from the view of one of them: the others, in
   // station order. A stop that stands alone has none.
   siblingsPerStation() {
@@ -134,7 +138,7 @@ const firstSlotOfEachSecond = (departuresPerSecond) => {
 const totalOf = (counts) => counts.reduce((sum, count) => sum + count, 0);
 
 export class ConnectionList {
-  constructor(columns, space, networkOfTrip, tripInNetwork) {
+  constructor(columns, space, networkOfTrip, tripInNetwork, categoryOfTrip) {
     this.connectionCount = columns.departureStations.length;
     this.tripCount = networkOfTrip.length;
     this.departureStations = columns.departureStations;
@@ -147,6 +151,7 @@ export class ConnectionList {
     this._siblingsPerStation = space.siblingsPerStation();
     this._networkOfTrip = networkOfTrip;
     this._tripInNetwork = tripInNetwork;
+    this._categoryOfTrip = categoryOfTrip;
   }
 
   get stationCount() {
@@ -169,10 +174,23 @@ export class ConnectionList {
     return this._tripInNetwork[trip];
   }
 
+  // Which kind of vehicle runs the trip, in the blob's categories: a drawing may
+  // tell an InterRegio from a bus without going back to the trips.
+  categoryOfTrip(trip) {
+    return this._categoryOfTrip[trip];
+  }
+
   // The other stops of the same interchange -- the only places a scan may change
   // vehicles besides the stop it arrived at.
   clusterSiblingsOf(stationIndex) {
     return this._siblingsPerStation[stationIndex];
+  }
+
+  // The interchange a stop belongs to, named by its representative didok, or
+  // null for a stop that stands alone. Whoever shows an interchange as one place
+  // groups by this.
+  clusterOf(stationIndex) {
+    return this._space.clusterOfStation(stationIndex);
   }
 
   // The columns carry the scan; this is for readers that want one connection as
@@ -241,6 +259,9 @@ export function buildConnectionList(networks) {
     ),
     networks.flatMap(({ trips }) =>
       trips.map((_, tripIndexInNetwork) => tripIndexInNetwork),
+    ),
+    Uint8Array.from(
+      networks.flatMap(({ trips }) => trips.map((trip) => trip.category)),
     ),
   );
 }
