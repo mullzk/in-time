@@ -48,7 +48,8 @@ export function activeShortcuts(panelBindings, overlays) {
   };
 }
 
-// Document-level keyboard shortcuts for playback and camera, plus panel-supplied
+// Document-level keyboard shortcuts for camera and, where a view plays at all,
+// for playback, plus panel-supplied
 // bindings (key -> handler) for panel-specific toggles and the overlays that
 // claim keys of their own. Bound to a target (window) so they work regardless of
 // focus; modifier combinations are left to the browser. Reserved for later:
@@ -56,8 +57,8 @@ export function activeShortcuts(panelBindings, overlays) {
 export class KeyboardControls {
   // `overlays` is a list of { isOpen, bindings }; isOpen is read at each key
   // press, so an overlay may open and close over the shell's lifetime.
-  constructor(target, { time, camera, bindings = {}, overlays = [] }) {
-    this.time = time;
+  constructor(target, { togglePlay, camera, bindings = {}, overlays = [] }) {
+    this.togglePlay = togglePlay;
     this.camera = camera;
     this.bindings = bindings;
     this.overlays = overlays;
@@ -84,7 +85,7 @@ export class KeyboardControls {
     switch (event.key) {
       case ' ':
         if (!event.repeat) {
-          this.time.togglePlay();
+          this.togglePlay?.();
         }
         break;
       case '+':

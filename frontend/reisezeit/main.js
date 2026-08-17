@@ -5,12 +5,10 @@ import { ReisezeitPanel } from './panel.js';
 
 const root = document.getElementById('viz-root');
 
-// The picture is taken now: the tree is what one reaches setting off at this
-// moment. The clock therefore stands, and stands at this time.
-const secondsSinceMidnight = () => {
-  const now = new Date();
-  return now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
-};
+// The picture is of the morning, when the country is fully served: the tree is
+// what one reaches setting off at seven. Nothing moves in it, so the clock
+// stands, and stands at that time.
+const DEPARTURE_SECONDS = 7 * 3600;
 
 async function bootstrap() {
   const result = await loadSchedule(root.dataset.configUrl);
@@ -19,13 +17,16 @@ async function bootstrap() {
     return;
   }
 
-  const departureTime = secondsSinceMidnight();
   const panel = new ReisezeitPanel(
     result.railBuffer,
     result.railStations,
-    departureTime,
+    DEPARTURE_SECONDS,
   );
-  const shell = new PanelShell(root, panel, new StoppedClock(departureTime));
+  const shell = new PanelShell(
+    root,
+    panel,
+    new StoppedClock(DEPARTURE_SECONDS),
+  );
   shell.start();
 
   result.roadBuffer

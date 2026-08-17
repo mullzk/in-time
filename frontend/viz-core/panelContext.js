@@ -11,7 +11,9 @@ export class PanelContext {
     this.projection = projection;
     this.time = time;
     this.tileLayer = tileLayer;
-    this.tilesVisible = true;
+    // The black background carries no raster, so a view that opens on it starts
+    // with the tiles off rather than drawing from a source that is not there.
+    this.tilesVisible = tileLayer.source !== null;
   }
 
   // A null source is the black background: no raster, the dark canvas shows

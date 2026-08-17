@@ -3,6 +3,7 @@ import { localStorageOrForgetful } from './browserStorage.js';
 import { Camera } from './camera.js';
 import { Cockpit } from './cockpit.js';
 import { element } from './dom.js';
+import { Headline } from './headline.js';
 import { InfoModal } from './infoModal.js';
 import { InstrumentationEditor } from './instrumentationEditor.js';
 import { KeyboardControls } from './keyboardControls.js';
@@ -28,9 +29,10 @@ import {
 const isExhibition = () =>
   new URLSearchParams(window.location.search).get('mode') === 'exhibition';
 
-const BLACK_BACKGROUND = BACKGROUNDS.find(
-  (background) => background.id === 'black',
-);
+const backgroundById = (id) =>
+  BACKGROUNDS.find((background) => background.id === id) ?? null;
+
+const BLACK_BACKGROUND = backgroundById('black');
 
 // The frame every panel runs in: it owns the camera, the render core and all
 // global controls (background, zoom, info, fullscreen, search, cockpit), and
@@ -44,9 +46,10 @@ export class PanelShell {
     this.time = time;
     this.exhibition = isExhibition();
     // A panel that draws no map has no use for a ground under it: it gets the
-    // black one and no chooser, rather than a relief nobody can see.
+    // black one and no chooser, rather than a relief nobody can see. A panel
+    // that draws one may name the ground it reads best on; otherwise the first.
     this.background = panel.capabilities.mapBackground
-      ? BACKGROUNDS[0]
+      ? (backgroundById(panel.initialBackgroundId?.()) ?? BACKGROUNDS[0])
       : BLACK_BACKGROUND;
     this.camera = new Camera(root.clientWidth, root.clientHeight);
     this.context = new PanelContext({
@@ -65,7 +68,11 @@ export class PanelShell {
       ? new Sonifier(this.panel, this.time, new AudioBridge())
       : null;
 
-    this.sidebar = new Sidebar(this.root, this.#sections());
+    // A sidebar with nothing in it would still hang a button over the picture,
+    // so a view that supplies no sections gets none.
+    const sections = this.#sections();
+    this.sidebar =
+      sections.length === 0 ? null : new Sidebar(this.root, sections);
     if (this.sonifier) {
       this.customInstrumentationStore = new CustomInstrumentationStore(
         localStorageOrForgetful(),
@@ -85,11 +92,17 @@ export class PanelShell {
           onStationChosen: (station) => this.#adoptStation(station),
         })
       : null;
+    // A panel that has a question to put over its picture gets the writing; the
+    // rest of the views carry none.
+    this.headline = this.panel.headline ? new Headline(this.root) : null;
     this.infoModal = new InfoModal(this.root, this.panel.infoContent());
     this.root.appendChild(this.#fullscreenToggle());
 
     new KeyboardControls(window, {
-      time: this.time,
+      // Space plays; a view that does not play does not answer to it.
+      togglePlay: this.panel.capabilities.simulationSpeed
+        ? () => this.time.togglePlay()
+        : null,
       camera: this.camera,
       bindings: this.#keyBindings(),
       overlays: [this.infoModal],
@@ -183,7 +196,7 @@ export class PanelShell {
   #keyBindings() {
     const bindings = {
       ...this.panel.keyBindings?.(),
-      s: () => this.sidebar.toggle(),
+      ...(this.sidebar ? { s: () => this.sidebar.toggle() } : {}),
     };
     if (this.stationSearch) {
       bindings.g = () => this.stationSearch.focus();
@@ -192,6 +205,7 @@ export class PanelShell {
   }
 
   #onFrameRendered() {
+    this.headline?.show(this.panel.headline());
     this.cockpit.sync();
     this.selection?.onFrameRendered();
     this.sonifier?.onFrameRendered();
@@ -225,12 +239,16 @@ export class PanelShell {
               },
             ]
           : []),
-        {
-          id: 'zoom',
-          title: 'Zoom',
-          element: this.#zoomControl(),
-          keepInExhibition: true,
-        },
+        ...(this.panel.capabilities.zoomSlider
+          ? [
+              {
+                id: 'zoom',
+                title: 'Zoom',
+                element: this.#zoomControl(),
+                keepInExhibition: true,
+              },
+            ]
+          : []),
         ...panelSections,
       ],
       { exhibition: this.exhibition },
@@ -267,11 +285,11 @@ export class PanelShell {
 
   #backgroundControl() {
     const group = element('div', 'sidebar-options');
-    this.backgroundOptions = BACKGROUNDS.map((background, index) => {
+    this.backgroundOptions = BACKGROUNDS.map((background) => {
       const input = element('input');
       input.type = 'radio';
       input.name = 'background';
-      input.checked = index === 0;
+      input.checked = background === this.background;
       input.addEventListener('change', () =>
         this.#chooseBackground(background),
       );
@@ -286,9 +304,7 @@ export class PanelShell {
   // hands the chooser back without undoing the choice.
   #holdBackground(backgroundId) {
     if (backgroundId !== null) {
-      this.#chooseBackground(
-        BACKGROUNDS.find((background) => background.id === backgroundId),
-      );
+      this.#chooseBackground(backgroundById(backgroundId));
     }
     this.backgroundOptions.forEach(({ input, background }) => {
       input.disabled = backgroundId !== null;
@@ -329,7 +345,7 @@ export class PanelShell {
   // the camera rather than the other way round -- except while it is being
   // dragged, when it would fight the hand holding it.
   #syncZoomSlider() {
-    if (!this.zoomScrubbing) {
+    if (this.zoomSlider && !this.zoomScrubbing) {
       this.zoomSlider.value = String(
         zoomSliderPosition(this.camera.zoomFraction()),
       );

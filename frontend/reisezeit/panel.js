@@ -1,20 +1,24 @@
 import { readStationPoints } from '../viz-core/blobStations.js';
+import { formatTimeOfDay } from '../viz-core/clock.js';
 import { buildConnectionList } from '../viz-core/connectionList.js';
 import { ConnectionScan } from '../viz-core/connectionScan.js';
 import { HoverInteraction } from '../viz-core/hoverInteraction.js';
 import { Panel } from '../viz-core/panel.js';
 import { RadialTravelTimeLayout } from '../viz-core/radialTravelTime.js';
 import { distanceToSegmentSquared } from '../viz-core/segmentDistance.js';
+import { stationToTravelFrom } from '../viz-core/startStation.js';
 import { StationCatalog } from '../viz-core/stationCatalog.js';
 import { TapInteraction } from '../viz-core/tapInteraction.js';
+import {
+  CATEGORY_BUS,
+  CATEGORY_INTERCITY,
+  CATEGORY_INTERREGIO,
+  CATEGORY_TRAM,
+  categoryLabel,
+} from '../viz-core/transportCategories.js';
 import { VehiclePositionEngine } from '../viz-core/vehiclePositionEngine.js';
 import { buildInfoContent } from './infoContent.js';
-import {
-  categoryLabel,
-  formatDuration,
-  formatTimeOfDay,
-  formatWait,
-} from './labels.js';
+import { formatDuration, formatWait } from './labels.js';
 
 const SECONDS_PER_HOUR = 3600;
 const GROUND_COLOR = [250, 250, 248];
@@ -38,11 +42,6 @@ const BAND_COLORS = [
   [100, 22, 32],
   [45, 12, 18],
 ];
-
-const CATEGORY_INTERCITY = 0;
-const CATEGORY_INTERREGIO = 1;
-const CATEGORY_TRAM = 5;
-const CATEGORY_BUS = 6;
 
 // The lines are the skeleton and nothing more: one fine dark blue for all of
 // them. What kind of traffic runs where, and how far out it lies, is told by the
@@ -70,13 +69,6 @@ const LABEL_BACKGROUND = [28, 30, 34, 235];
 const LABEL_TEXT_COLOR = [245, 246, 248];
 const HIGHLIGHT_COLOR = [20, 22, 26];
 
-const HEADLINE_COLOR = [20, 22, 26];
-const HEADLINE_TEXT_SIZE = 21;
-const HEADLINE_LINE_HEIGHT_PIXELS = 27;
-const HEADLINE_LEFT_PIXELS = 16;
-// Clear of the row of buttons the shell puts along the top edge.
-const HEADLINE_TOP_PIXELS = 72;
-
 const CENTRE_DIAMETER_PIXELS = 9;
 const NODE_PICK_RADIUS_PIXELS = 7;
 const EDGE_PICK_RADIUS_PIXELS = 5;
@@ -96,8 +88,6 @@ const bandOf = (travelTimeSeconds) =>
 const groupKey = (band, category) => `${band}:${category}`;
 
 const NO_PLACE = -1;
-
-const START_STATION_ATTEMPTS = 10;
 
 export class ReisezeitPanel extends Panel {
   capabilities = {
@@ -185,29 +175,17 @@ export class ReisezeitPanel extends Panel {
     this.#rescan({ openTheView: this.startStationIsThePanelsOwn });
   }
 
-  // Nobody is shown an empty canvas: without a station chosen the panel sets off
-  // from wherever in the country, and whoever looks searches on from there. A
-  // stop nothing leaves from at this hour would be a single dot, so the walk
-  // carries on from the drawn stop until it finds one that travels.
   #pickAStartStationIfNobodyChoseOne() {
     if (this.startStation !== null) {
       return;
     }
-    const candidates = this.catalog.entries.filter(
-      (entry) => this.connections.stationOf(entry.didok) !== undefined,
+    this.startStation = stationToTravelFrom(
+      this.catalog.entries.filter(
+        (entry) => this.connections.stationOf(entry.didok) !== undefined,
+      ),
+      (entry) => this.#travelsAnywhere(entry),
     );
-    if (candidates.length === 0) {
-      return;
-    }
-    const drawn = Math.floor(Math.random() * candidates.length);
-    const tried = Math.min(candidates.length, START_STATION_ATTEMPTS);
-    const attempts = Array.from(
-      { length: tried },
-      (_, step) => candidates[(drawn + step) % candidates.length],
-    );
-    this.startStation =
-      attempts.find((entry) => this.#travelsAnywhere(entry)) ?? attempts[0];
-    this.startStationIsThePanelsOwn = true;
+    this.startStationIsThePanelsOwn = this.startStation !== null;
   }
 
   #travelsAnywhere(entry) {
@@ -512,61 +490,14 @@ export class ReisezeitPanel extends Panel {
       this.#drawHint(p);
       return;
     }
-    this.#drawHeadline(p);
     this.#drawRingLabels(p, context);
     this.#drawHoverLabel(p);
   }
 
   // The question the picture answers, asked out loud, so nobody has to work out
   // what the rings and colours are about.
-  #drawHeadline(p) {
-    p.noStroke();
-    p.textAlign(p.LEFT, p.TOP);
-    p.textSize(HEADLINE_TEXT_SIZE);
-    const lines = this.#headlineLines(p);
-    this.#drawHeadlineBacking(p, lines);
-    p.fill(...HEADLINE_COLOR);
-    lines.forEach((line, index) => {
-      p.text(
-        line,
-        HEADLINE_LEFT_PIXELS,
-        HEADLINE_TOP_PIXELS + index * HEADLINE_LINE_HEIGHT_PIXELS,
-      );
-    });
-    p.textSize(LABEL_TEXT_SIZE);
-    p.fill(...RING_LABEL_COLOR);
-    p.text(
-      `Abfahrt um ${formatTimeOfDay(this.startTimeSeconds)} Uhr`,
-      HEADLINE_LEFT_PIXELS,
-      HEADLINE_TOP_PIXELS + lines.length * HEADLINE_LINE_HEIGHT_PIXELS + 4,
-    );
-  }
-
-  // Zoomed in, the tree runs right under the question; it carries a little of
-  // the ground with it, as the ring labels do.
-  #drawHeadlineBacking(p, lines) {
-    const width = Math.max(...lines.map((line) => p.textWidth(line)));
-    const height =
-      lines.length * HEADLINE_LINE_HEIGHT_PIXELS + LABEL_LINE_HEIGHT_PIXELS + 4;
-    p.fill(...GROUND_COLOR, 225);
-    p.rect(
-      HEADLINE_LEFT_PIXELS - 8,
-      HEADLINE_TOP_PIXELS - 8,
-      width + 16,
-      height + 12,
-      5,
-    );
-  }
-
-  // On a narrow canvas, or with a long station name, the question breaks where
-  // it is spoken rather than running off the edge.
-  #headlineLines(p) {
-    const question = `Wenn ich jetzt in ${this.startStation.name} losfahre,`;
-    const rest = 'wo komme ich heute noch hin?';
-    const together = `${question} ${rest}`;
-    return p.textWidth(together) + HEADLINE_LEFT_PIXELS * 2 <= p.width
-      ? [together]
-      : [question, rest];
+  headline() {
+    return `Wenn ich um ${formatTimeOfDay(this.startTimeSeconds)} in ${this.startStation.name} losfahre, wo komme ich heute noch hin?`;
   }
 
   #drawHint(p) {

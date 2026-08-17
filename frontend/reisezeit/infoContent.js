@@ -15,8 +15,8 @@ export function buildInfoContent() {
           'Fahrplan schnell; wo es sich dehnt, dauert es.',
       ],
       [
-        'Gerechnet wird ab der aktuellen Uhrzeit, mit dem Fahrplan des ' +
-          'heutigen Tages gemäss ',
+        'Gerechnet wird ab 07:00 Uhr, mit dem Fahrplan des heutigen Tages ' +
+          'gemäss ',
         link('opentransportdata.swiss', 'https://opentransportdata.swiss'),
         '. Umgestiegen wird nur innerhalb eines Umsteigeknotens, mit zwei ' +
           'Minuten Mindest-Umsteigezeit. Quellcode: ',
@@ -28,8 +28,8 @@ export function buildInfoContent() {
       ],
     ],
     controlHelp:
-      'Der Standort wird über das Suchfeld oben gewählt. Die Seitenleiste ' +
-      '(☰ oben links) trägt den Zoom.',
+      'Der Standort wird über das Suchfeld oben gewählt, gezoomt wird mit ' +
+      'dem Mausrad oder mit + und −.',
     shortcuts: [
       { keys: '+', description: 'Hineinzoomen' },
       { keys: '−', description: 'Herauszoomen' },

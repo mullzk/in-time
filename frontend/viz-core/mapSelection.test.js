@@ -292,3 +292,26 @@ test('a vehicle wins over a nearby tram or bus stop', () => {
   assert.deepEqual(popover.calls.at(-1), ['showLines', 5, 6]);
   assert.deepEqual(revealed, []);
 });
+
+test('a panel that frames a chosen station itself is left to do it', () => {
+  const bern = { east: 100, north: 200, name: 'Bern' };
+  const framed = [];
+  const panel = {
+    railStationNear: () => bern,
+    vehicleAt: () => null,
+    minorStationNear: () => null,
+    revealStation: () => {},
+    frameStation: (context, station) => framed.push(station),
+  };
+  const { selection, focused } = makeSelection({
+    popover: makeFakePopover(),
+    panel,
+  });
+  const canvas = makeFakeCanvas();
+  selection.attachTo(canvas);
+
+  tap(canvas, 5, 5);
+
+  assert.deepEqual(framed, [bern]);
+  assert.deepEqual(focused, [], 'the shared move-in is not used as well');
+});
