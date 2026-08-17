@@ -15,14 +15,20 @@ export function nodeDiameterPixels(zoomFraction) {
 }
 
 // A station's transport mode maps to the vehicle layers that reveal it. Rail
-// vehicles split across a long-distance and a regional layer, so a rail station
-// surfaces whenever either of them shows.
+// vehicles split across a long-distance, an InterRegio and a regional layer, so
+// a rail station surfaces whenever any of them shows.
 const REVEALING_LAYERS_BY_MODE = new Map([
-  ['rail', ['fernverkehr', 'regionalverkehr']],
+  ['rail', ['fernverkehr', 'interregio', 'regionalverkehr']],
   ['tram', ['tram']],
   ['bus', ['bus']],
 ]);
-const VEHICLE_LAYER_KEYS = ['fernverkehr', 'regionalverkehr', 'tram', 'bus'];
+const VEHICLE_LAYER_KEYS = [
+  'fernverkehr',
+  'interregio',
+  'regionalverkehr',
+  'tram',
+  'bus',
+];
 
 export function stationIsShown(modes, stopsShown, layers) {
   return (

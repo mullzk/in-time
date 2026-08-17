@@ -16,7 +16,7 @@ if (checkOnly) {
   if (!sourceBytes.equals(targetBytes)) {
     console.error(
       'frontend/vendor/p5.esm.min.js is out of sync with the pinned p5 ' +
-        'package; run `npm run vendor`.',
+        'package; run `npm run vendor` (and if needed `npm ci` before).',
     );
     process.exit(1);
   }

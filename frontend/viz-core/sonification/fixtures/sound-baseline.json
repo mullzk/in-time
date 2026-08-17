@@ -1,0 +1,1473 @@
+{
+  "Marimba": {
+    "fernverkehr": {
+      "arrival": {
+        "durationSeconds": 0.5,
+        "parameters": {
+          "s": "gm_marimba",
+          "attack": 0.001,
+          "decay": 0.05,
+          "sustain": 1,
+          "release": 1.1,
+          "gain": 0.42,
+          "note": 57,
+          "pan": 0.5
+        }
+      },
+      "departure": {
+        "durationSeconds": 0.5,
+        "parameters": {
+          "s": "gm_marimba",
+          "attack": 0.001,
+          "decay": 0.05,
+          "sustain": 1,
+          "release": 1.1,
+          "gain": 0.42,
+          "note": 57,
+          "pan": 0.5
+        }
+      },
+      "passthrough": {
+        "durationSeconds": 0.5,
+        "parameters": {
+          "s": "gm_marimba",
+          "attack": 0.001,
+          "decay": 0.05,
+          "sustain": 1,
+          "release": 1.1,
+          "gain": 0.42,
+          "note": 57,
+          "pan": 0.5
+        }
+      },
+      "dwell": [
+        {
+          "offsetSeconds": 0,
+          "durationSeconds": 0.3333333333333333,
+          "parameters": {
+            "s": "gm_marimba",
+            "attack": 0.12,
+            "decay": 1.5,
+            "sustain": 0.2,
+            "release": 0.7,
+            "gain": 0.17639999999999997,
+            "note": 57,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 0.3333333333333333,
+          "durationSeconds": 0.3333333333333333,
+          "parameters": {
+            "s": "gm_marimba",
+            "attack": 0.12,
+            "decay": 1.5,
+            "sustain": 0.2,
+            "release": 0.7,
+            "gain": 0.17639999999999997,
+            "note": 57,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 0.6666666666666666,
+          "durationSeconds": 0.33333333333333337,
+          "parameters": {
+            "s": "gm_marimba",
+            "attack": 0.12,
+            "decay": 1.5,
+            "sustain": 0.2,
+            "release": 0.7,
+            "gain": 0.17639999999999997,
+            "note": 57,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 1,
+          "durationSeconds": 0.33333333333333326,
+          "parameters": {
+            "s": "gm_marimba",
+            "attack": 0.12,
+            "decay": 1.5,
+            "sustain": 0.2,
+            "release": 0.7,
+            "gain": 0.17639999999999997,
+            "note": 57,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 1.3333333333333333,
+          "durationSeconds": 0.3333333333333335,
+          "parameters": {
+            "s": "gm_marimba",
+            "attack": 0.12,
+            "decay": 1.5,
+            "sustain": 0.2,
+            "release": 0.7,
+            "gain": 0.17639999999999997,
+            "note": 57,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 1.6666666666666667,
+          "durationSeconds": 0.33333333333333326,
+          "parameters": {
+            "s": "gm_marimba",
+            "attack": 0.12,
+            "decay": 1.5,
+            "sustain": 0.2,
+            "release": 0.7,
+            "gain": 0.17639999999999997,
+            "note": 57,
+            "pan": 0.5
+          }
+        }
+      ],
+      "sources": ["gm_marimba"]
+    },
+    "interregio": {
+      "arrival": {
+        "durationSeconds": 0.3,
+        "parameters": {
+          "s": "gm_marimba",
+          "attack": 0.001,
+          "decay": 0.05,
+          "sustain": 1,
+          "release": 0.6,
+          "gain": 0.36,
+          "note": 53,
+          "pan": 0.35
+        }
+      },
+      "departure": {
+        "durationSeconds": 0.3,
+        "parameters": {
+          "s": "gm_marimba",
+          "attack": 0.001,
+          "decay": 0.05,
+          "sustain": 1,
+          "release": 0.6,
+          "gain": 0.36,
+          "note": 58,
+          "pan": 0.65
+        }
+      },
+      "passthrough": {
+        "durationSeconds": 0.3,
+        "parameters": {
+          "s": "gm_marimba",
+          "attack": 0.001,
+          "decay": 0.05,
+          "sustain": 1,
+          "release": 0.6,
+          "gain": 0.36,
+          "note": 58,
+          "pan": 0.5
+        }
+      },
+      "dwell": [
+        {
+          "offsetSeconds": 0,
+          "durationSeconds": 2,
+          "parameters": {
+            "s": "gm_marimba",
+            "attack": 0.05,
+            "decay": 0.1,
+            "sustain": 0.8,
+            "release": 0.3,
+            "gain": 0.05,
+            "note": 46,
+            "pan": 0.5
+          }
+        }
+      ],
+      "sources": ["gm_marimba"]
+    },
+    "regionalverkehr": {
+      "arrival": {
+        "durationSeconds": 0.2,
+        "parameters": {
+          "s": "gm_marimba",
+          "attack": 0.001,
+          "decay": 0.05,
+          "sustain": 1,
+          "release": 0.35,
+          "gain": 0.3,
+          "note": 54,
+          "pan": 0.35
+        }
+      },
+      "departure": {
+        "durationSeconds": 0.2,
+        "parameters": {
+          "s": "gm_marimba",
+          "attack": 0.001,
+          "decay": 0.05,
+          "sustain": 1,
+          "release": 0.35,
+          "gain": 0.3,
+          "note": 59,
+          "pan": 0.65
+        }
+      },
+      "passthrough": {
+        "durationSeconds": 0.2,
+        "parameters": {
+          "s": "gm_marimba",
+          "attack": 0.001,
+          "decay": 0.05,
+          "sustain": 1,
+          "release": 0.35,
+          "gain": 0.3,
+          "note": 59,
+          "pan": 0.5
+        }
+      },
+      "dwell": [
+        {
+          "offsetSeconds": 0,
+          "durationSeconds": 2,
+          "parameters": {
+            "s": "gm_marimba",
+            "attack": 0.05,
+            "decay": 0.1,
+            "sustain": 0.8,
+            "release": 0.3,
+            "gain": 0.05,
+            "note": 47,
+            "pan": 0.5
+          }
+        }
+      ],
+      "sources": ["gm_marimba"]
+    },
+    "tram": {
+      "arrival": {
+        "durationSeconds": 0.06,
+        "parameters": {
+          "s": "gm_marimba",
+          "attack": 0.001,
+          "decay": 0.05,
+          "sustain": 1,
+          "release": 0.08,
+          "gain": 0.25,
+          "note": 57,
+          "pan": 0.35
+        }
+      },
+      "departure": {
+        "durationSeconds": 0.06,
+        "parameters": {
+          "s": "gm_marimba",
+          "attack": 0.001,
+          "decay": 0.05,
+          "sustain": 1,
+          "release": 0.08,
+          "gain": 0.25,
+          "note": 62,
+          "pan": 0.65
+        }
+      },
+      "passthrough": {
+        "durationSeconds": 0.06,
+        "parameters": {
+          "s": "gm_marimba",
+          "attack": 0.001,
+          "decay": 0.05,
+          "sustain": 1,
+          "release": 0.08,
+          "gain": 0.25,
+          "note": 62,
+          "pan": 0.5
+        }
+      },
+      "dwell": null,
+      "sources": ["gm_marimba"]
+    },
+    "bus": {
+      "arrival": {
+        "durationSeconds": 0.1,
+        "parameters": {
+          "s": "gm_marimba",
+          "attack": 0.001,
+          "decay": 0.05,
+          "sustain": 1,
+          "release": 0.15,
+          "gain": 0.25,
+          "note": 56,
+          "pan": 0.35
+        }
+      },
+      "departure": {
+        "durationSeconds": 0.1,
+        "parameters": {
+          "s": "gm_marimba",
+          "attack": 0.001,
+          "decay": 0.05,
+          "sustain": 1,
+          "release": 0.15,
+          "gain": 0.25,
+          "note": 61,
+          "pan": 0.65
+        }
+      },
+      "passthrough": {
+        "durationSeconds": 0.1,
+        "parameters": {
+          "s": "gm_marimba",
+          "attack": 0.001,
+          "decay": 0.05,
+          "sustain": 1,
+          "release": 0.15,
+          "gain": 0.25,
+          "note": 61,
+          "pan": 0.5
+        }
+      },
+      "dwell": null,
+      "sources": ["gm_marimba"]
+    }
+  },
+  "Schlagzeug": {
+    "fernverkehr": {
+      "arrival": {
+        "durationSeconds": 0.2,
+        "parameters": {
+          "s": "bd",
+          "gain": 0.4,
+          "pan": 0.35,
+          "speed": 0.8
+        }
+      },
+      "departure": {
+        "durationSeconds": 0.2,
+        "parameters": {
+          "s": "bd",
+          "gain": 0.6000000000000001,
+          "pan": 0.65
+        }
+      },
+      "passthrough": {
+        "durationSeconds": 0.2,
+        "parameters": {
+          "s": "bd",
+          "gain": 0.4,
+          "pan": 0.5
+        }
+      },
+      "dwell": [
+        {
+          "offsetSeconds": 0,
+          "durationSeconds": 0.125,
+          "parameters": {
+            "s": "bd",
+            "gain": 0.18000000000000002,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 0.125,
+          "durationSeconds": 0.125,
+          "parameters": {
+            "s": "bd",
+            "gain": 0.18000000000000002,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 0.25,
+          "durationSeconds": 0.125,
+          "parameters": {
+            "s": "bd",
+            "gain": 0.18000000000000002,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 0.375,
+          "durationSeconds": 0.125,
+          "parameters": {
+            "s": "bd",
+            "gain": 0.18000000000000002,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 0.5,
+          "durationSeconds": 0.125,
+          "parameters": {
+            "s": "bd",
+            "gain": 0.18000000000000002,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 0.625,
+          "durationSeconds": 0.125,
+          "parameters": {
+            "s": "bd",
+            "gain": 0.18000000000000002,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 0.75,
+          "durationSeconds": 0.125,
+          "parameters": {
+            "s": "bd",
+            "gain": 0.18000000000000002,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 0.875,
+          "durationSeconds": 0.125,
+          "parameters": {
+            "s": "bd",
+            "gain": 0.18000000000000002,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 1,
+          "durationSeconds": 0.125,
+          "parameters": {
+            "s": "bd",
+            "gain": 0.18000000000000002,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 1.125,
+          "durationSeconds": 0.125,
+          "parameters": {
+            "s": "bd",
+            "gain": 0.18000000000000002,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 1.25,
+          "durationSeconds": 0.125,
+          "parameters": {
+            "s": "bd",
+            "gain": 0.18000000000000002,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 1.375,
+          "durationSeconds": 0.125,
+          "parameters": {
+            "s": "bd",
+            "gain": 0.18000000000000002,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 1.5,
+          "durationSeconds": 0.125,
+          "parameters": {
+            "s": "bd",
+            "gain": 0.18000000000000002,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 1.625,
+          "durationSeconds": 0.125,
+          "parameters": {
+            "s": "bd",
+            "gain": 0.18000000000000002,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 1.75,
+          "durationSeconds": 0.125,
+          "parameters": {
+            "s": "bd",
+            "gain": 0.18000000000000002,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 1.875,
+          "durationSeconds": 0.125,
+          "parameters": {
+            "s": "bd",
+            "gain": 0.18000000000000002,
+            "pan": 0.5
+          }
+        }
+      ],
+      "sources": ["bd"]
+    },
+    "interregio": {
+      "arrival": {
+        "durationSeconds": 0.2,
+        "parameters": {
+          "s": "sd",
+          "gain": 0.3,
+          "pan": 0.35,
+          "speed": 0.8
+        }
+      },
+      "departure": {
+        "durationSeconds": 0.2,
+        "parameters": {
+          "s": "sd",
+          "gain": 0.44999999999999996,
+          "pan": 0.65
+        }
+      },
+      "passthrough": {
+        "durationSeconds": 0.2,
+        "parameters": {
+          "s": "sd",
+          "gain": 0.3,
+          "pan": 0.5
+        }
+      },
+      "dwell": [
+        {
+          "offsetSeconds": 0,
+          "durationSeconds": 0.125,
+          "parameters": {
+            "s": "sd",
+            "gain": 0.135,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 0.125,
+          "durationSeconds": 0.125,
+          "parameters": {
+            "s": "sd",
+            "gain": 0.135,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 0.25,
+          "durationSeconds": 0.125,
+          "parameters": {
+            "s": "sd",
+            "gain": 0.135,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 0.375,
+          "durationSeconds": 0.125,
+          "parameters": {
+            "s": "sd",
+            "gain": 0.135,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 0.5,
+          "durationSeconds": 0.125,
+          "parameters": {
+            "s": "sd",
+            "gain": 0.135,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 0.625,
+          "durationSeconds": 0.125,
+          "parameters": {
+            "s": "sd",
+            "gain": 0.135,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 0.75,
+          "durationSeconds": 0.125,
+          "parameters": {
+            "s": "sd",
+            "gain": 0.135,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 0.875,
+          "durationSeconds": 0.125,
+          "parameters": {
+            "s": "sd",
+            "gain": 0.135,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 1,
+          "durationSeconds": 0.125,
+          "parameters": {
+            "s": "sd",
+            "gain": 0.135,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 1.125,
+          "durationSeconds": 0.125,
+          "parameters": {
+            "s": "sd",
+            "gain": 0.135,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 1.25,
+          "durationSeconds": 0.125,
+          "parameters": {
+            "s": "sd",
+            "gain": 0.135,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 1.375,
+          "durationSeconds": 0.125,
+          "parameters": {
+            "s": "sd",
+            "gain": 0.135,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 1.5,
+          "durationSeconds": 0.125,
+          "parameters": {
+            "s": "sd",
+            "gain": 0.135,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 1.625,
+          "durationSeconds": 0.125,
+          "parameters": {
+            "s": "sd",
+            "gain": 0.135,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 1.75,
+          "durationSeconds": 0.125,
+          "parameters": {
+            "s": "sd",
+            "gain": 0.135,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 1.875,
+          "durationSeconds": 0.125,
+          "parameters": {
+            "s": "sd",
+            "gain": 0.135,
+            "pan": 0.5
+          }
+        }
+      ],
+      "sources": ["sd"]
+    },
+    "regionalverkehr": {
+      "arrival": {
+        "durationSeconds": 0.25,
+        "parameters": {
+          "s": "lt",
+          "gain": 0.35,
+          "pan": 0.35,
+          "speed": 1
+        }
+      },
+      "departure": {
+        "durationSeconds": 0.25,
+        "parameters": {
+          "s": "ht",
+          "gain": 0.35,
+          "pan": 0.65
+        }
+      },
+      "passthrough": {
+        "durationSeconds": 0.25,
+        "parameters": {
+          "s": "mt",
+          "gain": 0.35,
+          "pan": 0.5
+        }
+      },
+      "dwell": [
+        {
+          "offsetSeconds": 0,
+          "durationSeconds": 0.125,
+          "parameters": {
+            "s": "mt",
+            "gain": 0.1575,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 0.125,
+          "durationSeconds": 0.125,
+          "parameters": {
+            "s": "mt",
+            "gain": 0.1575,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 0.25,
+          "durationSeconds": 0.125,
+          "parameters": {
+            "s": "mt",
+            "gain": 0.1575,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 0.375,
+          "durationSeconds": 0.125,
+          "parameters": {
+            "s": "mt",
+            "gain": 0.1575,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 0.5,
+          "durationSeconds": 0.125,
+          "parameters": {
+            "s": "mt",
+            "gain": 0.1575,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 0.625,
+          "durationSeconds": 0.125,
+          "parameters": {
+            "s": "mt",
+            "gain": 0.1575,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 0.75,
+          "durationSeconds": 0.125,
+          "parameters": {
+            "s": "mt",
+            "gain": 0.1575,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 0.875,
+          "durationSeconds": 0.125,
+          "parameters": {
+            "s": "mt",
+            "gain": 0.1575,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 1,
+          "durationSeconds": 0.125,
+          "parameters": {
+            "s": "mt",
+            "gain": 0.1575,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 1.125,
+          "durationSeconds": 0.125,
+          "parameters": {
+            "s": "mt",
+            "gain": 0.1575,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 1.25,
+          "durationSeconds": 0.125,
+          "parameters": {
+            "s": "mt",
+            "gain": 0.1575,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 1.375,
+          "durationSeconds": 0.125,
+          "parameters": {
+            "s": "mt",
+            "gain": 0.1575,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 1.5,
+          "durationSeconds": 0.125,
+          "parameters": {
+            "s": "mt",
+            "gain": 0.1575,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 1.625,
+          "durationSeconds": 0.125,
+          "parameters": {
+            "s": "mt",
+            "gain": 0.1575,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 1.75,
+          "durationSeconds": 0.125,
+          "parameters": {
+            "s": "mt",
+            "gain": 0.1575,
+            "pan": 0.5
+          }
+        },
+        {
+          "offsetSeconds": 1.875,
+          "durationSeconds": 0.125,
+          "parameters": {
+            "s": "mt",
+            "gain": 0.1575,
+            "pan": 0.5
+          }
+        }
+      ],
+      "sources": ["mt", "lt", "ht"]
+    },
+    "tram": {
+      "arrival": {
+        "durationSeconds": 0.4,
+        "parameters": {
+          "s": "rd",
+          "gain": 0.3,
+          "pan": 0.35,
+          "speed": 0.8
+        }
+      },
+      "departure": {
+        "durationSeconds": 0.4,
+        "parameters": {
+          "s": "rd",
+          "gain": 0.44999999999999996,
+          "pan": 0.65
+        }
+      },
+      "passthrough": {
+        "durationSeconds": 0.4,
+        "parameters": {
+          "s": "rd",
+          "gain": 0.3,
+          "pan": 0.5
+        }
+      },
+      "dwell": null,
+      "sources": ["rd"]
+    },
+    "bus": {
+      "arrival": {
+        "durationSeconds": 0.2,
+        "parameters": {
+          "s": "bd",
+          "gain": 0.25,
+          "pan": 0.35,
+          "speed": 0.8
+        }
+      },
+      "departure": {
+        "durationSeconds": 0.2,
+        "parameters": {
+          "s": "bd",
+          "gain": 0.375,
+          "pan": 0.65
+        }
+      },
+      "passthrough": {
+        "durationSeconds": 0.2,
+        "parameters": {
+          "s": "bd",
+          "gain": 0.25,
+          "pan": 0.5
+        }
+      },
+      "dwell": null,
+      "sources": ["bd"]
+    }
+  },
+  "Gitarre": {
+    "fernverkehr": {
+      "arrival": {
+        "durationSeconds": 0.4,
+        "parameters": {
+          "s": "gm_electric_guitar_muted",
+          "attack": 0.002,
+          "decay": 0.08,
+          "sustain": 0.3,
+          "release": 0.7,
+          "gain": 0.32,
+          "note": 55,
+          "pan": 0.5
+        }
+      },
+      "departure": {
+        "durationSeconds": 0.4,
+        "parameters": {
+          "s": "gm_electric_guitar_muted",
+          "attack": 0.002,
+          "decay": 0.08,
+          "sustain": 0.3,
+          "release": 0.7,
+          "gain": 0.32,
+          "note": 55,
+          "pan": 0.5
+        }
+      },
+      "passthrough": {
+        "durationSeconds": 0.4,
+        "parameters": {
+          "s": "gm_electric_guitar_muted",
+          "attack": 0.002,
+          "decay": 0.08,
+          "sustain": 0.3,
+          "release": 0.7,
+          "gain": 0.32,
+          "note": 55,
+          "pan": 0.5
+        }
+      },
+      "dwell": [
+        {
+          "offsetSeconds": 0,
+          "durationSeconds": 2,
+          "parameters": {
+            "s": "gm_electric_guitar_muted",
+            "attack": 0.05,
+            "decay": 0.1,
+            "sustain": 0.8,
+            "release": 0.3,
+            "gain": 0.05,
+            "note": 43,
+            "pan": 0.5
+          }
+        }
+      ],
+      "sources": ["gm_electric_guitar_muted"]
+    },
+    "interregio": {
+      "arrival": {
+        "durationSeconds": 0.3,
+        "parameters": {
+          "s": "gm_electric_guitar_muted",
+          "attack": 0.002,
+          "decay": 0.08,
+          "sustain": 0.2,
+          "release": 0.5,
+          "gain": 0.3,
+          "note": 52,
+          "pan": 0.35
+        }
+      },
+      "departure": {
+        "durationSeconds": 0.3,
+        "parameters": {
+          "s": "gm_electric_guitar_muted",
+          "attack": 0.002,
+          "decay": 0.08,
+          "sustain": 0.2,
+          "release": 0.5,
+          "gain": 0.3,
+          "note": 57,
+          "pan": 0.65
+        }
+      },
+      "passthrough": {
+        "durationSeconds": 0.3,
+        "parameters": {
+          "s": "gm_electric_guitar_muted",
+          "attack": 0.002,
+          "decay": 0.08,
+          "sustain": 0.2,
+          "release": 0.5,
+          "gain": 0.3,
+          "note": 57,
+          "pan": 0.5
+        }
+      },
+      "dwell": [
+        {
+          "offsetSeconds": 0,
+          "durationSeconds": 2,
+          "parameters": {
+            "s": "gm_electric_guitar_muted",
+            "attack": 0.05,
+            "decay": 0.1,
+            "sustain": 0.8,
+            "release": 0.3,
+            "gain": 0.05,
+            "note": 45,
+            "pan": 0.5
+          }
+        }
+      ],
+      "sources": ["gm_electric_guitar_muted"]
+    },
+    "regionalverkehr": {
+      "arrival": {
+        "durationSeconds": 0.2,
+        "parameters": {
+          "s": "gm_electric_guitar_muted",
+          "attack": 0.002,
+          "decay": 0.08,
+          "sustain": 0.2,
+          "release": 0.35,
+          "gain": 0.3,
+          "note": 54,
+          "pan": 0.35
+        }
+      },
+      "departure": {
+        "durationSeconds": 0.2,
+        "parameters": {
+          "s": "gm_electric_guitar_muted",
+          "attack": 0.002,
+          "decay": 0.08,
+          "sustain": 0.2,
+          "release": 0.35,
+          "gain": 0.3,
+          "note": 59,
+          "pan": 0.65
+        }
+      },
+      "passthrough": {
+        "durationSeconds": 0.2,
+        "parameters": {
+          "s": "gm_electric_guitar_muted",
+          "attack": 0.002,
+          "decay": 0.08,
+          "sustain": 0.2,
+          "release": 0.35,
+          "gain": 0.3,
+          "note": 59,
+          "pan": 0.5
+        }
+      },
+      "dwell": [
+        {
+          "offsetSeconds": 0,
+          "durationSeconds": 2,
+          "parameters": {
+            "s": "gm_electric_guitar_muted",
+            "attack": 0.05,
+            "decay": 0.1,
+            "sustain": 0.8,
+            "release": 0.3,
+            "gain": 0.05,
+            "note": 47,
+            "pan": 0.5
+          }
+        }
+      ],
+      "sources": ["gm_electric_guitar_muted"]
+    },
+    "tram": {
+      "arrival": {
+        "durationSeconds": 0.06,
+        "parameters": {
+          "s": "gm_electric_guitar_muted",
+          "attack": 0.002,
+          "decay": 0.08,
+          "sustain": 0.2,
+          "release": 0.08,
+          "gain": 0.3,
+          "note": 57,
+          "pan": 0.35
+        }
+      },
+      "departure": {
+        "durationSeconds": 0.06,
+        "parameters": {
+          "s": "gm_electric_guitar_muted",
+          "attack": 0.002,
+          "decay": 0.08,
+          "sustain": 0.2,
+          "release": 0.08,
+          "gain": 0.3,
+          "note": 62,
+          "pan": 0.65
+        }
+      },
+      "passthrough": {
+        "durationSeconds": 0.06,
+        "parameters": {
+          "s": "gm_electric_guitar_muted",
+          "attack": 0.002,
+          "decay": 0.08,
+          "sustain": 0.2,
+          "release": 0.08,
+          "gain": 0.3,
+          "note": 62,
+          "pan": 0.5
+        }
+      },
+      "dwell": null,
+      "sources": ["gm_electric_guitar_muted"]
+    },
+    "bus": {
+      "arrival": {
+        "durationSeconds": 0.1,
+        "parameters": {
+          "s": "gm_electric_guitar_muted",
+          "attack": 0.002,
+          "decay": 0.08,
+          "sustain": 0.2,
+          "release": 0.15,
+          "gain": 0.25,
+          "note": 56,
+          "pan": 0.35
+        }
+      },
+      "departure": {
+        "durationSeconds": 0.1,
+        "parameters": {
+          "s": "gm_electric_guitar_muted",
+          "attack": 0.002,
+          "decay": 0.08,
+          "sustain": 0.2,
+          "release": 0.15,
+          "gain": 0.25,
+          "note": 61,
+          "pan": 0.65
+        }
+      },
+      "passthrough": {
+        "durationSeconds": 0.1,
+        "parameters": {
+          "s": "gm_electric_guitar_muted",
+          "attack": 0.002,
+          "decay": 0.08,
+          "sustain": 0.2,
+          "release": 0.15,
+          "gain": 0.25,
+          "note": 61,
+          "pan": 0.5
+        }
+      },
+      "dwell": null,
+      "sources": ["gm_electric_guitar_muted"]
+    }
+  },
+  "Synths": {
+    "fernverkehr": {
+      "arrival": {
+        "durationSeconds": 0.3,
+        "parameters": {
+          "s": "sine",
+          "attack": 0.002,
+          "decay": 0.15,
+          "sustain": 0.15,
+          "release": 1.2,
+          "gain": 0.35,
+          "fmi": 8,
+          "fmh": 3.01,
+          "note": 71,
+          "pan": 0.35
+        }
+      },
+      "departure": {
+        "durationSeconds": 0.3,
+        "parameters": {
+          "s": "sine",
+          "attack": 0.002,
+          "decay": 0.15,
+          "sustain": 0.15,
+          "release": 1.2,
+          "gain": 0.35,
+          "fmi": 8,
+          "fmh": 3.01,
+          "note": 76,
+          "pan": 0.65
+        }
+      },
+      "passthrough": {
+        "durationSeconds": 0.3,
+        "parameters": {
+          "s": "sine",
+          "attack": 0.002,
+          "decay": 0.15,
+          "sustain": 0.15,
+          "release": 1.2,
+          "gain": 0.35,
+          "fmi": 8,
+          "fmh": 3.01,
+          "note": 76,
+          "pan": 0.5
+        }
+      },
+      "dwell": [
+        {
+          "offsetSeconds": 0,
+          "durationSeconds": 2,
+          "parameters": {
+            "s": "sine",
+            "attack": 0.05,
+            "decay": 0.1,
+            "sustain": 0.8,
+            "release": 0.3,
+            "gain": 0.05,
+            "fmi": 8,
+            "fmh": 3.01,
+            "note": 64,
+            "pan": 0.5
+          }
+        }
+      ],
+      "sources": ["sine"]
+    },
+    "interregio": {
+      "arrival": {
+        "durationSeconds": 0.3,
+        "parameters": {
+          "s": "sine",
+          "attack": 0.002,
+          "decay": 0.13,
+          "sustain": 0.15,
+          "release": 1,
+          "gain": 0.3,
+          "fmi": 6,
+          "fmh": 3.01,
+          "note": 66,
+          "pan": 0.35
+        }
+      },
+      "departure": {
+        "durationSeconds": 0.3,
+        "parameters": {
+          "s": "sine",
+          "attack": 0.002,
+          "decay": 0.13,
+          "sustain": 0.15,
+          "release": 1,
+          "gain": 0.3,
+          "fmi": 6,
+          "fmh": 3.01,
+          "note": 71,
+          "pan": 0.65
+        }
+      },
+      "passthrough": {
+        "durationSeconds": 0.3,
+        "parameters": {
+          "s": "sine",
+          "attack": 0.002,
+          "decay": 0.13,
+          "sustain": 0.15,
+          "release": 1,
+          "gain": 0.3,
+          "fmi": 6,
+          "fmh": 3.01,
+          "note": 71,
+          "pan": 0.5
+        }
+      },
+      "dwell": [
+        {
+          "offsetSeconds": 0,
+          "durationSeconds": 2,
+          "parameters": {
+            "s": "sine",
+            "attack": 0.05,
+            "decay": 0.1,
+            "sustain": 0.8,
+            "release": 0.3,
+            "gain": 0.05,
+            "fmi": 6,
+            "fmh": 3.01,
+            "note": 59,
+            "pan": 0.5
+          }
+        }
+      ],
+      "sources": ["sine"]
+    },
+    "regionalverkehr": {
+      "arrival": {
+        "durationSeconds": 0.2,
+        "parameters": {
+          "s": "sawtooth",
+          "attack": 0.005,
+          "decay": 0.18,
+          "sustain": 0,
+          "release": 0.25,
+          "gain": 0.25,
+          "cutoff": 1400,
+          "resonance": 8,
+          "note": 52,
+          "pan": 0.35
+        }
+      },
+      "departure": {
+        "durationSeconds": 0.2,
+        "parameters": {
+          "s": "sawtooth",
+          "attack": 0.005,
+          "decay": 0.18,
+          "sustain": 0,
+          "release": 0.25,
+          "gain": 0.25,
+          "cutoff": 1400,
+          "resonance": 8,
+          "note": 57,
+          "pan": 0.65
+        }
+      },
+      "passthrough": {
+        "durationSeconds": 0.2,
+        "parameters": {
+          "s": "sawtooth",
+          "attack": 0.005,
+          "decay": 0.18,
+          "sustain": 0,
+          "release": 0.25,
+          "gain": 0.25,
+          "cutoff": 1400,
+          "resonance": 8,
+          "note": 57,
+          "pan": 0.5
+        }
+      },
+      "dwell": [
+        {
+          "offsetSeconds": 0,
+          "durationSeconds": 2,
+          "parameters": {
+            "s": "sawtooth",
+            "attack": 0.05,
+            "decay": 0.1,
+            "sustain": 0.8,
+            "release": 0.3,
+            "gain": 0.05,
+            "cutoff": 1400,
+            "resonance": 8,
+            "note": 45,
+            "pan": 0.5
+          }
+        }
+      ],
+      "sources": ["sawtooth"]
+    },
+    "tram": {
+      "arrival": {
+        "durationSeconds": 0.25,
+        "parameters": {
+          "s": "sine",
+          "attack": 0.002,
+          "decay": 0.12,
+          "sustain": 0.1,
+          "release": 0.8,
+          "gain": 0.35,
+          "fmi": 5,
+          "fmh": 2,
+          "note": 64,
+          "pan": 0.35
+        }
+      },
+      "departure": {
+        "durationSeconds": 0.25,
+        "parameters": {
+          "s": "sine",
+          "attack": 0.002,
+          "decay": 0.12,
+          "sustain": 0.1,
+          "release": 0.8,
+          "gain": 0.35,
+          "fmi": 5,
+          "fmh": 2,
+          "note": 69,
+          "pan": 0.65
+        }
+      },
+      "passthrough": {
+        "durationSeconds": 0.25,
+        "parameters": {
+          "s": "sine",
+          "attack": 0.002,
+          "decay": 0.12,
+          "sustain": 0.1,
+          "release": 0.8,
+          "gain": 0.35,
+          "fmi": 5,
+          "fmh": 2,
+          "note": 69,
+          "pan": 0.5
+        }
+      },
+      "dwell": null,
+      "sources": ["sine"]
+    },
+    "bus": {
+      "arrival": {
+        "durationSeconds": 0.08,
+        "parameters": {
+          "s": "pink",
+          "attack": 0.001,
+          "decay": 0.05,
+          "sustain": 0,
+          "release": 0.05,
+          "gain": 0.18,
+          "bandf": 900,
+          "bandq": 6,
+          "pan": 0.35
+        }
+      },
+      "departure": {
+        "durationSeconds": 0.08,
+        "parameters": {
+          "s": "pink",
+          "attack": 0.001,
+          "decay": 0.05,
+          "sustain": 0,
+          "release": 0.05,
+          "gain": 0.18,
+          "bandf": 900,
+          "bandq": 6,
+          "pan": 0.65
+        }
+      },
+      "passthrough": {
+        "durationSeconds": 0.08,
+        "parameters": {
+          "s": "pink",
+          "attack": 0.001,
+          "decay": 0.05,
+          "sustain": 0,
+          "release": 0.05,
+          "gain": 0.18,
+          "bandf": 900,
+          "bandq": 6,
+          "pan": 0.5
+        }
+      },
+      "dwell": null,
+      "sources": ["pink"]
+    }
+  }
+}

@@ -110,6 +110,18 @@ plugs into it:
   [superdough](https://www.npmjs.com/package/superdough) audio engine. Its
   samples are vendored too, so the client fetches audio same-origin like
   everything else.
+- **An instrumentation is a document, not code.** A JSON file under
+  `frontend/viz-core/sonification/instrumentations/` names a sound per transport
+  group and per event (arrival, departure, pass-through, standing); what it
+  leaves out is inherited from the level above it, down to the sound itself and
+  the kind of sound it is. The sounds it may name are the registry in
+  `sonification/sounds/`, and that same registry is what the vendoring script
+  mirrors — so a sound the app offers is one it can play.
+- **A listener may write one.** The `InstrumentationEditor` is a drawer opposite
+  the sidebar in which such a document is typed and checked on every keystroke;
+  what plays is heard at once and kept in the browser's local storage, so it
+  outlasts the page and joins the dropdown. It never reaches the server, and the
+  exhibition mode does not build it.
 - **Styling** follows [SMACSS](http://smacss.com/) as static CSS under
   `frontend/styles/` (base with design tokens, layout, one file per module) — no
   inline styles, bundler-free, biome-formatted. A base template carries the

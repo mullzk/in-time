@@ -7,7 +7,6 @@
 import {
   getAudioContext,
   initAudio,
-  mini,
   registerSoundfonts,
   registerSynthSounds,
   samples,
@@ -59,10 +58,6 @@ export class AudioBridge {
 
   get currentTime() {
     return this.context.currentTime;
-  }
-
-  mini(sequence) {
-    return mini(sequence);
   }
 
   // The deadline is absolute context time; a past deadline is silently skipped

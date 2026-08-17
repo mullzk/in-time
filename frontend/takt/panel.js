@@ -33,6 +33,7 @@ const CATEGORY_COLORS = [
 const FALLBACK_COLOR = [200, 200, 200];
 
 const CATEGORY_INTERCITY = 0;
+const CATEGORY_INTERREGIO = 1;
 const CATEGORY_TRAM = 5;
 const CATEGORY_BUS = 6;
 
@@ -49,12 +50,12 @@ const CATEGORY_LABELS = [
 ];
 const categoryLabel = (category) => CATEGORY_LABELS[category] ?? 'Fahrt';
 
-// Rail splits into a long-distance and a regional layer, matching the same two
-// display groups used for the sounds: Fernverkehr (categories 0-1) and
-// Regionalverkehr (2-4), plus the tram and bus layers.
+// Rail splits into a long-distance, an InterRegio and a regional layer, matching
+// the same display groups used for the sounds: Fernverkehr (category 0),
+// InterRegio (1) and Regionalverkehr (2-4), plus the tram and bus layers.
 const LAYER_BY_CATEGORY = new Map([
   [CATEGORY_INTERCITY, 'fernverkehr'],
-  [1, 'fernverkehr'],
+  [CATEGORY_INTERREGIO, 'interregio'],
   [2, 'regionalverkehr'],
   [3, 'regionalverkehr'],
   [4, 'regionalverkehr'],
@@ -111,6 +112,7 @@ const TRAIL_TAIL_ALPHA = 12;
 const TRAIL_BASE_LENGTH_SECONDS = 84;
 const TRAIL_LENGTH_FACTOR_BY_LAYER = new Map([
   ['fernverkehr', 1.25],
+  ['interregio', 1],
   ['regionalverkehr', 2 / 3],
 ]);
 const trailedLayer = (category) =>
@@ -118,10 +120,14 @@ const trailedLayer = (category) =>
 
 // The gap between samples, in schedule seconds. Long-distance trains both reach
 // furthest and move fastest, so at close zoom the same gap tears their trail
-// into separate dots; they get a tighter one. The slower, shorter services read
-// as a smear at the wide gap and would only cost samples at a tighter one.
+// into separate dots; they get the tightest one, the InterRegio a middling one.
+// The slower, shorter services read as a smear at the wide gap and would only
+// cost samples at a tighter one.
 const TRAIL_DEFAULT_SPACING_SECONDS = 7;
-const TRAIL_SPACING_SECONDS_BY_LAYER = new Map([['fernverkehr', 3]]);
+const TRAIL_SPACING_SECONDS_BY_LAYER = new Map([
+  ['fernverkehr', 3],
+  ['interregio', 5],
+]);
 
 const trailSpacingSeconds = (category) =>
   TRAIL_SPACING_SECONDS_BY_LAYER.get(layerOfCategory(category)) ??
@@ -191,6 +197,7 @@ const LAYER_LABELS = [
   ['network', 'Netz'],
   ['stops', 'Haltestellen'],
   ['fernverkehr', 'Fernverkehr'],
+  ['interregio', 'InterRegio'],
   ['regionalverkehr', 'Regionalverkehr'],
   ['tram', 'Tram'],
   ['bus', 'Bus'],
@@ -208,6 +215,22 @@ const didokToIndex = (stations) =>
 const SOUND_STATION_HINT =
   'Sound erklingt erst, wenn eine Station gewählt ist.';
 
+// The dropdown is keyed by option value, not by name: an own instrumentation may
+// carry the name of a delivered one, and then only the value tells them apart.
+export const SILENT_OPTION_VALUE = '';
+export const CUSTOM_OPTION_VALUE = 'custom';
+export const presetOptionValue = (index) => `preset-${index}`;
+
+export function instrumentationForOptionValue(value, customInstrumentation) {
+  if (value === CUSTOM_OPTION_VALUE) {
+    return customInstrumentation;
+  }
+  return (
+    INSTRUMENTATIONS.find((_, index) => presetOptionValue(index) === value) ??
+    null
+  );
+}
+
 export class TaktPanel extends Panel {
   capabilities = {
     simulationSpeed: true,
@@ -222,12 +245,12 @@ export class TaktPanel extends Panel {
     this.positionEngines = [];
     this.soundEngines = [];
     this.clusterToDidoks = new Map();
-    this.adoptSchedule(railBuffer, railStations);
     this.activeVehicles = [];
     this.layers = {
       network: false,
       stops: false,
       fernverkehr: true,
+      interregio: true,
       regionalverkehr: true,
       tram: false,
       bus: false,
@@ -237,11 +260,14 @@ export class TaktPanel extends Panel {
     this.currentTimeSeconds = 0;
     this.sonifiedStation = null;
     this.soundHint = null;
+    this.customInstrumentation = null;
+    this.customOption = null;
     this.holdBackground = null;
     this.background = BACKGROUNDS[0];
     this.previousZoomFraction = null;
     this.layerOptions = {};
     this.camera = null;
+    this.adoptSchedule(railBuffer, railStations);
   }
 
   stationCatalog() {
@@ -442,7 +468,11 @@ export class TaktPanel extends Panel {
       : (CATEGORY_COLORS[category] ?? FALLBACK_COLOR);
   }
 
-  sidebarSections({ setInstrumentation, holdBackground } = {}) {
+  sidebarSections({
+    setInstrumentation,
+    toggleInstrumentationEditor,
+    holdBackground,
+  } = {}) {
     this.holdBackground = holdBackground;
     const sections = [
       {
@@ -463,7 +493,10 @@ export class TaktPanel extends Panel {
       sections.push({
         id: 'sound',
         title: 'Sound',
-        element: this.#soundControl(setInstrumentation),
+        element: this.#soundControl(
+          setInstrumentation,
+          toggleInstrumentationEditor,
+        ),
         keepInExhibition: true,
       });
     }
@@ -475,23 +508,25 @@ export class TaktPanel extends Panel {
     const input = element('input');
     input.type = 'checkbox';
     input.checked = this.pulseMode;
-    input.addEventListener('change', () => this.#setPulseMode(input.checked));
+    input.addEventListener('change', () => this.setPulseMode(input.checked));
     group.appendChild(this.#option(input, 'Basistakt zeigen'));
     return group;
   }
 
   // Entering the mode clears the picture down to trains on black -- which brings
-  // the trail with it, the black background's own style. Leaving it hands the
-  // controls back without undoing the choice, so the view stays where the user
-  // was looking.
-  #setPulseMode(on) {
+  // the trail with it, the black background's own style -- and draws the network
+  // underneath, so the beating nodes are read as places on a line rather than as
+  // dots in the dark. Leaving it hands the controls back without undoing the
+  // choice, so the view stays where the user was looking.
+  setPulseMode(on) {
     this.pulseMode = on;
+    this.holdBackground?.(on ? BLACK_BACKGROUND_ID : null);
     if (on) {
       PULSE_MODE_SUPPRESSED_LAYERS.forEach((layer) => {
         this.layers[layer] = false;
       });
+      this.layers.network = true;
     }
-    this.holdBackground?.(on ? BLACK_BACKGROUND_ID : null);
     PULSE_MODE_SUPPRESSED_LAYERS.forEach((layer) => {
       const input = this.layerOptions[layer];
       if (input) {
@@ -520,31 +555,98 @@ export class TaktPanel extends Panel {
     }
   }
 
-  // A single dropdown selects the instrumentation; "Kein Sound" is silence. The
+  // A single dropdown selects the instrumentation; "Kein Sound" is silence. An
+  // own instrumentation joins the list only once one has been written, and the
+  // way to write one sits right under the dropdown -- it is a further way to
+  // choose a sound, not a topic of its own. Without a way to reach the drawer
+  // the button stays away, which is how the exhibition does without it. The
   // sonified station, tempo and per-group mutes come from the existing controls.
-  #soundControl(setInstrumentation) {
+  #soundControl(setInstrumentation, toggleInstrumentationEditor) {
     const group = element('div', 'sidebar-options');
-    const select = element('select', 'sidebar-select');
-    const silent = element('option');
-    silent.value = '';
-    silent.textContent = 'Kein Sound';
-    select.appendChild(silent);
-    INSTRUMENTATIONS.forEach((_, label) => {
-      const option = element('option');
-      option.value = label;
-      option.textContent = label;
-      select.appendChild(option);
-    });
-    select.addEventListener('change', () => {
-      setInstrumentation?.(
-        select.value === '' ? null : INSTRUMENTATIONS.get(select.value),
+    this.soundSelect = element('select', 'sidebar-select');
+    this.soundSelect.appendChild(
+      this.#soundOption(SILENT_OPTION_VALUE, 'Kein Sound'),
+    );
+    INSTRUMENTATIONS.forEach((instrumentation, index) => {
+      this.soundSelect.appendChild(
+        this.#soundOption(presetOptionValue(index), instrumentation.name),
       );
     });
+    this.soundSelect.addEventListener('change', () =>
+      setInstrumentation?.(this.#selectedInstrumentation()),
+    );
     this.soundHint = element('p', 'sidebar-hint');
     this.soundHint.textContent = SOUND_STATION_HINT;
     this.#syncSoundHint();
-    group.append(select, this.soundHint);
+    group.append(this.soundSelect, this.soundHint);
+    if (toggleInstrumentationEditor) {
+      group.appendChild(this.#ownSoundButton(toggleInstrumentationEditor));
+    }
     return group;
+  }
+
+  #soundOption(value, label) {
+    const option = element('option');
+    option.value = value;
+    option.textContent = label;
+    return option;
+  }
+
+  #ownSoundButton(toggleInstrumentationEditor) {
+    const button = element('button', 'instrumentation-editor-open');
+    button.type = 'button';
+    button.textContent = 'Selber vertonen';
+    button.addEventListener('click', () =>
+      toggleInstrumentationEditor(this.#templateDocument()),
+    );
+    return button;
+  }
+
+  // What a new own instrumentation starts from: what is being listened to right
+  // now, or the first delivered one while nothing sounds.
+  #templateDocument() {
+    return (this.#selectedInstrumentation() ?? INSTRUMENTATIONS[0]).document;
+  }
+
+  #selectedInstrumentation() {
+    return instrumentationForOptionValue(
+      this.soundSelect.value,
+      this.customInstrumentation,
+    );
+  }
+
+  // The editor announces every version that plays; the dropdown carries it under
+  // its current name, so renaming it in the document renames it here.
+  offerCustomInstrumentation(instrumentation) {
+    this.customInstrumentation = instrumentation;
+    if (!this.customOption) {
+      this.customOption = this.#soundOption(CUSTOM_OPTION_VALUE, '');
+      this.soundSelect.appendChild(this.customOption);
+    }
+    this.customOption.textContent = instrumentation.name;
+  }
+
+  // While the drawer is open, its document is what is being listened to --
+  // otherwise writing it would say nothing about how it sounds.
+  useCustomInstrumentation(instrumentation) {
+    this.offerCustomInstrumentation(instrumentation);
+    this.soundSelect.value = CUSTOM_OPTION_VALUE;
+  }
+
+  // The discarded document leaves the dropdown with it. Whoever was listening to
+  // it falls back to silence, while a listener who had meanwhile picked a
+  // delivered instrumentation keeps hearing it -- hence the answer of what plays
+  // now rather than a fixed one.
+  forgetCustomInstrumentation() {
+    const remaining =
+      this.soundSelect.value === CUSTOM_OPTION_VALUE
+        ? SILENT_OPTION_VALUE
+        : this.soundSelect.value;
+    this.customInstrumentation = null;
+    this.customOption?.remove();
+    this.customOption = null;
+    this.soundSelect.value = remaining;
+    return this.#selectedInstrumentation();
   }
 
   // An instrument on its own stays silent: the sonifier voices one chosen

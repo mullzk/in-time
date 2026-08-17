@@ -1,0 +1,24 @@
+{
+  "instrumentation": "Synths",
+  "sound": "fm-bell",
+  "interregio": {
+    "fmi": 6,
+    "note": 71,
+    "decay": 0.13,
+    "release": 1.0,
+    "gain": 0.3,
+    "dwell": { "gain": 0.05, "decay": 0.1, "release": 0.3 }
+  },
+  "regionalverkehr": { "sound": "filtered-sawtooth" },
+  "tram": {
+    "dwellType": "none",
+    "fmi": 5,
+    "fmh": 2.0,
+    "note": 69,
+    "decay": 0.12,
+    "sustain": 0.1,
+    "release": 0.8,
+    "duration": 0.25
+  },
+  "bus": { "dwellType": "none", "sound": "noise-brush" }
+}

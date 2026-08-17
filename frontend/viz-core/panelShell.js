@@ -1,8 +1,10 @@
 import { Attribution } from './attribution.js';
+import { localStorageOrForgetful } from './browserStorage.js';
 import { Camera } from './camera.js';
 import { Cockpit } from './cockpit.js';
 import { element } from './dom.js';
 import { InfoModal } from './infoModal.js';
+import { InstrumentationEditor } from './instrumentationEditor.js';
 import { KeyboardControls } from './keyboardControls.js';
 import { MapSelection } from './mapSelection.js';
 import { PanelContext } from './panelContext.js';
@@ -10,6 +12,7 @@ import { wgs84ToLv95 } from './projection.js';
 import { Sidebar } from './sidebar.js';
 import { sectionsToMount } from './sidebarSections.js';
 import { AudioBridge } from './sonification/audioBridge.js';
+import { CustomInstrumentationStore } from './sonification/customInstrumentation.js';
 import { Sonifier } from './sonification/sonifier.js';
 import { StationSearch } from './stationSearch.js';
 import { TileLayer } from './tiles/tileLayer.js';
@@ -54,6 +57,13 @@ export class PanelShell {
       : null;
 
     this.sidebar = new Sidebar(this.root, this.#sections());
+    if (this.sonifier) {
+      this.customInstrumentationStore = new CustomInstrumentationStore(
+        localStorageOrForgetful(),
+      );
+      this.#offerStoredInstrumentation();
+      this.#mountInstrumentationEditor();
+    }
     this.stationSearch = this.panel.capabilities.stationSearch
       ? new StationSearch(this.root, this.panel.stationCatalog(), {
           onSelect: (station) => this.selection.revealStation(station),
@@ -79,6 +89,53 @@ export class PanelShell {
       onFrameRendered: () => this.#onFrameRendered(),
       onCanvasReady: (canvasElement) => this.selection.attachTo(canvasElement),
     });
+  }
+
+  // An own instrumentation outlives the page it was written on, so it is offered
+  // again on every visit -- in the exhibition too, which is how one reaches a
+  // kiosk that has no editor.
+  #offerStoredInstrumentation() {
+    const stored = this.customInstrumentationStore.read();
+    if (stored !== null) {
+      this.panel.offerCustomInstrumentation?.(stored);
+    }
+  }
+
+  // Writing an instrumentation is for the regular app; the exhibition shows only
+  // what is finished, so the drawer is not built there at all.
+  #mountInstrumentationEditor() {
+    if (this.exhibition) {
+      return;
+    }
+    this.instrumentationEditor = new InstrumentationEditor(
+      this.root,
+      this.customInstrumentationStore,
+      {
+        onInstrumentationChanged: (instrumentation) =>
+          this.#adoptCustomInstrumentation(instrumentation),
+        onInstrumentationDiscarded: () => this.#dropCustomInstrumentation(),
+      },
+    );
+  }
+
+  // The panel is handed the way in rather than told about the mode: without one
+  // there is no button, which is what keeps the exhibition clear of it.
+  #instrumentationEditorToggle() {
+    return this.exhibition
+      ? null
+      : (templateDocument) =>
+          this.instrumentationEditor.toggle(templateDocument);
+  }
+
+  #adoptCustomInstrumentation(instrumentation) {
+    this.panel.useCustomInstrumentation?.(instrumentation);
+    this.sonifier.setInstrumentation(instrumentation);
+  }
+
+  #dropCustomInstrumentation() {
+    this.sonifier.setInstrumentation(
+      this.panel.forgetCustomInstrumentation?.() ?? null,
+    );
   }
 
   // Derived state the panel handed out earlier goes stale when it gains data
@@ -111,6 +168,7 @@ export class PanelShell {
     const panelSections = this.panel.sidebarSections({
       setInstrumentation: (instrumentation) =>
         this.sonifier?.setInstrumentation(instrumentation),
+      toggleInstrumentationEditor: this.#instrumentationEditorToggle(),
       holdBackground: (backgroundId) => this.#holdBackground(backgroundId),
     });
     return sectionsToMount(
