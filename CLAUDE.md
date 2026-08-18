@@ -7,10 +7,10 @@ governs how we build it.
 ## Repository structure
 
 - `backend/` — the Django project. Built: `pipeline` (build jobs, `BuildRun`)
-  and `web` (pages + config/station endpoints). Planned: `travel` (live routing)
-  and `hotspots` (aggregation). The browser-facing delivery app is `web`, not
-  `frontend`, so its name does not collide with the `frontend/` client tree
-  below.
+  and `web` (pages + config/station endpoints). Planned: `hotspots`
+  (aggregation); routing needs no app of its own, since the connection scan runs
+  in the browser. The browser-facing delivery app is `web`, not `frontend`, so
+  its name does not collide with the `frontend/` client tree below.
 - `frontend/` — `viz-core` + the five panels: static ES modules, **no bundler**,
   **p5 instance mode**. Node/npm is a dev-time tool only; the runtime stays
   bundler-free. `frontend/vendor/` holds vendored runtime dependencies (see
