@@ -13,3 +13,39 @@
   z-index: 0;
   touch-action: none;
 }
+
+/* The bar across the top: the sidebar's button and the info button on the left,
+   the station search in the middle of the screen, the view switcher on the
+   right. The two outer columns are equal, so the search sits in the true middle
+   however wide its neighbours grow. Below the narrow breakpoint the switcher
+   takes a line of its own above them. */
+.l-topbar {
+  position: absolute;
+  z-index: 13;
+  top: var(--space-m);
+  left: var(--space-m);
+  right: var(--space-m);
+  display: grid;
+  grid-template-columns: 1fr minmax(0, 360px) 1fr;
+  align-items: center;
+  gap: var(--space-s);
+}
+
+.l-topbar-lead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-s);
+}
+
+@media (max-width: 640px) {
+  .l-topbar {
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      "switcher switcher"
+      "lead search";
+  }
+
+  .l-topbar-lead {
+    grid-area: lead;
+  }
+}

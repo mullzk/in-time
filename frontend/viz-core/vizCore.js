@@ -1,11 +1,16 @@
 import p5 from '../vendor/p5.esm.min.js';
 import { CameraControls } from './cameraControls.js';
+import { applyCameraTransform } from './cameraTransform.js';
 
 // The vendored build still ships p5's friendly-error system, which re-fetches
 // and regex-scans our modules at startup and false-flags domain names like
 // `camera` (a p5 function) as redeclarations. We don't want the scan or the
 // noise in this bundler-free app.
 p5.disableFriendlyErrors = true;
+
+// The ground a map is drawn on: dark, so the relief and the vehicles carry the
+// light. A panel that wants another one says so.
+const DEFAULT_GROUND_COLOR = [16, 18, 22];
 
 // Owns the single p5 instance-mode loop and drives the active panel. Panels draw
 // in world coordinates (LV95); VizCore pushes the camera transform so geometry
@@ -23,6 +28,7 @@ export class VizCore {
     this.onFrameRendered = onFrameRendered;
     this.onCanvasReady = onCanvasReady;
     this.onZoomGesture = onZoomGesture;
+    this.groundColor = panel.groundColor?.() ?? DEFAULT_GROUND_COLOR;
     this.instance = new p5((p) => this.#sketch(p), container);
   }
 
@@ -52,7 +58,7 @@ export class VizCore {
     this.context.time.advance(deltaSeconds);
     this.panel.update?.(this.context.time.current, deltaSeconds);
 
-    p.background(16, 18, 22);
+    p.background(...this.groundColor);
     this.#drawThroughCamera(p);
     this.panel.drawOverlay?.(p, this.context);
     this.onFrameRendered?.();
@@ -62,11 +68,8 @@ export class VizCore {
   // pixels exactly as Camera.worldToScreen does, so one loop keeps geometry (and
   // later tiles) coincident. The negative y scale is the north-up flip.
   #drawThroughCamera(p) {
-    const camera = this.context.camera;
     p.push();
-    p.translate(camera.viewportWidth / 2, camera.viewportHeight / 2);
-    p.scale(camera.scale, -camera.scale);
-    p.translate(-camera.centerEast, -camera.centerNorth);
+    applyCameraTransform(p, this.context.camera);
     this.panel.drawWorld(p, this.context);
     p.pop();
   }

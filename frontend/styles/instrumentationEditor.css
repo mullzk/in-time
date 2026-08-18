@@ -4,9 +4,8 @@
    `is-open` on the drawer. Below the narrow breakpoint the sidebar claims the
    whole width, so drawer and opening button step aside entirely; CSS alone
    decides that, and widening the window brings the drawer back as it was. */
-/* Above the top-right corner buttons rather than under them: while the drawer is
-   open there is nothing to go fullscreen for, and a button lying on top of it
-   would only be in the way. */
+/* Above the top bar rather than under it: while the drawer is open, a control
+   lying on top of it would only be in the way. */
 .instrumentation-editor {
   position: absolute;
   z-index: 14;

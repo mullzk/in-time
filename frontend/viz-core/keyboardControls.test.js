@@ -39,7 +39,7 @@ const controlsWithModal = (isModalOpen) => {
   new KeyboardControls(
     { addEventListener: (_type, handler) => (listener = handler) },
     {
-      time: { togglePlay: () => fired.push('play') },
+      togglePlay: () => fired.push('play'),
       camera: { fit: () => fired.push('fit') },
       bindings: { h: () => fired.push('stops') },
       overlays: [

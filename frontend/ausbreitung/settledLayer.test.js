@@ -1,0 +1,114 @@
+import assert from 'node:assert/strict';
+import { test } from 'node:test';
+import { SettledLayer } from './settledLayer.js';
+
+const camera = (scale = 1) => ({
+  centerEast: 0,
+  centerNorth: 0,
+  scale,
+  viewportWidth: 800,
+  viewportHeight: 600,
+});
+
+// Records what was painted, in the terms the layer speaks: cleared, and the
+// stretch of each run it drew.
+const fakeGraphics = () => ({
+  width: 800,
+  height: 600,
+  painted: [],
+  clear() {
+    this.painted.push('clear');
+  },
+  push() {},
+  pop() {},
+  resetMatrix() {},
+  translate() {},
+  scale() {},
+  noFill() {},
+  stroke() {},
+  strokeWeight() {},
+  strokeCap() {},
+  beginShape() {},
+  vertex(east) {
+    this.painted.push(east);
+  },
+  endShape() {},
+});
+
+const run = (category, count, settledUntil) => ({
+  category,
+  easts: Float64Array.from({ length: count }, (_, index) => index),
+  norths: new Float64Array(count),
+  settledUntil,
+});
+
+const layerOf = () => {
+  const graphics = fakeGraphics();
+  const sketch = {
+    width: graphics.width,
+    height: graphics.height,
+    POINTS: 0,
+    ROUND: 'round',
+    createGraphics: () => graphics,
+  };
+  return { graphics, layer: new SettledLayer(sketch, () => [1, 2, 3, 200]) };
+};
+
+test('the first paint draws everything that has settled', () => {
+  const { graphics, layer } = layerOf();
+
+  layer.paint(camera(), [run(6, 5, 3)], () => 2);
+
+  assert.deepEqual(graphics.painted, ['clear', 0, 1, 2]);
+});
+
+test('what has settled since is added, not painted again', () => {
+  const { graphics, layer } = layerOf();
+  layer.paint(camera(), [run(6, 5, 3)], () => 2);
+  graphics.painted.length = 0;
+
+  layer.paint(camera(), [run(6, 5, 5)], () => 2);
+
+  assert.deepEqual(graphics.painted, [3, 4], 'only the two new ones');
+});
+
+test('nothing new settled means nothing is painted', () => {
+  const { graphics, layer } = layerOf();
+  layer.paint(camera(), [run(6, 5, 3)], () => 2);
+  graphics.painted.length = 0;
+
+  layer.paint(camera(), [run(6, 5, 3)], () => 2);
+
+  assert.deepEqual(graphics.painted, []);
+});
+
+test('a moved camera means the layer holds the wrong pixels', () => {
+  const { graphics, layer } = layerOf();
+  layer.paint(camera(1), [run(6, 5, 3)], () => 2);
+  graphics.painted.length = 0;
+
+  layer.paint(camera(2), [run(6, 5, 3)], () => 2);
+
+  assert.deepEqual(graphics.painted, ['clear', 0, 1, 2], 'painted anew');
+});
+
+test('a spread running backwards is painted anew', () => {
+  const { graphics, layer } = layerOf();
+  layer.paint(camera(), [run(6, 5, 4)], () => 2);
+  graphics.painted.length = 0;
+
+  layer.paint(camera(), [run(6, 5, 2)], () => 2);
+
+  assert.deepEqual(graphics.painted, ['clear', 0, 1]);
+});
+
+test('a forgotten layer is painted anew', () => {
+  const { graphics, layer } = layerOf();
+  layer.paint(camera(), [run(6, 5, 3)], () => 2);
+  graphics.painted.length = 0;
+
+  layer.forget();
+  layer.paint(camera(), [run(6, 5, 3)], () => 2);
+
+  assert.deepEqual(graphics.painted, ['clear', 0, 1, 2]);
+});

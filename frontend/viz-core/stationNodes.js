@@ -78,6 +78,21 @@ export function stopsToggleOnZoomCross(
   return wasShown === isShown ? null : isShown;
 }
 
+// A generous tap target so small nodes stay hittable on touch.
+export const STATION_HIT_RADIUS_PIXELS = 12;
+
+// Zoomed out, a pick of that reach would swallow every click and the hover label
+// would never rest, so it shrinks towards this floor as the view pulls back,
+// leaving room to aim at a vehicle.
+const STATION_HIT_RADIUS_FLOOR_PIXELS = 5;
+
+export function stationPickRadiusPixels(zoomFraction) {
+  return (
+    STATION_HIT_RADIUS_FLOOR_PIXELS +
+    (STATION_HIT_RADIUS_PIXELS - STATION_HIT_RADIUS_FLOOR_PIXELS) * zoomFraction
+  );
+}
+
 export function nearestStation(stations, camera, screenX, screenY, maxPixels) {
   let nearest = null;
   let nearestDistanceSquared = maxPixels * maxPixels;

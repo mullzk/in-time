@@ -1,0 +1,47 @@
+/* SMACSS Module: the view switcher — the gallery as a segmented pill in the top
+   control row, one segment per view, the current one filled in. */
+.view-switcher {
+  display: inline-flex;
+  justify-self: end;
+  align-items: stretch;
+  height: var(--control-height);
+  padding: 3px;
+  gap: 2px;
+  border-radius: 6px;
+  background: var(--color-control);
+}
+
+.view-switcher-view {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 12px;
+  border-radius: 4px;
+  color: var(--color-control-text);
+  font-size: 14px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.view-switcher-view:hover {
+  background: var(--color-control-hover);
+}
+
+.view-switcher-view.is-current {
+  background: var(--color-surface);
+  font-weight: 600;
+}
+
+/* Two rows: the switcher leads on the upper one, its segments sharing the width
+   so each stays wide enough to hit. */
+@media (max-width: 640px) {
+  .view-switcher {
+    grid-area: switcher;
+    justify-self: stretch;
+  }
+
+  .view-switcher-view {
+    flex: 1;
+    justify-content: center;
+    padding: 0 6px;
+  }
+}

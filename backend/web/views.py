@@ -88,5 +88,16 @@ def stations_road(request: HttpRequest) -> HttpResponse:
     return _revalidated(HttpResponse(payload, content_type="application/json"))
 
 
-def takt(request: HttpRequest) -> HttpResponse:
+# A view carries the station it opens on in its own address, so that a picture
+# can be linked to. Which station that is only the client can tell, from the
+# catalog it loads; the server has to answer the address, nothing more.
+def takt(request: HttpRequest, station: str = "") -> HttpResponse:
     return render(request, "web/takt.html")
+
+
+def ausbreitung(request: HttpRequest, station: str = "") -> HttpResponse:
+    return render(request, "web/ausbreitung.html")
+
+
+def reisezeit(request: HttpRequest, station: str = "") -> HttpResponse:
+    return render(request, "web/reisezeit.html")

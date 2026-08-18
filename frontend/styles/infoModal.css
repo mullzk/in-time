@@ -1,11 +1,7 @@
 /* SMACSS Module: the info modal — a centred overlay describing the project and
-   its controls, plus its toggle button next to the sidebar's hamburger. The open
-   state lives as `is-open` on the overlay. */
+   its controls, plus its toggle button, which rides in the top control row. The
+   open state lives as `is-open` on the overlay. */
 .info-toggle {
-  position: absolute;
-  z-index: 13;
-  top: var(--space-m);
-  left: calc(var(--space-m) + var(--control-height) + var(--space-s));
   display: inline-flex;
   align-items: center;
   justify-content: center;

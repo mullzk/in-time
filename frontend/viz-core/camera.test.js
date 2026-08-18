@@ -155,3 +155,52 @@ test('centerOn moves the centre and clamps it to the CH bounds', () => {
   assert.ok(camera.centerEast >= CH_BOUNDS_LV95.eastMin);
   assert.ok(camera.centerNorth >= CH_BOUNDS_LV95.northMin);
 });
+
+test('wider world bounds let the view zoom further out', () => {
+  const camera = new Camera(1300, 800);
+  const countryScale = camera.scale;
+
+  camera.setWorldBounds({
+    eastMin: 2_000_000,
+    eastMax: 3_200_000,
+    northMin: 700_000,
+    northMax: 1_700_000,
+  });
+  camera.fit();
+
+  assert.ok(camera.scale < countryScale);
+  assert.ok(closeTo(camera.centerEast, 2_600_000, 1e-6));
+  assert.ok(closeTo(camera.centerNorth, 1_200_000, 1e-6));
+});
+
+test('a wider world may be roamed beyond the country', () => {
+  const camera = new Camera(1300, 800);
+  const beyond = {
+    eastMin: 2_000_000,
+    eastMax: 3_200_000,
+    northMin: 700_000,
+    northMax: 1_700_000,
+  };
+
+  camera.setWorldBounds(beyond);
+  camera.centerOn(2_100_000, 800_000);
+
+  assert.ok(closeTo(camera.centerEast, 2_100_000, 1e-6));
+  assert.ok(closeTo(camera.centerNorth, 800_000, 1e-6));
+});
+
+test('narrowing the world pulls a centre outside it back in', () => {
+  const camera = new Camera(1300, 800);
+  camera.setWorldBounds({
+    eastMin: 2_000_000,
+    eastMax: 3_200_000,
+    northMin: 700_000,
+    northMax: 1_700_000,
+  });
+  camera.centerOn(2_100_000, 800_000);
+
+  camera.setWorldBounds(CH_BOUNDS_LV95);
+
+  assert.ok(camera.centerEast >= CH_BOUNDS_LV95.eastMin);
+  assert.ok(camera.centerNorth >= CH_BOUNDS_LV95.northMin);
+});
