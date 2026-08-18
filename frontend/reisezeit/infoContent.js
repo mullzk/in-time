@@ -33,9 +33,8 @@ export function buildInfoContent() {
     shortcuts: [
       { keys: '+', description: 'Hineinzoomen' },
       { keys: '−', description: 'Herauszoomen' },
-      { keys: 'F', description: 'Ganze Schweiz einpassen' },
+      { keys: 'F', description: 'Ganzes Bild einpassen' },
       { keys: 'G', description: 'Stationssuche öffnen' },
-      { keys: 'S', description: 'Seitenleiste öffnen und schließen' },
       { keys: 'I', description: 'Diese Information öffnen und schließen' },
     ],
   };

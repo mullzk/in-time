@@ -194,7 +194,7 @@ export class ConnectionList {
   }
 
   // The columns carry the scan; this is for readers that want one connection as
-  // a whole -- tests, and the panels walking a path back to its start.
+  // a whole rather than a slice of every column.
   connectionAt(index) {
     return {
       departureStation: this.departureStations[index],

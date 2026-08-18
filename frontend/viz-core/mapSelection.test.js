@@ -301,7 +301,7 @@ test('a panel that frames a chosen station itself is left to do it', () => {
     vehicleAt: () => null,
     minorStationNear: () => null,
     revealStation: () => {},
-    frameStation: (context, station) => framed.push(station),
+    frameStation: (_context, station) => framed.push(station),
   };
   const { selection, focused } = makeSelection({
     popover: makeFakePopover(),

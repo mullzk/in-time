@@ -12,6 +12,8 @@ const place = (category, arrivalTime, name = `${category}@${arrivalTime}`) => ({
 
 const FLASH = 100;
 
+const runsOf = (places, seconds) => places.runsAt(seconds, FLASH);
+
 test('the places are grouped by the traffic that reaches them', () => {
   const places = new ReachedPlaces([
     place(6, 10),
@@ -21,7 +23,7 @@ test('the places are grouped by the traffic that reaches them', () => {
   ]);
 
   assert.deepEqual(
-    places.groups().map((group) => [group.category, group.arrivals.length]),
+    runsOf(places, 40).map((run) => [run.category, run.arrivals.length]),
     [
       [6, 2],
       [2, 1],
@@ -34,15 +36,15 @@ test('the places are grouped by the traffic that reaches them', () => {
 test('inside a group the places are in the order one arrives', () => {
   const places = new ReachedPlaces([place(6, 30), place(6, 10), place(6, 20)]);
 
-  assert.deepEqual([...places.groups()[0].arrivals], [10, 20, 30]);
+  assert.deepEqual([...runsOf(places, 30)[0].arrivals], [10, 20, 30]);
 });
 
 test('what is lit at a moment is what has been arrived at', () => {
   const places = new ReachedPlaces([place(6, 10), place(0, 20), place(6, 30)]);
 
-  assert.equal(places.countReachedAt(5), 0);
-  assert.equal(places.countReachedAt(20), 2);
-  assert.equal(places.countReachedAt(30), 3);
+  assert.equal(places.reachedAt(5).length, 0);
+  assert.equal(places.reachedAt(20).length, 2);
+  assert.equal(places.reachedAt(30).length, 3);
 });
 
 test('a run splits into what has settled and what has just lit up', () => {
