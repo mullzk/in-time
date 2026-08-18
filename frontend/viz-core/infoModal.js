@@ -3,13 +3,13 @@ import { element } from './dom.js';
 const TITLE_ID = 'info-modal-title';
 
 // A centred overlay describing the project and its controls, with its own toggle
-// button placed next to the sidebar's. The content (title, intro, control help,
+// button riding in the top bar beside the sidebar's. The content (title, intro, control help,
 // keyboard shortcuts) is supplied by the caller so the shell stays panel-
 // agnostic. An intro paragraph is a list of parts: a string is plain text, an
 // object of label and href becomes a link. The open state lives as `is-open` on
 // the overlay; a click on the backdrop or Escape closes it.
 export class InfoModal {
-  constructor(container, content) {
+  constructor(container, buttonRow, content) {
     this.isOpen = false;
     // The key that opens the dialog is the key that closes it, so it belongs to
     // the dialog and stays in effect while everything else falls silent.
@@ -32,7 +32,8 @@ export class InfoModal {
       }
     });
 
-    container.append(this.toggleButton, this.overlay);
+    buttonRow.appendChild(this.toggleButton);
+    container.appendChild(this.overlay);
     document.addEventListener('keydown', (event) => {
       if (event.key === 'Escape' && this.isOpen) {
         this.close();

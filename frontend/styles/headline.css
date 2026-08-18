@@ -8,7 +8,7 @@
   font-size: 20px;
   font-weight: 500;
   z-index: 10;
-  top: calc(var(--space-m) * 2 + var(--control-height));
+  top: calc(var(--space-m) * 2 + var(--topbar-height));
   left: var(--space-m);
   max-width: min(46rem, calc(100vw - 2 * var(--space-l)));
   padding: var(--space-s) var(--space-m);

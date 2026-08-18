@@ -18,7 +18,7 @@ import { Sonifier } from './sonification/sonifier.js';
 import { StationSearch } from './stationSearch.js';
 import { TileLayer } from './tiles/tileLayer.js';
 import { BACKGROUNDS } from './tiles/tileSource.js';
-import { VIEWS, viewAt } from './views.js';
+import { ViewSwitcher } from './viewSwitcher.js';
 import { VizCore } from './vizCore.js';
 import {
   ZOOM_STEPS,
@@ -37,7 +37,7 @@ const BLACK_BACKGROUND = backgroundById('black');
 const sectionWhen = (isOffered, section) => (isOffered ? [section] : []);
 
 // The frame every panel runs in: it owns the camera, the render core and all
-// global controls (background, zoom, info, fullscreen, search, cockpit), and
+// global controls (background, zoom, info, search, cockpit), and
 // mounts the sections the panel supplies. The panel is asked for its own
 // controls, its key bindings and its info text, and is told when a global choice
 // has a consequence only it can decide.
@@ -63,6 +63,12 @@ export class PanelShell {
   }
 
   start() {
+    this.topBar = element('div', 'l-topbar');
+    // The two buttons share the left of the bar as one group; the search and
+    // the switcher are columns of their own.
+    this.topBarLead = element('div', 'l-topbar-lead');
+    this.topBar.appendChild(this.topBarLead);
+    this.root.appendChild(this.topBar);
     this.cockpit = new Cockpit(this.root, this.panel, this.time);
     this.attribution = new Attribution(this.root);
     this.attribution.set(this.background.attribution);
@@ -74,7 +80,9 @@ export class PanelShell {
     // so a view that supplies no sections gets none.
     const sections = this.#sections();
     this.sidebar =
-      sections.length === 0 ? null : new Sidebar(this.root, sections);
+      sections.length === 0
+        ? null
+        : new Sidebar(this.root, this.topBarLead, sections);
     if (this.sonifier) {
       this.customInstrumentationStore = new CustomInstrumentationStore(
         localStorageOrForgetful(),
@@ -82,11 +90,20 @@ export class PanelShell {
       this.#offerStoredInstrumentation();
       this.#mountInstrumentationEditor();
     }
+    this.infoModal = new InfoModal(
+      this.root,
+      this.topBarLead,
+      this.panel.infoContent(),
+    );
     this.stationSearch = this.panel.capabilities.stationSearch
-      ? new StationSearch(this.root, this.panel.stationCatalog(), {
+      ? new StationSearch(this.topBar, this.panel.stationCatalog(), {
           onSelect: (station) => this.#chooseStation(station),
         })
       : null;
+    // The exhibition shows one view, so there is nowhere to switch to.
+    if (!this.exhibition) {
+      new ViewSwitcher(this.topBar);
+    }
     // Picking on the canvas needs a map to pick on: only a panel drawing one
     // gets tap, hover and their popovers. Elsewhere a station is chosen by name.
     this.selection = this.panel.capabilities.stationPicking
@@ -97,8 +114,6 @@ export class PanelShell {
     // A panel that has a question to put over its picture gets the writing; the
     // rest of the views carry none.
     this.headline = this.panel.headline ? new Headline(this.root) : null;
-    this.infoModal = new InfoModal(this.root, this.panel.infoContent());
-    this.root.appendChild(this.#fullscreenToggle());
 
     new KeyboardControls(window, {
       // Space plays; a view that does not play does not answer to it.
@@ -224,12 +239,6 @@ export class PanelShell {
       holdBackground: (backgroundId) => this.#holdBackground(backgroundId),
     });
     const globalSections = [
-      {
-        id: 'view',
-        title: 'Ansicht',
-        element: this.#viewSwitcher(),
-        keepInExhibition: false,
-      },
       ...sectionWhen(this.panel.capabilities.mapBackground, {
         id: 'background',
         title: 'Hintergrund',
@@ -246,34 +255,6 @@ export class PanelShell {
     return sectionsToMount([...globalSections, ...panelSections], {
       exhibition: this.exhibition,
     });
-  }
-
-  // Plain links, because switching views is a page load: they can be opened in a
-  // new tab, and the current one is marked rather than made clickable to
-  // nowhere. The exhibition shows one view, so the section is not mounted there.
-  #viewSwitcher() {
-    const group = element('div', 'sidebar-views');
-    const current = viewAt(window.location.pathname);
-    VIEWS.forEach((view) => {
-      group.appendChild(
-        view === current ? this.#currentView(view) : this.#viewLink(view),
-      );
-    });
-    return group;
-  }
-
-  #currentView(view) {
-    const marked = element('span', 'sidebar-view is-current');
-    marked.textContent = view.label;
-    marked.setAttribute('aria-current', 'page');
-    return marked;
-  }
-
-  #viewLink(view) {
-    const link = element('a', 'sidebar-view');
-    link.textContent = view.label;
-    link.href = view.path + window.location.search;
-    return link;
   }
 
   #backgroundControl() {
@@ -351,20 +332,5 @@ export class PanelShell {
     text.textContent = label;
     option.append(input, text);
     return option;
-  }
-
-  #fullscreenToggle() {
-    const button = element('button', 'panel-shell-fullscreen');
-    button.type = 'button';
-    button.textContent = '⛶';
-    button.setAttribute('aria-label', 'Vollbild');
-    button.addEventListener('click', () => {
-      if (document.fullscreenElement) {
-        document.exitFullscreen();
-      } else {
-        this.root.requestFullscreen();
-      }
-    });
-    return button;
   }
 }

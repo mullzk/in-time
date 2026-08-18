@@ -16,8 +16,18 @@
   --space-l: 24px;
   --radius-m: 10px;
   --control-height: 40px;
+  --topbar-height: var(--control-height);
   --sidebar-width: 220px;
   --transition-panel: 0.25s ease;
+}
+
+/* On a narrow screen the top bar breaks into two rows, so its controls lose a
+   little height to keep the picture the larger half of the screen. */
+@media (max-width: 640px) {
+  :root {
+    --control-height: 32px;
+    --topbar-height: calc(2 * var(--control-height) + var(--space-s));
+  }
 }
 
 *,

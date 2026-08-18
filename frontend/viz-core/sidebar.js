@@ -10,7 +10,8 @@ export class Sidebar {
   // the shell; element is the section's own control DOM, rendered under a
   // heading. A standout section is set apart from the plain switches above it,
   // for a control that reshapes the whole view rather than toggling one part.
-  constructor(container, sections) {
+  // The panel slides in over `container`; its button rides in `buttonRow`.
+  constructor(container, buttonRow, sections) {
     this.container = container;
 
     this.panel = element('aside', 'sidebar');
@@ -25,7 +26,8 @@ export class Sidebar {
     this.toggleButton.setAttribute('aria-label', 'Ansicht');
     this.toggleButton.addEventListener('click', () => this.toggle());
 
-    container.append(this.panel, this.toggleButton);
+    container.appendChild(this.panel);
+    buttonRow.appendChild(this.toggleButton);
     this.#setOpen(false);
   }
 
