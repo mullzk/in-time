@@ -4,14 +4,18 @@ import { buildConnectionList } from '../viz-core/connectionList.js';
 import { ConnectionScan } from '../viz-core/connectionScan.js';
 import { element } from '../viz-core/dom.js';
 import { Panel } from '../viz-core/panel.js';
+import { placesOfReachedStations } from '../viz-core/places.js';
 import { stationToTravelFrom } from '../viz-core/startStation.js';
 import { StationCatalog } from '../viz-core/stationCatalog.js';
 import {
   dominantStationMode,
   nearestStation,
   nodeDiameterPixels,
+  stationPickRadiusPixels,
 } from '../viz-core/stationNodes.js';
+import { SECONDS_PER_DAY } from '../viz-core/timeModel.js';
 import {
+  byRisingRank,
   CATEGORY_BUS,
   CATEGORY_INTERCITY,
   CATEGORY_INTERREGIO,
@@ -47,22 +51,21 @@ const VEHICLE_DIAMETER_PIXELS = 5;
 const START_COLOR = [255, 255, 255];
 const START_RING_WIDTH_PIXELS = 1.5;
 
-// A generous tap target so small nodes stay hittable on touch; zoomed out it
-// shrinks towards the floor, or the pick would swallow half the country.
-const STATION_HIT_RADIUS_PIXELS = 12;
-const STATION_NEAR_MIN_RADIUS_PIXELS = 5;
+// Vehicles are smaller and denser than the places, so their tap target stays
+// tighter than a station's.
 const VEHICLE_HIT_RADIUS_PIXELS = 10;
 
 // The departure can be moved to any moment of the day, in five-minute steps --
 // finer would be a false promise, since the picture changes by the timetable.
 const DEPARTURE_STEP_SECONDS = 300;
-const SECONDS_PER_DAY = 24 * 3600;
 
+// The place one sets off from is reached by nothing, so it wears no traffic.
 const NO_CATEGORY = -1;
 
-// Drawn from the least structural traffic to the most, so a long-distance train
-// is never hidden under the buses around it.
-const byRisingRank = (first, second) => second.category - first.category;
+const OPAQUE = 255;
+
+const flashAlpha = (freshness) =>
+  SETTLED_ALPHA + (OPAQUE - SETTLED_ALPHA) * freshness;
 
 const nodeSizeFactor = (category) =>
   category === NO_CATEGORY
@@ -114,9 +117,8 @@ export class AusbreitungPanel extends Panel {
     this.#handTheClockItsRange();
   }
 
-  // Takes a further schedule blob into the running panel: its stations join the
-  // catalog and its trips join the connection list, which is rebuilt whole --
-  // the road blob arrives this way after the first picture.
+  // The road blob arrives after the first picture already stands, so the whole
+  // connection list is rebuilt around it.
   adoptSchedule(buffer, stations) {
     const engine = new VehiclePositionEngine(buffer);
     this.catalog.addPublished(stations, readStationPoints(buffer));
@@ -132,17 +134,10 @@ export class AusbreitungPanel extends Panel {
       return;
     }
     this.startStation = stationToTravelFrom(
-      this.catalog.entries.filter(
-        (entry) => this.connections.stationOf(entry.didok) !== undefined,
-      ),
-      (entry) => this.#travelsAnywhere(entry),
-    );
-  }
-
-  #travelsAnywhere(entry) {
-    const station = this.connections.stationOf(entry.didok);
-    return (
-      this.scan.from(station, this.startTimeSeconds).connections().length > 0
+      this.catalog,
+      this.connections,
+      this.scan,
+      this.startTimeSeconds,
     );
   }
 
@@ -163,10 +158,7 @@ export class AusbreitungPanel extends Panel {
   }
 
   #rescan() {
-    if (this.startStation === null) {
-      return;
-    }
-    const start = this.connections.stationOf(this.startStation.didok);
+    const start = this.connections.stationOf(this.startStation?.didok);
     if (start === undefined) {
       return;
     }
@@ -177,44 +169,30 @@ export class AusbreitungPanel extends Panel {
     this.#handTheClockItsRange();
   }
 
-  // Every vehicle of the tree with what it takes to draw it: which blob carries
-  // it, which trip of that blob it is, and what kind of traffic it runs.
+  // Every vehicle of the tree with what it takes to draw it and to name it in a
+  // popover: which blob carries it and which trip of that blob it is.
   #ridesOfTree() {
     return this.tree.rides().map((ride) => ({
       ...ride,
       category: this.connections.categoryOfTrip(ride.trip),
-      network: this.connections.networkOfTrip(ride.trip),
-      tripInNetwork: this.connections.tripInNetwork(ride.trip),
+      positionEngineIndex: this.connections.networkOfTrip(ride.trip),
+      tripIndex: this.connections.tripInNetwork(ride.trip),
     }));
   }
 
-  // An interchange is one place: without that, a station reached by train would
-  // light up again for every bus stop around it, and the country would end up
-  // yellow wherever a train had been.
   #placesOfTree() {
-    const membersOfPlace = new Map();
-    this.tree
-      .reachedStations()
-      .filter(
-        (station) =>
-          this.catalog.entryOf(this.connections.didokOf(station)) !== null,
-      )
-      .forEach((station) => {
-        const key =
-          this.connections.clusterOf(station) ??
-          this.connections.didokOf(station);
-        const members = membersOfPlace.get(key) ?? [];
-        members.push(station);
-        membersOfPlace.set(key, members);
-      });
-    return [...membersOfPlace.entries()].map(([key, members]) =>
-      this.#placeOf(key, members),
+    return placesOfReachedStations(
+      this.tree,
+      this.connections,
+      this.catalog,
+    ).map(({ principalStation, members }) =>
+      this.#placeOf(principalStation, members),
     );
   }
 
-  #placeOf(key, members) {
+  #placeOf(principalStation, members) {
     const entry = this.catalog.entryOf(
-      this.connections.didokOf(this.#principalStopOf(key, members)),
+      this.connections.didokOf(principalStation),
     );
     return {
       entry,
@@ -223,32 +201,20 @@ export class AusbreitungPanel extends Panel {
       arrivalTime: Math.min(
         ...members.map((station) => this.tree.arrivalAt(station)),
       ),
-      category: this.#bestCategoryInto(members),
+      category: this.#bestCategoryReaching(members),
     };
-  }
-
-  // An interchange answers to its own name -- the didok the catalog names it by.
-  // Only where that stop is not itself reached does another member speak for it.
-  #principalStopOf(key, members) {
-    const principal = this.connections.stationOf(key);
-    return principal !== undefined && members.includes(principal)
-      ? principal
-      : members[0];
   }
 
   // A place is worth as much as the best vehicle that reaches it: an interchange
   // an InterCity calls at is no bus stop, however many buses also pull in.
-  #bestCategoryInto(members) {
-    return members.reduce((best, station) => {
-      const connection = this.tree.arrivedOn(station);
-      if (connection === null) {
-        return best;
-      }
-      const category = this.connections.categoryOfTrip(
-        this.connections.trips[connection],
+  #bestCategoryReaching(members) {
+    const categories = members
+      .map((station) => this.tree.arrivedOn(station))
+      .filter((connection) => connection !== null)
+      .map((connection) =>
+        this.connections.categoryOfTrip(this.connections.trips[connection]),
       );
-      return best === NO_CATEGORY ? category : Math.min(best, category);
-    }, NO_CATEGORY);
+    return categories.length === 0 ? NO_CATEGORY : Math.min(...categories);
   }
 
   // The spread has a beginning and an end of its own: it starts when one sets
@@ -272,34 +238,18 @@ export class AusbreitungPanel extends Panel {
     return this.places.reachedAt(seconds);
   }
 
-  positionOfRide(ride, seconds) {
-    return this.networks[ride.network].engine.positionAt(
-      ride.tripInNetwork,
-      seconds,
-    );
-  }
-
   update(currentTimeSeconds) {
     this.currentTimeSeconds = currentTimeSeconds;
     this.activeVehicles = this.#vehiclesRunningAt(currentTimeSeconds);
   }
 
-  // The vehicles as the map deals with them: a position, the trip they belong
-  // to, and the blob that trip lives in -- what the popover and the picker read.
+  // The vehicles as the map deals with them: where they are on the ground, on
+  // top of what the ride already says about them.
   #vehiclesRunningAt(seconds) {
     return this.ridesRunningAt(seconds)
       .flatMap((ride) => {
-        const position = this.positionOfRide(ride, seconds);
-        return position === null
-          ? []
-          : [
-              {
-                ...position,
-                category: ride.category,
-                positionEngineIndex: ride.network,
-                tripIndex: ride.tripInNetwork,
-              },
-            ];
+        const position = this.vehiclePosition(ride, seconds);
+        return position === null ? [] : [{ ...ride, ...position }];
       })
       .sort(byRisingRank);
   }
@@ -314,21 +264,27 @@ export class AusbreitungPanel extends Panel {
     this.#drawStart(p, context);
   }
 
-  // The settled places carry the picture and never differ from one another, so
-  // they are painted into a layer of their own rather than redrawn every frame.
-  // Only the few still flashing are drawn one by one, each burning at its own
-  // rate.
   #drawReachedPlaces(p, context) {
-    const worldPerPixel = context.camera.worldPerPixel();
-    const nodeDiameter = nodeDiameterPixels(context.camera.zoomFraction());
-    const diameterOf = (category) =>
-      nodeDiameter * nodeSizeFactor(category) * worldPerPixel;
     const runs = this.places.runsAt(this.currentTimeSeconds, FLASH_SECONDS);
-    this.#settledLayer(p).paint(context.camera, runs, diameterOf);
-    this.settled.drawOnto(p);
+    const diameterOf = this.#placeDiameter(context.camera);
+    this.#drawSettledPlaces(p, context.camera, runs, diameterOf);
+    const worldPerPixel = context.camera.worldPerPixel();
     runs.forEach((run) => {
       this.#drawFlashingPlaces(p, run, diameterOf(run.category), worldPerPixel);
     });
+  }
+
+  #placeDiameter(camera) {
+    const nodeDiameter =
+      nodeDiameterPixels(camera.zoomFraction()) * camera.worldPerPixel();
+    return (category) => nodeDiameter * nodeSizeFactor(category);
+  }
+
+  // The settled places carry the picture and never differ from one another, so
+  // they are painted into a layer of their own rather than redrawn every frame.
+  #drawSettledPlaces(p, camera, runs, diameterOf) {
+    this.#settledLayer(p).paint(camera, runs, diameterOf);
+    this.settled.drawOnto(p);
   }
 
   // The layer holds screen pixels, so a resized canvas needs a new one.
@@ -342,6 +298,8 @@ export class AusbreitungPanel extends Panel {
     return this.settled;
   }
 
+  // Each flashing place burns at its own rate, so they are drawn one by one --
+  // there are only ever a handful of them.
   #drawFlashingPlaces(p, run, diameter, worldPerPixel) {
     const [red, green, blue] = this.#placeColor(run.category);
     p.noStroke();
@@ -350,12 +308,7 @@ export class AusbreitungPanel extends Panel {
       .forEach((east, offset) => {
         const index = run.settledUntil + offset;
         const freshness = this.#freshness(run.arrivals[index]);
-        p.fill(
-          red,
-          green,
-          blue,
-          SETTLED_ALPHA + (255 - SETTLED_ALPHA) * freshness,
-        );
+        p.fill(red, green, blue, flashAlpha(freshness));
         p.circle(
           east,
           run.norths[index],
@@ -386,19 +339,14 @@ export class AusbreitungPanel extends Panel {
     });
   }
 
+  // A ring twice the size of the node it encloses, so where one set off stays
+  // recognisable however full the picture gets.
   #drawStart(p, context) {
-    const worldPerPixel = context.camera.worldPerPixel();
+    const ringDiameter = 2 * this.#placeDiameter(context.camera)(NO_CATEGORY);
     p.noFill();
     p.stroke(...START_COLOR);
-    p.strokeWeight(START_RING_WIDTH_PIXELS * worldPerPixel);
-    p.circle(
-      this.startStation.east,
-      this.startStation.north,
-      nodeDiameterPixels(context.camera.zoomFraction()) *
-        START_NODE_SIZE_FACTOR *
-        2 *
-        worldPerPixel,
-    );
+    p.strokeWeight(START_RING_WIDTH_PIXELS * context.camera.worldPerPixel());
+    p.circle(this.startStation.east, this.startStation.north, ringDiameter);
   }
 
   // The question the picture answers, and where the spread has got to: without
@@ -433,14 +381,16 @@ export class AusbreitungPanel extends Panel {
     if (this.camera === null) {
       return null;
     }
-    const radius =
-      STATION_NEAR_MIN_RADIUS_PIXELS +
-      (STATION_HIT_RADIUS_PIXELS - STATION_NEAR_MIN_RADIUS_PIXELS) *
-        this.camera.zoomFraction();
     const entries = this.placesReachedAt(this.currentTimeSeconds)
       .map((place) => place.entry)
       .filter((entry) => accept === null || accept(entry));
-    return nearestStation(entries, this.camera, screenX, screenY, radius);
+    return nearestStation(
+      entries,
+      this.camera,
+      screenX,
+      screenY,
+      stationPickRadiusPixels(this.camera.zoomFraction()),
+    );
   }
 
   vehicleAt(screenX, screenY) {
@@ -468,10 +418,10 @@ export class AusbreitungPanel extends Panel {
     };
   }
 
-  vehiclePosition(vehicle, currentTimeSeconds) {
+  vehiclePosition(vehicle, seconds) {
     return this.networks[vehicle.positionEngineIndex].engine.positionAt(
       vehicle.tripIndex,
-      currentTimeSeconds,
+      seconds,
     );
   }
 
@@ -490,25 +440,30 @@ export class AusbreitungPanel extends Panel {
     ];
   }
 
-  // Moving the departure recomputes the spread and starts it over, so the slider
-  // is the one control that changes what is being watched rather than how fast.
   #departureControl() {
     const group = element('div', 'sidebar-options');
+    const slider = this.#departureSlider();
+    const chosenTime = element('p', 'sidebar-hint is-visible');
+    chosenTime.textContent = formatTimeOfDay(this.startTimeSeconds);
+    // While the slider is moved only the reading follows; the spread is
+    // recomputed once the hand lets go of it.
+    slider.addEventListener('input', () => {
+      chosenTime.textContent = formatTimeOfDay(Number(slider.value));
+    });
+    slider.addEventListener('change', () => {
+      this.setStartTime(Number(slider.value));
+    });
+    group.append(slider, chosenTime);
+    return group;
+  }
+
+  #departureSlider() {
     const slider = element('input', 'sidebar-departure');
     slider.type = 'range';
     slider.min = '0';
     slider.max = String(SECONDS_PER_DAY - DEPARTURE_STEP_SECONDS);
     slider.step = String(DEPARTURE_STEP_SECONDS);
     slider.value = String(this.startTimeSeconds);
-    const value = element('p', 'sidebar-hint is-visible');
-    value.textContent = formatTimeOfDay(this.startTimeSeconds);
-    slider.addEventListener('input', () => {
-      value.textContent = formatTimeOfDay(Number(slider.value));
-    });
-    slider.addEventListener('change', () => {
-      this.setStartTime(Number(slider.value));
-    });
-    group.append(slider, value);
-    return group;
+    return slider;
   }
 }

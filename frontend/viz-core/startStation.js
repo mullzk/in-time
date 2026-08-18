@@ -7,7 +7,7 @@
 // would cost more than the plainer picture is worth.
 const ATTEMPTS = 10;
 
-export function stationToTravelFrom(
+export function drawnStationThatTravels(
   candidates,
   travelsAnywhere,
   random = Math.random,
@@ -21,4 +21,20 @@ export function stationToTravelFrom(
     (_, step) => candidates[(drawn + step) % candidates.length],
   );
   return attempts.find(travelsAnywhere) ?? attempts[0];
+}
+
+export function stationToTravelFrom(
+  catalog,
+  connections,
+  scan,
+  startTimeSeconds,
+) {
+  const served = catalog.entries.filter(
+    (entry) => connections.stationOf(entry.didok) !== undefined,
+  );
+  const travelsAnywhere = (entry) =>
+    scan
+      .from(connections.stationOf(entry.didok), startTimeSeconds)
+      .connections().length > 0;
+  return drawnStationThatTravels(served, travelsAnywhere);
 }

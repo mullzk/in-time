@@ -34,6 +34,8 @@ const backgroundById = (id) =>
 
 const BLACK_BACKGROUND = backgroundById('black');
 
+const sectionWhen = (isOffered, section) => (isOffered ? [section] : []);
+
 // The frame every panel runs in: it owns the camera, the render core and all
 // global controls (background, zoom, info, fullscreen, search, cockpit), and
 // mounts the sections the panel supplies. The panel is asked for its own
@@ -221,38 +223,29 @@ export class PanelShell {
       toggleInstrumentationEditor: this.#instrumentationEditorToggle(),
       holdBackground: (backgroundId) => this.#holdBackground(backgroundId),
     });
-    return sectionsToMount(
-      [
-        {
-          id: 'view',
-          title: 'Ansicht',
-          element: this.#viewSwitcher(),
-          keepInExhibition: false,
-        },
-        ...(this.panel.capabilities.mapBackground
-          ? [
-              {
-                id: 'background',
-                title: 'Hintergrund',
-                element: this.#backgroundControl(),
-                keepInExhibition: true,
-              },
-            ]
-          : []),
-        ...(this.panel.capabilities.zoomSlider
-          ? [
-              {
-                id: 'zoom',
-                title: 'Zoom',
-                element: this.#zoomControl(),
-                keepInExhibition: true,
-              },
-            ]
-          : []),
-        ...panelSections,
-      ],
-      { exhibition: this.exhibition },
-    );
+    const globalSections = [
+      {
+        id: 'view',
+        title: 'Ansicht',
+        element: this.#viewSwitcher(),
+        keepInExhibition: false,
+      },
+      ...sectionWhen(this.panel.capabilities.mapBackground, {
+        id: 'background',
+        title: 'Hintergrund',
+        element: this.#backgroundControl(),
+        keepInExhibition: true,
+      }),
+      ...sectionWhen(this.panel.capabilities.zoomSlider, {
+        id: 'zoom',
+        title: 'Zoom',
+        element: this.#zoomControl(),
+        keepInExhibition: true,
+      }),
+    ];
+    return sectionsToMount([...globalSections, ...panelSections], {
+      exhibition: this.exhibition,
+    });
   }
 
   // Plain links, because switching views is a page load: they can be opened in a

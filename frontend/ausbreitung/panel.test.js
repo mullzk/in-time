@@ -62,7 +62,7 @@ test('a running vehicle is somewhere on the ground', () => {
   const panel = panelFrom(10 * 3600);
 
   const [ride] = panel.ridesRunningAt(10 * 3600 + 5 * 60);
-  const { east, north } = panel.positionOfRide(ride, 10 * 3600 + 5 * 60);
+  const { east, north } = panel.vehiclePosition(ride, 10 * 3600 + 5 * 60);
 
   assert.ok(Number.isFinite(east) && Number.isFinite(north));
 });

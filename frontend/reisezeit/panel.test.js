@@ -28,15 +28,15 @@ const panelFrom = (startTimeSeconds) => {
   return panel;
 };
 
-const stationIndex = (panel, didok) => panel.placeOfDidok(didok);
+const placeIndex = (panel, didok) => panel.placeOfDidok(didok);
 
 test('a place is described by its name and its travel time', () => {
   const panel = panelFrom(10 * 3600);
 
   assert.deepEqual(
     panel.describeTarget({
-      kind: 'station',
-      index: stationIndex(panel, 8_500_002),
+      kind: 'place',
+      index: placeIndex(panel, 8_500_002),
     }),
     ['Mitte', '10 min Reisezeit'],
   );
@@ -47,8 +47,8 @@ test('the place one starts from is named as that', () => {
 
   assert.deepEqual(
     panel.describeTarget({
-      kind: 'station',
-      index: stationIndex(panel, 8_500_001),
+      kind: 'place',
+      index: placeIndex(panel, 8_500_001),
     }),
     ['Anfang', 'Ausgangspunkt'],
   );
@@ -59,7 +59,7 @@ test('a leg says where it goes, what runs it and how long it takes', () => {
 
   const [route, vehicle] = panel.describeTarget({
     kind: 'leg',
-    index: stationIndex(panel, 8_500_002),
+    index: placeIndex(panel, 8_500_002),
   });
 
   assert.equal(route, 'Anfang → Mitte');
@@ -71,7 +71,7 @@ test('staying seated is a leg without a wait', () => {
 
   const [, , wait] = panel.describeTarget({
     kind: 'leg',
-    index: stationIndex(panel, 8_500_003),
+    index: placeIndex(panel, 8_500_003),
   });
 
   assert.equal(wait, 'ohne Wartezeit');
@@ -82,7 +82,7 @@ test('a wait before the first departure is counted from the start time', () => {
 
   const [, , wait] = panel.describeTarget({
     kind: 'leg',
-    index: stationIndex(panel, 8_500_002),
+    index: placeIndex(panel, 8_500_002),
   });
 
   assert.equal(wait, '15 min warten');

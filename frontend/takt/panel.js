@@ -12,7 +12,9 @@ import {
   layerToRevealStation,
   nearestStation,
   nodeDiameterPixels,
+  STATION_HIT_RADIUS_PIXELS,
   stationIsShown,
+  stationPickRadiusPixels,
   stopsToggleOnZoomCross,
 } from '../viz-core/stationNodes.js';
 import { BACKGROUNDS } from '../viz-core/tiles/tileSource.js';
@@ -140,12 +142,6 @@ const STATION_STROKE_BY_MODE = new Map([
   ['bus', categoryColor(CATEGORY_BUS)],
 ]);
 const STATION_STROKE_WIDTH_PIXELS = 1;
-// A generous tap target so small nodes stay hittable on touch.
-const STATION_HIT_RADIUS_PIXELS = 12;
-// Zoomed out, the full-catalogue pick would swallow every click and the hover
-// label would never rest, so its reach shrinks towards this floor as the view
-// pulls back, leaving room to aim at a vehicle.
-const STATION_NEAR_MIN_RADIUS_PIXELS = 5;
 // Vehicles are smaller and denser than station nodes, so keep their tap target
 // tighter to avoid grabbing a neighbour.
 const VEHICLE_HIT_RADIUS_PIXELS = 10;
@@ -762,10 +758,7 @@ export class TaktPanel extends Panel {
     if (this.camera === null) {
       return null;
     }
-    const radius =
-      STATION_NEAR_MIN_RADIUS_PIXELS +
-      (STATION_HIT_RADIUS_PIXELS - STATION_NEAR_MIN_RADIUS_PIXELS) *
-        this.camera.zoomFraction();
+    const radius = stationPickRadiusPixels(this.camera.zoomFraction());
     const candidates = accept
       ? this.catalog.entries.filter(accept)
       : this.catalog.entries;

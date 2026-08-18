@@ -4,6 +4,7 @@ import { buildConnectionList } from '../viz-core/connectionList.js';
 import { ConnectionScan } from '../viz-core/connectionScan.js';
 import { HoverInteraction } from '../viz-core/hoverInteraction.js';
 import { Panel } from '../viz-core/panel.js';
+import { placesOfReachedStations } from '../viz-core/places.js';
 import { RadialTravelTimeLayout } from '../viz-core/radialTravelTime.js';
 import { distanceToSegmentSquared } from '../viz-core/segmentDistance.js';
 import { stationToTravelFrom } from '../viz-core/startStation.js';
@@ -48,8 +49,8 @@ const BAND_COLORS = [
 // nodes alone -- the long-distance interchanges as the largest dots, the bus
 // stops as the smallest. Given in pixels and turned into world units at the
 // current zoom, so the picture keeps its look however close the view is.
-const EDGE_COLOR = [32, 54, 104, 150];
-const EDGE_WIDTH_PIXELS = 0.5;
+const LEG_COLOR = [32, 54, 104, 150];
+const LEG_WIDTH_PIXELS = 0.5;
 const NODE_DIAMETERS = new Map([
   [CATEGORY_INTERCITY, 8],
   [CATEGORY_INTERREGIO, 4],
@@ -61,17 +62,24 @@ const REGIONAL_NODE_DIAMETER = 4;
 const nodeDiameterOfCategory = (category) =>
   NODE_DIAMETERS.get(category) ?? REGIONAL_NODE_DIAMETER;
 
+// Small dots first, so a bus stop is not left sitting on top of the interchange
+// it belongs to.
+const bySmallestNodeFirst = (first, second) =>
+  nodeDiameterOfCategory(first.category) -
+  nodeDiameterOfCategory(second.category);
+
 const RING_COLOR = [214, 214, 210];
 const RING_LABEL_COLOR = [140, 142, 145];
 const CENTRE_COLOR = [20, 22, 26];
-const HINT_COLOR = [90, 94, 100];
 const LABEL_BACKGROUND = [28, 30, 34, 235];
 const LABEL_TEXT_COLOR = [245, 246, 248];
 const HIGHLIGHT_COLOR = [20, 22, 26];
 
 const CENTRE_DIAMETER_PIXELS = 9;
+const HIGHLIGHT_WIDTH_PIXELS = 1.5;
+const HIGHLIGHT_LEG_WIDTH_PIXELS = 2.5;
 const NODE_PICK_RADIUS_PIXELS = 7;
-const EDGE_PICK_RADIUS_PIXELS = 5;
+const LEG_PICK_RADIUS_PIXELS = 5;
 const LABEL_PADDING_PIXELS = 8;
 const LABEL_LINE_HEIGHT_PIXELS = 17;
 const LABEL_TEXT_SIZE = 13;
@@ -83,11 +91,31 @@ const bandOf = (travelTimeSeconds) =>
     BAND_COLORS.length - 1,
   );
 
-// Legs are grouped by how far out they are and by the vehicle running them, so a
-// frame draws one shape per group instead of setting a stroke per leg.
+// Places are grouped by how far out they lie and by the vehicle one arrives on,
+// so a frame sets one fill per group instead of one per dot.
 const groupKey = (band, category) => `${band}:${category}`;
 
 const NO_PLACE = -1;
+
+const sameTarget = (first, second) =>
+  first.kind === second.kind && first.index === second.index;
+
+// The nearest candidate whose distance stays under the reach, or none at all.
+const nearestWithin = (candidates, distanceSquaredOf, reachSquared) =>
+  candidates.reduce(
+    (best, candidate) => {
+      const distance = distanceSquaredOf(candidate);
+      return distance < best.distance ? { candidate, distance } : best;
+    },
+    { candidate: null, distance: reachSquared },
+  ).candidate;
+
+const labelSize = (p, lines) => ({
+  width:
+    Math.max(...lines.map((line) => p.textWidth(line))) +
+    LABEL_PADDING_PIXELS * 2,
+  height: lines.length * LABEL_LINE_HEIGHT_PIXELS + LABEL_PADDING_PIXELS * 2,
+});
 
 export class ReisezeitPanel extends Panel {
   capabilities = {
@@ -104,7 +132,7 @@ export class ReisezeitPanel extends Panel {
     this.tree = null;
     this.layout = null;
     this.positions = null;
-    this.edgeGroups = [];
+    this.placeGroups = [];
     this.places = [];
     this.hourRings = 0;
     this.hovered = null;
@@ -141,25 +169,22 @@ export class ReisezeitPanel extends Panel {
     const pick = (x, y) => this.#pick(x, y);
     new HoverInteraction(canvasElement, {
       pick,
+      sameTarget,
       onHover: (target) => {
         this.hovered = target;
       },
-      sameTarget: (first, second) =>
-        first.kind === second.kind && first.index === second.index,
     });
     new TapInteraction(canvasElement, {
       pick,
+      sameTarget,
       onSelect: (target) => this.#select(target),
       onActivate: (target) => this.#select(target),
       onMiss: () => {},
-      sameTarget: (first, second) =>
-        first.kind === second.kind && first.index === second.index,
     });
   }
 
-  // Takes a further schedule blob into the running panel: its stations join the
-  // catalog and its trips join the connection list, which is rebuilt whole --
-  // the road blob arrives this way after the first picture.
+  // The road blob arrives after the first picture already stands, so the whole
+  // connection list is rebuilt around it.
   adoptSchedule(buffer, stations) {
     this.catalog.addPublished(stations, readStationPoints(buffer));
     this.networks.push({
@@ -169,9 +194,8 @@ export class ReisezeitPanel extends Panel {
     this.connections = buildConnectionList(this.networks);
     this.scan = new ConnectionScan(this.connections);
     this.#pickAStartStationIfNobodyChoseOne();
-    // The road blob arrives while someone is already looking: the picture gains
-    // its buses, but the view stays where it was put -- unless it is still the
-    // panel's own starting point, which nobody has framed yet.
+    // Someone is already looking, so the view stays where it was put -- unless
+    // it is still the panel's own starting point, which nobody has framed yet.
     this.#rescan({ openTheView: this.startStationIsThePanelsOwn });
   }
 
@@ -180,19 +204,12 @@ export class ReisezeitPanel extends Panel {
       return;
     }
     this.startStation = stationToTravelFrom(
-      this.catalog.entries.filter(
-        (entry) => this.connections.stationOf(entry.didok) !== undefined,
-      ),
-      (entry) => this.#travelsAnywhere(entry),
+      this.catalog,
+      this.connections,
+      this.scan,
+      this.startTimeSeconds,
     );
     this.startStationIsThePanelsOwn = this.startStation !== null;
-  }
-
-  #travelsAnywhere(entry) {
-    const station = this.connections.stationOf(entry.didok);
-    return (
-      this.scan.from(station, this.startTimeSeconds).connections().length > 0
-    );
   }
 
   revealStation(station) {
@@ -203,7 +220,7 @@ export class ReisezeitPanel extends Panel {
   }
 
   #select(target) {
-    if (target.kind !== 'station') {
+    if (target.kind !== 'place') {
       return;
     }
     const entry = this.catalog.entryOf(
@@ -215,11 +232,7 @@ export class ReisezeitPanel extends Panel {
   }
 
   #rescan({ openTheView }) {
-    if (this.startStation === null) {
-      this.tree = null;
-      return;
-    }
-    const start = this.connections.stationOf(this.startStation.didok);
+    const start = this.connections.stationOf(this.startStation?.didok);
     if (start === undefined) {
       this.tree = null;
       return;
@@ -230,68 +243,48 @@ export class ReisezeitPanel extends Panel {
     this.#letTheViewReachThePicture(openTheView);
   }
 
-  // An interchange is one place, so its stops share one node and one leg into
-  // it: without that, Olten would reach Bern and every tram stop of the Bern
-  // interchange on its own near-parallel line. Every place is laid out once and
-  // the legs are grouped into what they are drawn as, so a frame only reads what
+  // Everything a frame needs is worked out once here, so drawing only reads what
   // it draws.
   #layOutReachedStations() {
     this.places = this.#placesOfReachedStations();
-    this.positions = new Float64Array(this.places.length * 2);
+    this.positions = this.#positionsOfPlaces();
+    this.#groupPlacesForDrawing();
+    this.hourRings = Math.ceil(this.#longestTravelTime() / SECONDS_PER_HOUR);
+  }
+
+  #positionsOfPlaces() {
+    const positions = new Float64Array(this.places.length * 2);
     this.places.forEach((place, index) => {
       const entry = this.catalog.entryOf(
         this.connections.didokOf(place.station),
       );
       const [east, north] = this.layout.positionOf(entry, place.travelTime);
-      this.positions[index * 2] = east;
-      this.positions[index * 2 + 1] = north;
+      positions[index * 2] = east;
+      positions[index * 2 + 1] = north;
     });
-    this.#groupEdges();
-    this.hourRings = Math.ceil(this.#longestTravelTime() / SECONDS_PER_HOUR);
+    return positions;
   }
 
-  // Gathers the reached stops into places -- one per interchange, one per stop
-  // that stands alone -- and remembers which place each stop belongs to.
+  // The places of the picture, each remembering which stops it gathers, so a leg
+  // can be traced back from any of them to the place it left.
   #placesOfReachedStations() {
     this.placeOfStation = new Int32Array(this.connections.stationCount).fill(
       NO_PLACE,
     );
-    const membersOfPlace = new Map();
-    this.tree
-      .reachedStations()
-      .filter(
-        (station) =>
-          this.catalog.entryOf(this.connections.didokOf(station)) !== null,
-      )
-      .forEach((station) => {
-        const key =
-          this.connections.clusterOf(station) ??
-          this.connections.didokOf(station);
-        const members = membersOfPlace.get(key) ?? [];
-        members.push(station);
-        membersOfPlace.set(key, members);
-      });
-    return [...membersOfPlace.entries()].map(([key, members], index) => {
+    return placesOfReachedStations(
+      this.tree,
+      this.connections,
+      this.catalog,
+    ).map(({ principalStation, members }, index) => {
       members.forEach((station) => {
         this.placeOfStation[station] = index;
       });
-      const station = this.#principalStopOf(key, members);
       return {
-        station,
+        station: principalStation,
         servedStation: this.#stopTheVehicleCalledAt(members),
-        travelTime: this.tree.travelTimeTo(station),
+        travelTime: this.tree.travelTimeTo(principalStation),
       };
     });
-  }
-
-  // An interchange answers to its own name -- the didok the catalog names it by,
-  // which is the station the lesser stops gather around. Only where that stop is
-  // not itself reached does another member speak for it.
-  #principalStopOf(key, members) {
-    const principal = this.connections.stationOf(key);
-    return principal !== undefined && members.includes(principal)
-      ? principal
-      : members[0];
   }
 
   // Where the vehicle really pulled in: the leg into the place is drawn from
@@ -309,35 +302,36 @@ export class ReisezeitPanel extends Panel {
     );
   }
 
-  #groupEdges() {
+  #groupPlacesForDrawing() {
+    this.placeGroups = this.#groupedPlaces().sort(bySmallestNodeFirst);
+    this.drawnLegs = this.placeGroups.flatMap((group) => group.places);
+  }
+
+  #groupedPlaces() {
     const groups = new Map();
-    this.places
+    this.#placesWithALegOfTheirOwn().forEach((place) => {
+      const category = this.connections.categoryOfTrip(
+        this.#legIntoPlace(place).trip,
+      );
+      const band = bandOf(this.places[place].travelTime);
+      const key = groupKey(band, category);
+      const group = groups.get(key) ?? { band, category, places: [] };
+      group.places.push(place);
+      groups.set(key, group);
+    });
+    return [...groups.values()];
+  }
+
+  #placesWithALegOfTheirOwn() {
+    return this.places
       .map((_, index) => index)
-      .filter((place) => this.#drawable(place))
-      .forEach((place) => {
-        const category = this.connections.categoryOfTrip(
-          this.#legIntoPlace(place).trip,
-        );
-        const band = bandOf(this.places[place].travelTime);
-        const key = groupKey(band, category);
-        const group = groups.get(key) ?? { band, category, stations: [] };
-        group.stations.push(place);
-        groups.set(key, group);
-      });
-    // Small dots first, so a bus stop is not left sitting on top of the
-    // interchange it belongs to.
-    this.edgeGroups = [...groups.values()].sort(
-      (first, second) =>
-        nodeDiameterOfCategory(first.category) -
-        nodeDiameterOfCategory(second.category),
-    );
-    this.drawnLegs = this.edgeGroups.flatMap((group) => group.stations);
+      .filter((place) => this.#hasALegOfItsOwn(place));
   }
 
   // A leg is drawn when it leads from one place to another. It is not when the
   // stop it left has no place of its own, and not when it stays inside one --
   // crossing an interchange on foot is not a journey.
-  #drawable(place) {
+  #hasALegOfItsOwn(place) {
     const leg = this.#legIntoPlace(place);
     if (leg === null) {
       return false;
@@ -393,39 +387,43 @@ export class ReisezeitPanel extends Panel {
     // The whole skeleton first, then the places on top of it: the nodes carry
     // the colour and the kind of traffic, and nothing may bury them.
     this.#drawLegs(p, context);
-    this.edgeGroups.forEach((group) => {
+    this.placeGroups.forEach((group) => {
       this.#drawNodesOfGroup(p, context, group);
     });
     this.#drawHighlight(p, context);
     this.#drawCentre(p, context);
   }
 
+  #eastOf(place) {
+    return this.positions[place * 2];
+  }
+
+  #northOf(place) {
+    return this.positions[place * 2 + 1];
+  }
+
   #drawLegs(p, context) {
     p.noFill();
-    p.stroke(...EDGE_COLOR);
-    p.strokeWeight(EDGE_WIDTH_PIXELS * context.camera.worldPerPixel());
+    p.stroke(...LEG_COLOR);
+    p.strokeWeight(LEG_WIDTH_PIXELS * context.camera.worldPerPixel());
     p.beginShape(p.LINES);
     this.drawnLegs.forEach((place) => {
       const from = this.#placeLeftBehind(this.#legIntoPlace(place));
-      p.vertex(this.positions[from * 2], this.positions[from * 2 + 1]);
-      p.vertex(this.positions[place * 2], this.positions[place * 2 + 1]);
+      p.vertex(this.#eastOf(from), this.#northOf(from));
+      p.vertex(this.#eastOf(place), this.#northOf(place));
     });
     p.endShape();
   }
 
   // A place wears the vehicle one arrives on, so an interchange a long-distance
   // train calls at reads larger than the bus stop beside it.
-  #drawNodesOfGroup(p, context, { band, category, stations }) {
+  #drawNodesOfGroup(p, context, { band, category, places }) {
     const diameter =
       nodeDiameterOfCategory(category) * context.camera.worldPerPixel();
     p.noStroke();
     p.fill(...BAND_COLORS[band]);
-    stations.forEach((station) => {
-      p.circle(
-        this.positions[station * 2],
-        this.positions[station * 2 + 1],
-        diameter,
-      );
+    places.forEach((place) => {
+      p.circle(this.#eastOf(place), this.#northOf(place), diameter);
     });
   }
 
@@ -453,25 +451,33 @@ export class ReisezeitPanel extends Panel {
       return;
     }
     const worldPerPixel = context.camera.worldPerPixel();
-    if (this.hovered.kind === 'station') {
-      p.noFill();
-      p.stroke(...HIGHLIGHT_COLOR);
-      p.strokeWeight(1.5 * worldPerPixel);
-      p.circle(
-        this.positions[this.hovered.index * 2],
-        this.positions[this.hovered.index * 2 + 1],
-        NODE_PICK_RADIUS_PIXELS * 2 * worldPerPixel,
-      );
+    if (this.hovered.kind === 'place') {
+      this.#drawHighlightedPlace(p, this.hovered.index, worldPerPixel);
       return;
     }
-    const from = this.#placeLeftBehind(this.#legIntoPlace(this.hovered.index));
+    this.#drawHighlightedLeg(p, this.hovered.index, worldPerPixel);
+  }
+
+  #drawHighlightedPlace(p, place, worldPerPixel) {
+    p.noFill();
     p.stroke(...HIGHLIGHT_COLOR);
-    p.strokeWeight(2.5 * worldPerPixel);
+    p.strokeWeight(HIGHLIGHT_WIDTH_PIXELS * worldPerPixel);
+    p.circle(
+      this.#eastOf(place),
+      this.#northOf(place),
+      NODE_PICK_RADIUS_PIXELS * 2 * worldPerPixel,
+    );
+  }
+
+  #drawHighlightedLeg(p, place, worldPerPixel) {
+    const from = this.#placeLeftBehind(this.#legIntoPlace(place));
+    p.stroke(...HIGHLIGHT_COLOR);
+    p.strokeWeight(HIGHLIGHT_LEG_WIDTH_PIXELS * worldPerPixel);
     p.line(
-      this.positions[from * 2],
-      this.positions[from * 2 + 1],
-      this.positions[this.hovered.index * 2],
-      this.positions[this.hovered.index * 2 + 1],
+      this.#eastOf(from),
+      this.#northOf(from),
+      this.#eastOf(place),
+      this.#northOf(place),
     );
   }
 
@@ -487,29 +493,14 @@ export class ReisezeitPanel extends Panel {
 
   drawOverlay(p, context) {
     if (this.tree === null) {
-      this.#drawHint(p);
       return;
     }
     this.#drawRingLabels(p, context);
     this.#drawHoverLabel(p);
   }
 
-  // The question the picture answers, asked out loud, so nobody has to work out
-  // what the rings and colours are about.
   headline() {
     return `Wenn ich um ${formatTimeOfDay(this.startTimeSeconds)} in ${this.startStation.name} losfahre, wo komme ich heute noch hin?`;
-  }
-
-  #drawHint(p) {
-    p.noStroke();
-    p.fill(...HINT_COLOR);
-    p.textAlign(p.CENTER, p.CENTER);
-    p.textSize(16);
-    p.text(
-      'Wählen Sie einen Standort, um zu sehen, wie weit man von dort kommt.',
-      p.width / 2,
-      p.height / 2,
-    );
   }
 
   // Zoomed far out the rings crowd together, and their labels would smear into
@@ -550,11 +541,7 @@ export class ReisezeitPanel extends Panel {
     const lines = this.describeTarget(this.hovered);
     p.textSize(LABEL_TEXT_SIZE);
     p.textAlign(p.LEFT, p.TOP);
-    const width =
-      Math.max(...lines.map((line) => p.textWidth(line))) +
-      LABEL_PADDING_PIXELS * 2;
-    const height =
-      lines.length * LABEL_LINE_HEIGHT_PIXELS + LABEL_PADDING_PIXELS * 2;
+    const { width, height } = labelSize(p, lines);
     const [x, y] = this.#labelCorner(p, width, height);
     p.noStroke();
     p.fill(...LABEL_BACKGROUND);
@@ -586,8 +573,8 @@ export class ReisezeitPanel extends Panel {
   // time, or a leg with where it goes, what runs it, how long it takes and how
   // long one waits for it.
   describeTarget({ kind, index }) {
-    return kind === 'station'
-      ? this.#describeStation(index)
+    return kind === 'place'
+      ? this.#describePlace(index)
       : this.#describeLeg(index);
   }
 
@@ -598,7 +585,7 @@ export class ReisezeitPanel extends Panel {
     return entry === null ? 'Station' : entry.name;
   }
 
-  #describeStation(place) {
+  #describePlace(place) {
     const { travelTime } = this.places[place];
     return [
       this.#nameOfPlace(place),
@@ -627,55 +614,44 @@ export class ReisezeitPanel extends Panel {
     const [east, north] = this.context.camera.screenToWorld(screenX, screenY);
     const worldPerPixel = this.context.camera.worldPerPixel();
     return (
-      this.#stationNear(east, north, worldPerPixel) ??
+      this.#placeNear(east, north, worldPerPixel) ??
       this.#legNear(east, north, worldPerPixel)
     );
   }
 
-  #stationNear(east, north, worldPerPixel) {
-    const reach = (NODE_PICK_RADIUS_PIXELS * worldPerPixel) ** 2;
-    const nearest = this.places.reduce(
-      (best, _, place) => {
-        const distance =
-          (this.positions[place * 2] - east) ** 2 +
-          (this.positions[place * 2 + 1] - north) ** 2;
-        return distance < best.distance ? { place, distance } : best;
-      },
-      { place: null, distance: reach },
+  #placeNear(east, north, worldPerPixel) {
+    const nearest = nearestWithin(
+      this.places.map((_, place) => place),
+      (place) =>
+        (this.#eastOf(place) - east) ** 2 + (this.#northOf(place) - north) ** 2,
+      (NODE_PICK_RADIUS_PIXELS * worldPerPixel) ** 2,
     );
-    return nearest.place === null
-      ? null
-      : { kind: 'station', index: nearest.place };
+    return nearest === null ? null : { kind: 'place', index: nearest };
   }
 
   #legNear(east, north, worldPerPixel) {
-    const reach = (EDGE_PICK_RADIUS_PIXELS * worldPerPixel) ** 2;
-    const nearest = this.drawnLegs.reduce(
-      (best, place) => {
-        const from = this.#placeLeftBehind(this.#legIntoPlace(place));
-        const distance = distanceToSegmentSquared(
-          east,
-          north,
-          this.positions[from * 2],
-          this.positions[from * 2 + 1],
-          this.positions[place * 2],
-          this.positions[place * 2 + 1],
-        );
-        return distance < best.distance ? { place, distance } : best;
-      },
-      { place: null, distance: reach },
+    const nearest = nearestWithin(
+      this.drawnLegs,
+      (place) => this.#distanceToLegSquared(place, east, north),
+      (LEG_PICK_RADIUS_PIXELS * worldPerPixel) ** 2,
     );
-    return nearest.place === null
-      ? null
-      : { kind: 'leg', index: nearest.place };
+    return nearest === null ? null : { kind: 'leg', index: nearest };
+  }
+
+  #distanceToLegSquared(place, east, north) {
+    const from = this.#placeLeftBehind(this.#legIntoPlace(place));
+    return distanceToSegmentSquared(
+      east,
+      north,
+      this.#eastOf(from),
+      this.#northOf(from),
+      this.#eastOf(place),
+      this.#northOf(place),
+    );
   }
 
   sidebarSections() {
     return [];
-  }
-
-  keyBindings() {
-    return {};
   }
 
   infoContent() {

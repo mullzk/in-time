@@ -49,10 +49,6 @@ const LAYER_BY_CATEGORY = new Map([
 export const layerOfCategory = (category) =>
   LAYER_BY_CATEGORY.get(category) ?? 'regionalverkehr';
 
-export const VEHICLE_LAYER_LABELS = [
-  ['fernverkehr', 'Fernverkehr'],
-  ['interregio', 'InterRegio'],
-  ['regionalverkehr', 'Regionalverkehr'],
-  ['tram', 'Tram'],
-  ['bus', 'Bus'],
-];
+// Drawn from the least structural traffic to the most, so a long-distance train
+// is never hidden under the buses around it.
+export const byRisingRank = (first, second) => second.category - first.category;
