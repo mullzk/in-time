@@ -97,6 +97,11 @@ const groupKey = (band, category) => `${band}:${category}`;
 
 const NO_PLACE = -1;
 
+// A single valley served once a day reaches hours beyond the rest, and opening
+// on the whole tree would shrink everything else around it. The view therefore
+// starts a little way in; one key (F) pulls it back to all of it.
+const INITIAL_ZOOM_FRACTION = 0.11;
+
 const sameTarget = (first, second) =>
   first.kind === second.kind && first.index === second.index;
 
@@ -363,9 +368,9 @@ export class ReisezeitPanel extends Panel {
   }
 
   // Zoomed all the way out, everything reachable must be in view -- including
-  // the outermost hour ring, which reaches past the last station. The camera
+  // the outermost hour ring, which reaches past the last place. The camera
   // therefore learns how big this picture is; on a new starting point it also
-  // opens on the whole of it.
+  // opens on it.
   #letTheViewReachThePicture(openTheView) {
     const camera = this.context?.camera;
     if (camera === undefined) {
@@ -379,7 +384,9 @@ export class ReisezeitPanel extends Panel {
       northMax: this.startStation.north + radius,
     });
     if (openTheView) {
+      // Fit first, which is what centres the view on the starting point.
       camera.fit();
+      camera.setZoomFraction(INITIAL_ZOOM_FRACTION);
     }
   }
 
