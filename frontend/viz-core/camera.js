@@ -18,25 +18,35 @@ const FULLY_ZOOMED_OUT_TOLERANCE = 1.01;
 const clamp = (value, low, high) => Math.min(Math.max(value, low), high);
 
 export class Camera {
-  constructor(viewportWidth, viewportHeight) {
+  constructor(viewportWidth, viewportHeight, bounds = CH_BOUNDS_LV95) {
     this.viewportWidth = viewportWidth;
     this.viewportHeight = viewportHeight;
+    this.bounds = bounds;
     this.fit();
   }
 
-  // Re-centre on the country and zoom out so the whole extent fits.
+  // The extent the view may roam over and must be able to show whole. It is the
+  // country for a map, but a travel-time picture reaches far beyond it, so the
+  // panel drawing one says how far.
+  setWorldBounds(bounds) {
+    this.bounds = bounds;
+    this.scale = this.#clampScale(this.scale);
+    this.#clampCenter();
+  }
+
+  // Re-centre on the extent and zoom out so all of it fits.
   fit() {
-    this.centerEast = (CH_BOUNDS_LV95.eastMin + CH_BOUNDS_LV95.eastMax) / 2;
-    this.centerNorth = (CH_BOUNDS_LV95.northMin + CH_BOUNDS_LV95.northMax) / 2;
+    this.centerEast = (this.bounds.eastMin + this.bounds.eastMax) / 2;
+    this.centerNorth = (this.bounds.northMin + this.bounds.northMax) / 2;
     this.scale = this.#minScale();
   }
 
   #minScale() {
-    const chWidth = CH_BOUNDS_LV95.eastMax - CH_BOUNDS_LV95.eastMin;
-    const chHeight = CH_BOUNDS_LV95.northMax - CH_BOUNDS_LV95.northMin;
+    const width = this.bounds.eastMax - this.bounds.eastMin;
+    const height = this.bounds.northMax - this.bounds.northMin;
     return Math.min(
-      this.viewportWidth / (chWidth * FIT_MARGIN),
-      this.viewportHeight / (chHeight * FIT_MARGIN),
+      this.viewportWidth / (width * FIT_MARGIN),
+      this.viewportHeight / (height * FIT_MARGIN),
     );
   }
 
@@ -47,13 +57,13 @@ export class Camera {
   #clampCenter() {
     this.centerEast = clamp(
       this.centerEast,
-      CH_BOUNDS_LV95.eastMin,
-      CH_BOUNDS_LV95.eastMax,
+      this.bounds.eastMin,
+      this.bounds.eastMax,
     );
     this.centerNorth = clamp(
       this.centerNorth,
-      CH_BOUNDS_LV95.northMin,
-      CH_BOUNDS_LV95.northMax,
+      this.bounds.northMin,
+      this.bounds.northMax,
     );
   }
 

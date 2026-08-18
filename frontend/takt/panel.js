@@ -12,59 +12,22 @@ import {
   layerToRevealStation,
   nearestStation,
   nodeDiameterPixels,
+  STATION_HIT_RADIUS_PIXELS,
   stationIsShown,
+  stationPickRadiusPixels,
   stopsToggleOnZoomCross,
 } from '../viz-core/stationNodes.js';
 import { BACKGROUNDS } from '../viz-core/tiles/tileSource.js';
+import {
+  CATEGORY_BUS,
+  CATEGORY_INTERCITY,
+  CATEGORY_TRAM,
+  categoryColor,
+  categoryLabel,
+  layerOfCategory,
+} from '../viz-core/transportCategories.js';
 import { VehiclePositionEngine } from '../viz-core/vehiclePositionEngine.js';
 import { buildInfoContent } from './infoContent.js';
-
-// Colours by blob category: rail 0-4 (Fernverkehr, IR, Regio/RE, S-Bahn, other),
-// tram 5, bus 6.
-const CATEGORY_COLORS = [
-  [240, 90, 70],
-  [240, 160, 60],
-  [90, 200, 120],
-  [90, 170, 240],
-  [180, 180, 190],
-  [210, 100, 210],
-  [240, 205, 70],
-];
-const FALLBACK_COLOR = [200, 200, 200];
-
-const CATEGORY_INTERCITY = 0;
-const CATEGORY_INTERREGIO = 1;
-const CATEGORY_TRAM = 5;
-const CATEGORY_BUS = 6;
-
-// Human labels per blob category, shown on a clicked vehicle's popover. Rail
-// spans 0-4 (Fernverkehr down to other rail), then tram and bus.
-const CATEGORY_LABELS = [
-  'Fernverkehr',
-  'InterRegio',
-  'Regio',
-  'S-Bahn',
-  'Bahn',
-  'Tram',
-  'Bus',
-];
-const categoryLabel = (category) => CATEGORY_LABELS[category] ?? 'Fahrt';
-
-// Rail splits into a long-distance, an InterRegio and a regional layer, matching
-// the same display groups used for the sounds: Fernverkehr (category 0),
-// InterRegio (1) and Regionalverkehr (2-4), plus the tram and bus layers.
-const LAYER_BY_CATEGORY = new Map([
-  [CATEGORY_INTERCITY, 'fernverkehr'],
-  [CATEGORY_INTERREGIO, 'interregio'],
-  [2, 'regionalverkehr'],
-  [3, 'regionalverkehr'],
-  [4, 'regionalverkehr'],
-  [CATEGORY_TRAM, 'tram'],
-  [CATEGORY_BUS, 'bus'],
-]);
-
-const layerOfCategory = (category) =>
-  LAYER_BY_CATEGORY.get(category) ?? 'regionalverkehr';
 
 // The pulse beats for IC and EC alone. InterRegio stops nearly everywhere, so
 // counting it would leave half the network glowing and the interchanges would
@@ -175,16 +138,10 @@ const STATION_NODE_FILL = [255, 255, 255];
 // keeps a plain black outline). On the black background nodes read on their own.
 const STATION_STROKE_BY_MODE = new Map([
   ['rail', [0, 0, 0]],
-  ['tram', CATEGORY_COLORS[CATEGORY_TRAM]],
-  ['bus', CATEGORY_COLORS[CATEGORY_BUS]],
+  ['tram', categoryColor(CATEGORY_TRAM)],
+  ['bus', categoryColor(CATEGORY_BUS)],
 ]);
 const STATION_STROKE_WIDTH_PIXELS = 1;
-// A generous tap target so small nodes stay hittable on touch.
-const STATION_HIT_RADIUS_PIXELS = 12;
-// Zoomed out, the full-catalogue pick would swallow every click and the hover
-// label would never rest, so its reach shrinks towards this floor as the view
-// pulls back, leaving room to aim at a vehicle.
-const STATION_NEAR_MIN_RADIUS_PIXELS = 5;
 // Vehicles are smaller and denser than station nodes, so keep their tap target
 // tighter to avoid grabbing a neighbour.
 const VEHICLE_HIT_RADIUS_PIXELS = 10;
@@ -234,8 +191,12 @@ export function instrumentationForOptionValue(value, customInstrumentation) {
 export class TaktPanel extends Panel {
   capabilities = {
     simulationSpeed: true,
-    fullDayScrubber: true,
+    timeScrubber: true,
+    timeSeeking: true,
     stationSearch: true,
+    stationPicking: true,
+    mapBackground: true,
+    zoomSlider: true,
     sonification: true,
   };
 
@@ -463,9 +424,7 @@ export class TaktPanel extends Panel {
   }
 
   #vehicleColor(category) {
-    return this.pulseMode
-      ? PULSE_MODE_VEHICLE_COLOR
-      : (CATEGORY_COLORS[category] ?? FALLBACK_COLOR);
+    return this.pulseMode ? PULSE_MODE_VEHICLE_COLOR : categoryColor(category);
   }
 
   sidebarSections({
@@ -800,10 +759,7 @@ export class TaktPanel extends Panel {
     if (this.camera === null) {
       return null;
     }
-    const radius =
-      STATION_NEAR_MIN_RADIUS_PIXELS +
-      (STATION_HIT_RADIUS_PIXELS - STATION_NEAR_MIN_RADIUS_PIXELS) *
-        this.camera.zoomFraction();
+    const radius = stationPickRadiusPixels(this.camera.zoomFraction());
     const candidates = accept
       ? this.catalog.entries.filter(accept)
       : this.catalog.entries;

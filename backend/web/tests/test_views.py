@@ -143,3 +143,38 @@ def test_takt_serves_the_html_shell(client: Client, published: Path) -> None:
     markup = response.content.decode("utf-8")
     assert "/api/config" in markup
     assert "/static/" in markup
+
+
+def test_reisezeit_serves_its_own_shell(client: Client, published: Path) -> None:
+    response = client.get("/reisezeit")
+
+    assert response.status_code == 200
+    markup = response.content.decode("utf-8")
+    assert "/api/config" in markup
+    assert "reisezeit/main" in markup
+
+
+def test_ausbreitung_serves_its_own_shell(client: Client, published: Path) -> None:
+    response = client.get("/ausbreitung")
+
+    assert response.status_code == 200
+    markup = response.content.decode("utf-8")
+    assert "/api/config" in markup
+    assert "ausbreitung/main" in markup
+
+
+@pytest.mark.parametrize(
+    ("address", "script"),
+    [
+        ("/takt/bern", "takt/main"),
+        ("/reisezeit/bern-b%C3%BCmpliz-nord", "reisezeit/main"),
+        ("/ausbreitung/z%C3%BCrich-hb", "ausbreitung/main"),
+    ],
+)
+def test_a_station_in_the_address_serves_the_same_shell(
+    client: Client, published: Path, address: str, script: str
+) -> None:
+    response = client.get(address)
+
+    assert response.status_code == 200
+    assert script in response.content.decode("utf-8")

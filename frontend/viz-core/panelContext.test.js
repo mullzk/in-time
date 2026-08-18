@@ -14,7 +14,7 @@ const contextWithCamera = () => {
     camera,
     projection: null,
     time: null,
-    tileLayer: null,
+    tileLayer: { source: null },
   });
   return { camera, context };
 };
@@ -35,4 +35,10 @@ test('focusStation keeps a closer zoom and only recentres', () => {
   assert.ok(closeTo(camera.zoomFraction(), 0.9, 1e-9));
   assert.ok(closeTo(camera.centerEast, TARGET[0], 1e-6));
   assert.ok(closeTo(camera.centerNorth, TARGET[1], 1e-6));
+});
+
+test('a context that opens on the black ground draws no tiles', () => {
+  const context = new PanelContext({ tileLayer: { source: null } });
+
+  assert.equal(context.tilesVisible, false);
 });

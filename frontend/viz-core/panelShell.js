@@ -3,6 +3,7 @@ import { localStorageOrForgetful } from './browserStorage.js';
 import { Camera } from './camera.js';
 import { Cockpit } from './cockpit.js';
 import { element } from './dom.js';
+import { Headline } from './headline.js';
 import { InfoModal } from './infoModal.js';
 import { InstrumentationEditor } from './instrumentationEditor.js';
 import { KeyboardControls } from './keyboardControls.js';
@@ -14,9 +15,11 @@ import { sectionsToMount } from './sidebarSections.js';
 import { AudioBridge } from './sonification/audioBridge.js';
 import { CustomInstrumentationStore } from './sonification/customInstrumentation.js';
 import { Sonifier } from './sonification/sonifier.js';
+import { StationInUrl, stationMatchingSlug } from './stationInUrl.js';
 import { StationSearch } from './stationSearch.js';
 import { TileLayer } from './tiles/tileLayer.js';
 import { BACKGROUNDS } from './tiles/tileSource.js';
+import { ViewSwitcher } from './viewSwitcher.js';
 import { VizCore } from './vizCore.js';
 import {
   ZOOM_STEPS,
@@ -27,8 +30,15 @@ import {
 const isExhibition = () =>
   new URLSearchParams(window.location.search).get('mode') === 'exhibition';
 
+const backgroundById = (id) =>
+  BACKGROUNDS.find((background) => background.id === id) ?? null;
+
+const BLACK_BACKGROUND = backgroundById('black');
+
+const sectionWhen = (isOffered, section) => (isOffered ? [section] : []);
+
 // The frame every panel runs in: it owns the camera, the render core and all
-// global controls (background, zoom, info, fullscreen, search, cockpit), and
+// global controls (background, zoom, info, search, cockpit), and
 // mounts the sections the panel supplies. The panel is asked for its own
 // controls, its key bindings and its info text, and is told when a global choice
 // has a consequence only it can decide.
@@ -38,7 +48,15 @@ export class PanelShell {
     this.panel = panel;
     this.time = time;
     this.exhibition = isExhibition();
-    this.background = BACKGROUNDS[0];
+    this.stationInUrl = new StationInUrl();
+    this.canvasReady = false;
+    this.stationChosen = false;
+    // A panel that draws no map has no use for a ground under it: it gets the
+    // black one and no chooser, rather than a relief nobody can see. A panel
+    // that draws one may name the ground it reads best on; otherwise the first.
+    this.background = panel.capabilities.mapBackground
+      ? (backgroundById(panel.initialBackgroundId?.()) ?? BACKGROUNDS[0])
+      : BLACK_BACKGROUND;
     this.camera = new Camera(root.clientWidth, root.clientHeight);
     this.context = new PanelContext({
       camera: this.camera,
@@ -49,6 +67,12 @@ export class PanelShell {
   }
 
   start() {
+    this.topBar = element('div', 'l-topbar');
+    // The two buttons share the left of the bar as one group; the search and
+    // the switcher are columns of their own.
+    this.topBarLead = element('div', 'l-topbar-lead');
+    this.topBar.appendChild(this.topBarLead);
+    this.root.appendChild(this.topBar);
     this.cockpit = new Cockpit(this.root, this.panel, this.time);
     this.attribution = new Attribution(this.root);
     this.attribution.set(this.background.attribution);
@@ -56,7 +80,13 @@ export class PanelShell {
       ? new Sonifier(this.panel, this.time, new AudioBridge())
       : null;
 
-    this.sidebar = new Sidebar(this.root, this.#sections());
+    // A sidebar with nothing in it would still hang a button over the picture,
+    // so a view that supplies no sections gets none.
+    const sections = this.#sections();
+    this.sidebar =
+      sections.length === 0
+        ? null
+        : new Sidebar(this.root, this.topBarLead, sections);
     if (this.sonifier) {
       this.customInstrumentationStore = new CustomInstrumentationStore(
         localStorageOrForgetful(),
@@ -64,31 +94,95 @@ export class PanelShell {
       this.#offerStoredInstrumentation();
       this.#mountInstrumentationEditor();
     }
+    this.infoModal = new InfoModal(
+      this.root,
+      this.topBarLead,
+      this.panel.infoContent(),
+    );
     this.stationSearch = this.panel.capabilities.stationSearch
-      ? new StationSearch(this.root, this.panel.stationCatalog(), {
-          onSelect: (station) => this.selection.revealStation(station),
+      ? new StationSearch(this.topBar, this.panel.stationCatalog(), {
+          onSelect: (station) => this.#chooseStation(station),
         })
       : null;
-    this.selection = new MapSelection(this.root, this.panel, this.context, {
-      onStationChosen: (station) => {
-        this.sonifier?.setStation(station);
-        this.panel.setSonifiedStation?.(station);
-        this.stationSearch?.showSelection(station);
-      },
-    });
-    this.infoModal = new InfoModal(this.root, this.panel.infoContent());
-    this.root.appendChild(this.#fullscreenToggle());
+    // The exhibition shows one view, so there is nowhere to switch to.
+    if (!this.exhibition) {
+      this.viewSwitcher = new ViewSwitcher(this.topBar, this.stationInUrl);
+    }
+    // Picking on the canvas needs a map to pick on: only a panel drawing one
+    // gets tap, hover and their popovers. Elsewhere a station is chosen by name.
+    this.selection = this.panel.capabilities.stationPicking
+      ? new MapSelection(this.root, this.panel, this.context, {
+          onStationChosen: (station) => this.#adoptStation(station),
+        })
+      : null;
+    // A panel that has a question to put over its picture gets the writing; the
+    // rest of the views carry none.
+    this.headline = this.panel.headline ? new Headline(this.root) : null;
 
     new KeyboardControls(window, {
-      time: this.time,
+      // Space plays; a view that does not play does not answer to it.
+      togglePlay: this.panel.capabilities.simulationSpeed
+        ? () => this.time.togglePlay()
+        : null,
       camera: this.camera,
       bindings: this.#keyBindings(),
       overlays: [this.infoModal],
     });
     new VizCore(this.root, this.panel, this.context, {
       onFrameRendered: () => this.#onFrameRendered(),
-      onCanvasReady: (canvasElement) => this.selection.attachTo(canvasElement),
+      onCanvasReady: (canvasElement) => this.#onCanvasReady(canvasElement),
     });
+  }
+
+  // A panel drawing something other than a map picks on the canvas itself, in
+  // its own coordinates. It is handed the canvas and the one way in that keeps
+  // the search field and the sound in step with what it chose.
+  #onCanvasReady(canvasElement) {
+    this.selection?.attachTo(canvasElement);
+    this.panel.attachToCanvas?.(canvasElement, {
+      chooseStation: (station) => this.#chooseStation(station),
+    });
+    this.canvasReady = true;
+    this.#openOnTheStationNamedInTheUrl();
+  }
+
+  // A view is linked to with a station in its address, and opens on that one
+  // rather than on whatever the panel would have picked itself. It takes a
+  // camera to show a station on, so this waits for the canvas.
+  #openOnTheStationNamedInTheUrl() {
+    if (this.stationChosen || this.stationInUrl.slug === null) {
+      return;
+    }
+    const station = stationMatchingSlug(
+      this.panel.stationCatalog?.().entries ?? [],
+      this.stationInUrl.slug,
+    );
+    if (station !== null) {
+      this.#chooseStation(station);
+    }
+  }
+
+  // Choosing by name goes the same way as choosing on the map, so a panel is
+  // told once, however the station was reached.
+  #chooseStation(station) {
+    if (this.selection) {
+      this.selection.revealStation(station);
+      return;
+    }
+    this.panel.revealStation(station);
+    this.#adoptStation(station);
+  }
+
+  // Whichever way a station was reached -- searched, tapped, linked to -- it is
+  // the one the address names from here on, so the picture can be handed on and
+  // the other views open on it too.
+  #adoptStation(station) {
+    this.stationChosen = true;
+    this.sonifier?.setStation(station);
+    this.panel.setSonifiedStation?.(station);
+    this.stationSearch?.showSelection(station);
+    this.stationInUrl.show(station);
+    this.viewSwitcher?.refreshLinks();
   }
 
   // An own instrumentation outlives the page it was written on, so it is offered
@@ -142,12 +236,17 @@ export class PanelShell {
   // after the first picture (the road blob), so whoever adopts it says so.
   onPanelDataChanged() {
     this.sonifier?.refreshStation();
+    // A linked-to bus stop is in no catalog until the road stations arrive, so
+    // the address is read again once they have.
+    if (this.canvasReady) {
+      this.#openOnTheStationNamedInTheUrl();
+    }
   }
 
   #keyBindings() {
     const bindings = {
       ...this.panel.keyBindings?.(),
-      s: () => this.sidebar.toggle(),
+      ...(this.sidebar ? { s: () => this.sidebar.toggle() } : {}),
     };
     if (this.stationSearch) {
       bindings.g = () => this.stationSearch.focus();
@@ -156,8 +255,9 @@ export class PanelShell {
   }
 
   #onFrameRendered() {
+    this.headline?.show(this.panel.headline());
     this.cockpit.sync();
-    this.selection.onFrameRendered();
+    this.selection?.onFrameRendered();
     this.sonifier?.onFrameRendered();
     this.#syncZoomSlider();
   }
@@ -171,33 +271,32 @@ export class PanelShell {
       toggleInstrumentationEditor: this.#instrumentationEditorToggle(),
       holdBackground: (backgroundId) => this.#holdBackground(backgroundId),
     });
-    return sectionsToMount(
-      [
-        {
-          id: 'background',
-          title: 'Hintergrund',
-          element: this.#backgroundControl(),
-          keepInExhibition: true,
-        },
-        {
-          id: 'zoom',
-          title: 'Zoom',
-          element: this.#zoomControl(),
-          keepInExhibition: true,
-        },
-        ...panelSections,
-      ],
-      { exhibition: this.exhibition },
-    );
+    const globalSections = [
+      ...sectionWhen(this.panel.capabilities.mapBackground, {
+        id: 'background',
+        title: 'Hintergrund',
+        element: this.#backgroundControl(),
+        keepInExhibition: true,
+      }),
+      ...sectionWhen(this.panel.capabilities.zoomSlider, {
+        id: 'zoom',
+        title: 'Zoom',
+        element: this.#zoomControl(),
+        keepInExhibition: true,
+      }),
+    ];
+    return sectionsToMount([...globalSections, ...panelSections], {
+      exhibition: this.exhibition,
+    });
   }
 
   #backgroundControl() {
     const group = element('div', 'sidebar-options');
-    this.backgroundOptions = BACKGROUNDS.map((background, index) => {
+    this.backgroundOptions = BACKGROUNDS.map((background) => {
       const input = element('input');
       input.type = 'radio';
       input.name = 'background';
-      input.checked = index === 0;
+      input.checked = background === this.background;
       input.addEventListener('change', () =>
         this.#chooseBackground(background),
       );
@@ -212,9 +311,7 @@ export class PanelShell {
   // hands the chooser back without undoing the choice.
   #holdBackground(backgroundId) {
     if (backgroundId !== null) {
-      this.#chooseBackground(
-        BACKGROUNDS.find((background) => background.id === backgroundId),
-      );
+      this.#chooseBackground(backgroundById(backgroundId));
     }
     this.backgroundOptions.forEach(({ input, background }) => {
       input.disabled = backgroundId !== null;
@@ -255,7 +352,7 @@ export class PanelShell {
   // the camera rather than the other way round -- except while it is being
   // dragged, when it would fight the hand holding it.
   #syncZoomSlider() {
-    if (!this.zoomScrubbing) {
+    if (this.zoomSlider && !this.zoomScrubbing) {
       this.zoomSlider.value = String(
         zoomSliderPosition(this.camera.zoomFraction()),
       );
@@ -268,20 +365,5 @@ export class PanelShell {
     text.textContent = label;
     option.append(input, text);
     return option;
-  }
-
-  #fullscreenToggle() {
-    const button = element('button', 'panel-shell-fullscreen');
-    button.type = 'button';
-    button.textContent = '⛶';
-    button.setAttribute('aria-label', 'Vollbild');
-    button.addEventListener('click', () => {
-      if (document.fullscreenElement) {
-        document.exitFullscreen();
-      } else {
-        this.root.requestFullscreen();
-      }
-    });
-    return button;
   }
 }

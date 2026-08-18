@@ -1,0 +1,27 @@
+/* SMACSS Module: the headline over a panel — the question the view answers. It
+   hangs under the top control row and steps aside when the sidebar slides in,
+   like the cockpit does. */
+.panel-headline {
+  position: absolute;
+  margin: 0;
+  color: var(--color-control-text);
+  font-size: clamp(10px, 6px + 0.6vw, 16px);
+  font-weight: 500;
+  z-index: 10;
+  top: calc(var(--space-m) * 2 + var(--topbar-height));
+  left: var(--space-m);
+  max-width: min(46rem, calc(100vw - 2 * var(--space-l)));
+  padding: var(--space-s) var(--space-m);
+  border-radius: var(--radius-m);
+  background: var(--color-surface);
+  backdrop-filter: blur(6px);
+  pointer-events: none;
+  transition:
+    left var(--transition-panel),
+    max-width var(--transition-panel);
+}
+
+.is-sidebar-open .panel-headline {
+  left: calc(var(--sidebar-width) + var(--space-m));
+  max-width: calc(100vw - var(--sidebar-width) - 2 * var(--space-l));
+}

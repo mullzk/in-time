@@ -1,0 +1,21 @@
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block title %}Reisezeit — All in Time{% endblock %}
+
+{% block styles %}
+  <link rel="stylesheet" href="{% static 'styles/cockpit.css' %}" />
+  <link rel="stylesheet" href="{% static 'styles/stationSearch.css' %}" />
+  <link rel="stylesheet" href="{% static 'styles/attribution.css' %}" />
+  <link rel="stylesheet" href="{% static 'styles/infoModal.css' %}" />
+  <link rel="stylesheet" href="{% static 'styles/viewSwitcher.css' %}" />
+  <link rel="stylesheet" href="{% static 'styles/headline.css' %}" />
+{% endblock %}
+
+{% block content %}
+  <main id="viz-root" class="l-viz-root" data-config-url="/api/config"></main>
+{% endblock %}
+
+{% block scripts %}
+  <script type="module" src="{% static 'reisezeit/main.js' %}"></script>
+{% endblock %}

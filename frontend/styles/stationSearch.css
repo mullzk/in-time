@@ -1,12 +1,9 @@
-/* SMACSS Module: the station search — a floating field top centre, styled like
-   the cockpit, with a suggestion list that drops below it. */
+/* SMACSS Module: the station search — the middle of the top bar, styled like
+   the cockpit, with a suggestion list that drops below it. Its column caps how
+   wide it grows; beyond that a station name gains nothing. */
 .station-search {
-  position: absolute;
-  z-index: 10;
-  top: var(--space-m);
-  left: 50%;
-  transform: translateX(-50%);
-  width: min(360px, calc(100vw - 2 * var(--space-l)));
+  position: relative;
+  min-width: 0;
 }
 
 .station-search-input {
@@ -22,7 +19,12 @@
 }
 
 .station-search-suggestions {
-  margin: var(--space-s) 0 0;
+  position: absolute;
+  top: calc(100% + var(--space-s));
+  left: 0;
+  right: 0;
+  z-index: 1;
+  margin: 0;
   padding: 0;
   list-style: none;
   border-radius: var(--radius-m);
@@ -46,11 +48,10 @@
   background: var(--color-control);
 }
 
+/* Two rows: the search shares the lower one with the buttons and takes whatever
+   they leave. */
 @media (max-width: 640px) {
   .station-search {
-    left: calc(var(--space-m) + 2 * var(--control-height) + 2 * var(--space-s));
-    right: var(--space-m);
-    width: auto;
-    transform: none;
+    grid-area: search;
   }
 }

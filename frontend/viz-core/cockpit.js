@@ -1,14 +1,6 @@
+import { formatTimeOfDay } from './clock.js';
 import { element } from './dom.js';
-import { MAX_TEMPO, MIN_TEMPO, SECONDS_PER_DAY } from './timeModel.js';
-
-const pad = (value) => String(value).padStart(2, '0');
-
-// Operating time runs past 24:00; show it as wall-clock hours and minutes
-// (01:04, not 25:04:xx).
-const formatClock = (seconds) => {
-  const whole = Math.floor(seconds) % SECONDS_PER_DAY;
-  return `${pad(Math.floor(whole / 3600))}:${pad(Math.floor((whole % 3600) / 60))}`;
-};
+import { MAX_TEMPO, MIN_TEMPO } from './timeModel.js';
 
 // Tempo is schedule-seconds advanced per real second; show the wall-clock span
 // one real second covers.
@@ -26,17 +18,20 @@ export class Cockpit {
     if (panel.capabilities.simulationSpeed) {
       this.root.appendChild(this.#buildTempo());
     }
-    if (
-      panel.capabilities.simulationSpeed &&
-      panel.capabilities.fullDayScrubber
-    ) {
+    if (panel.capabilities.simulationSpeed && panel.capabilities.timeScrubber) {
       this.root.appendChild(element('div', 'cockpit-divider'));
     }
-    if (panel.capabilities.fullDayScrubber) {
-      this.root.appendChild(this.#buildScrubber());
+    if (panel.capabilities.timeScrubber) {
+      this.root.appendChild(
+        this.#buildScrubber(panel.capabilities.timeSeeking),
+      );
     }
 
-    container.appendChild(this.root);
+    // A panel that declares no time controls leaves nothing to show; an empty
+    // cockpit would still float over the canvas as a bare pill.
+    if (this.root.childElementCount > 0) {
+      container.appendChild(this.root);
+    }
   }
 
   #buildTempo() {
@@ -77,7 +72,9 @@ export class Cockpit {
     }
   }
 
-  #buildScrubber() {
+  // A view whose time cannot be sought keeps the scrubber as a reading: it says
+  // how far the clock has come, and the hand is turned away from it.
+  #buildScrubber(seekable) {
     const group = this.#group('Zeit');
     const controls = element('div', 'cockpit-controls');
 
@@ -89,6 +86,17 @@ export class Cockpit {
     this.scrubber.max = '1';
     this.scrubber.step = 'any';
     this.scrubber.value = '0';
+    this.scrubber.disabled = !seekable;
+    if (seekable) {
+      this.#letTheScrubberSeek();
+    }
+
+    controls.append(this.timeLabel, this.scrubber);
+    group.appendChild(controls);
+    return group;
+  }
+
+  #letTheScrubberSeek() {
     this.scrubber.addEventListener('input', () => {
       this.scrubbing = true;
       this.time.seekToPosition(Number(this.scrubber.value));
@@ -96,10 +104,6 @@ export class Cockpit {
     this.scrubber.addEventListener('change', () => {
       this.scrubbing = false;
     });
-
-    controls.append(this.timeLabel, this.scrubber);
-    group.appendChild(controls);
-    return group;
   }
 
   #group(label) {
@@ -123,7 +127,7 @@ export class Cockpit {
       this.tempoSlider.value = String(this.time.playing ? this.time.tempo : 0);
     }
     if (this.timeLabel) {
-      this.timeLabel.textContent = formatClock(this.time.current);
+      this.timeLabel.textContent = formatTimeOfDay(this.time.current);
     }
     if (this.scrubber && !this.scrubbing) {
       this.scrubber.value = String(this.time.scrubberPosition());

@@ -74,8 +74,18 @@ export class MapSelection {
 
   revealStation(station) {
     this.panel.revealStation(station);
-    this.context.focusStation(station.east, station.north);
+    this.#bringIntoView(station);
     this.selectStation(station);
+  }
+
+  // Moving in on the chosen station is what a map view wants; a view whose
+  // picture is the whole country says so itself and frames it its own way.
+  #bringIntoView(station) {
+    if (this.panel.frameStation) {
+      this.panel.frameStation(this.context, station);
+      return;
+    }
+    this.context.focusStation(station.east, station.north);
   }
 
   selectStation(station) {
