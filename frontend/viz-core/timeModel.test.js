@@ -146,6 +146,12 @@ test('the same holds when it is played by the toggle', () => {
   assert.equal(time.playing, true);
 });
 
+test('a spread that reaches nowhere stands at the start of its scrubber', () => {
+  const time = new TimeModel(8 * 3600, 8 * 3600, { repeats: false });
+
+  assert.equal(time.scrubberPosition(), 0);
+});
+
 test('a clock paused halfway carries on where it stood', () => {
   const time = new TimeModel(8 * 3600, 10 * 3600, { repeats: false });
   time.setTempo(MAX_TEMPO);

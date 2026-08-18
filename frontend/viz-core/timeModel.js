@@ -76,8 +76,12 @@ export class TimeModel {
     this.current = this.rangeStart + (elapsed % this.#span());
   }
 
+  // A spread that reaches nowhere begins and ends at the same moment; it has
+  // not come any of the way, rather than an undefined part of it.
   scrubberPosition() {
-    return (this.current - this.rangeStart) / this.#span();
+    return this.#span() === 0
+      ? 0
+      : (this.current - this.rangeStart) / this.#span();
   }
 
   seekToPosition(position01) {

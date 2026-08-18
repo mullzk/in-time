@@ -30,8 +30,8 @@ export function buildInfoContent() {
       'Der Standort wird über das Suchfeld oben oder mit einem Klick auf ' +
       'einen erreichten Ort gewählt; ein Klick auf ein Fahrzeug zeigt, ' +
       'woher es kommt und wohin es fährt. Die Seitenleiste (☰ oben links) ' +
-      'trägt die Abfahrtszeit, den Hintergrund und den Zoom; das Tempo der ' +
-      'Wiedergabe steht unten am Bildrand.',
+      'trägt die Abfahrtszeit, den Hintergrund und den Zoom; Tempo und ' +
+      'Uhrzeit der Ausbreitung stehen unten am Bildrand.',
     shortcuts: [
       { keys: 'Leertaste', description: 'Wiedergabe anhalten und fortsetzen' },
       { keys: '+', description: 'Hineinzoomen' },

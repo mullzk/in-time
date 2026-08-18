@@ -18,14 +18,13 @@ export class Cockpit {
     if (panel.capabilities.simulationSpeed) {
       this.root.appendChild(this.#buildTempo());
     }
-    if (
-      panel.capabilities.simulationSpeed &&
-      panel.capabilities.fullDayScrubber
-    ) {
+    if (panel.capabilities.simulationSpeed && panel.capabilities.timeScrubber) {
       this.root.appendChild(element('div', 'cockpit-divider'));
     }
-    if (panel.capabilities.fullDayScrubber) {
-      this.root.appendChild(this.#buildScrubber());
+    if (panel.capabilities.timeScrubber) {
+      this.root.appendChild(
+        this.#buildScrubber(panel.capabilities.timeSeeking),
+      );
     }
 
     // A panel that declares no time controls leaves nothing to show; an empty
@@ -73,7 +72,9 @@ export class Cockpit {
     }
   }
 
-  #buildScrubber() {
+  // A view whose time cannot be sought keeps the scrubber as a reading: it says
+  // how far the clock has come, and the hand is turned away from it.
+  #buildScrubber(seekable) {
     const group = this.#group('Zeit');
     const controls = element('div', 'cockpit-controls');
 
@@ -85,6 +86,17 @@ export class Cockpit {
     this.scrubber.max = '1';
     this.scrubber.step = 'any';
     this.scrubber.value = '0';
+    this.scrubber.disabled = !seekable;
+    if (seekable) {
+      this.#letTheScrubberSeek();
+    }
+
+    controls.append(this.timeLabel, this.scrubber);
+    group.appendChild(controls);
+    return group;
+  }
+
+  #letTheScrubberSeek() {
     this.scrubber.addEventListener('input', () => {
       this.scrubbing = true;
       this.time.seekToPosition(Number(this.scrubber.value));
@@ -92,10 +104,6 @@ export class Cockpit {
     this.scrubber.addEventListener('change', () => {
       this.scrubbing = false;
     });
-
-    controls.append(this.timeLabel, this.scrubber);
-    group.appendChild(controls);
-    return group;
   }
 
   #group(label) {

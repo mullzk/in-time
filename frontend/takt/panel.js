@@ -191,7 +191,8 @@ export function instrumentationForOptionValue(value, customInstrumentation) {
 export class TaktPanel extends Panel {
   capabilities = {
     simulationSpeed: true,
-    fullDayScrubber: true,
+    timeScrubber: true,
+    timeSeeking: true,
     stationSearch: true,
     stationPicking: true,
     mapBackground: true,
