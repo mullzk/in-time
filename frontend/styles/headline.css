@@ -5,7 +5,7 @@
   position: absolute;
   margin: 0;
   color: var(--color-control-text);
-  font-size: 20px;
+  font-size: clamp(10px, 6px + 0.6vw, 16px);
   font-weight: 500;
   z-index: 10;
   top: calc(var(--space-m) * 2 + var(--topbar-height));
