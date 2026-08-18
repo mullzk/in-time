@@ -11,6 +11,14 @@ test('a trailing slash names the same view', () => {
   assert.equal(viewAt('/takt/'), viewAt('/takt'));
 });
 
+test('a station in the path names the same view', () => {
+  assert.equal(viewAt('/takt/bern'), viewAt('/takt'));
+  assert.equal(
+    viewAt('/ausbreitung/bern-b%C3%BCmpliz-nord').label,
+    'Ausbreitung',
+  );
+});
+
 test('a path outside the gallery has no view', () => {
   assert.equal(viewAt('/'), null);
   assert.equal(viewAt('/api/config'), null);

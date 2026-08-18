@@ -15,6 +15,7 @@ import { sectionsToMount } from './sidebarSections.js';
 import { AudioBridge } from './sonification/audioBridge.js';
 import { CustomInstrumentationStore } from './sonification/customInstrumentation.js';
 import { Sonifier } from './sonification/sonifier.js';
+import { StationInUrl, stationMatchingSlug } from './stationInUrl.js';
 import { StationSearch } from './stationSearch.js';
 import { TileLayer } from './tiles/tileLayer.js';
 import { BACKGROUNDS } from './tiles/tileSource.js';
@@ -47,6 +48,9 @@ export class PanelShell {
     this.panel = panel;
     this.time = time;
     this.exhibition = isExhibition();
+    this.stationInUrl = new StationInUrl();
+    this.canvasReady = false;
+    this.stationChosen = false;
     // A panel that draws no map has no use for a ground under it: it gets the
     // black one and no chooser, rather than a relief nobody can see. A panel
     // that draws one may name the ground it reads best on; otherwise the first.
@@ -102,7 +106,7 @@ export class PanelShell {
       : null;
     // The exhibition shows one view, so there is nowhere to switch to.
     if (!this.exhibition) {
-      new ViewSwitcher(this.topBar);
+      this.viewSwitcher = new ViewSwitcher(this.topBar, this.stationInUrl);
     }
     // Picking on the canvas needs a map to pick on: only a panel drawing one
     // gets tap, hover and their popovers. Elsewhere a station is chosen by name.
@@ -138,6 +142,24 @@ export class PanelShell {
     this.panel.attachToCanvas?.(canvasElement, {
       chooseStation: (station) => this.#chooseStation(station),
     });
+    this.canvasReady = true;
+    this.#openOnTheStationNamedInTheUrl();
+  }
+
+  // A view is linked to with a station in its address, and opens on that one
+  // rather than on whatever the panel would have picked itself. It takes a
+  // camera to show a station on, so this waits for the canvas.
+  #openOnTheStationNamedInTheUrl() {
+    if (this.stationChosen || this.stationInUrl.slug === null) {
+      return;
+    }
+    const station = stationMatchingSlug(
+      this.panel.stationCatalog?.().entries ?? [],
+      this.stationInUrl.slug,
+    );
+    if (station !== null) {
+      this.#chooseStation(station);
+    }
   }
 
   // Choosing by name goes the same way as choosing on the map, so a panel is
@@ -151,10 +173,16 @@ export class PanelShell {
     this.#adoptStation(station);
   }
 
+  // Whichever way a station was reached -- searched, tapped, linked to -- it is
+  // the one the address names from here on, so the picture can be handed on and
+  // the other views open on it too.
   #adoptStation(station) {
+    this.stationChosen = true;
     this.sonifier?.setStation(station);
     this.panel.setSonifiedStation?.(station);
     this.stationSearch?.showSelection(station);
+    this.stationInUrl.show(station);
+    this.viewSwitcher?.refreshLinks();
   }
 
   // An own instrumentation outlives the page it was written on, so it is offered
@@ -208,6 +236,11 @@ export class PanelShell {
   // after the first picture (the road blob), so whoever adopts it says so.
   onPanelDataChanged() {
     this.sonifier?.refreshStation();
+    // A linked-to bus stop is in no catalog until the road stations arrive, so
+    // the address is read again once they have.
+    if (this.canvasReady) {
+      this.#openOnTheStationNamedInTheUrl();
+    }
   }
 
   #keyBindings() {

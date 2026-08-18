@@ -7,12 +7,9 @@ export const VIEWS = [
   { path: '/reisezeit', label: 'Reisezeit' },
 ];
 
-const withoutTrailingSlash = (pathname) =>
-  pathname.length > 1 && pathname.endsWith('/')
-    ? pathname.slice(0, -1)
-    : pathname;
-
+// A view keeps its own name at the head of the address; what follows it is the
+// station it opens on, which says nothing about which view this is.
 export function viewAt(pathname) {
-  const path = withoutTrailingSlash(pathname);
-  return VIEWS.find((view) => view.path === path) ?? null;
+  const [head] = pathname.split('/').filter((segment) => segment !== '');
+  return VIEWS.find((view) => view.path === `/${head}`) ?? null;
 }
