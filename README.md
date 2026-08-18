@@ -105,11 +105,11 @@ runtime stays bundler-free. `viz-core` is a small framework the views plug into
   proof that reader and writer agree on the format.
 - **Journeys are computed in the browser**, not on the server. A
   `ConnectionList` turns the loaded blobs into every leg of the day in departure
-  order — one shared station space over both networks — and a `ConnectionScan`
-  walks it once to leave the earliest arrival at every station, with the
-  connection one came on. That reachability tree is what the Spread animates and
-  the travel-time graph draws: some 2.3 million legs scanned in a few
-  milliseconds, so a visitor may pick any starting point without the server
+  order — one shared station directory over both networks — and a
+  `ConnectionScan` walks it once to leave the earliest arrival at every station,
+  with the connection one came on. That reachability tree is what the Spread
+  animates and the travel-time graph draws: some 2.3 million legs scanned in a
+  few milliseconds, so a visitor may pick any starting point without the server
   hearing of it.
 - **Sonification** is a sibling of the position engine and runs entirely in the
   browser off the same daily blobs: a `SonificationEngine` indexes a blob's
