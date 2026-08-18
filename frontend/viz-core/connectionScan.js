@@ -53,11 +53,26 @@ export class ReachabilityTree {
     return connection === NO_CONNECTION ? null : connection;
   }
 
-  // How one came to a station: the ride that ends there, told from where one
-  // got in. Usually that is the stop before, but a vehicle boarded earlier
-  // passes stops one could have been at long ago by another route -- sitting in
-  // it is no wait, and the leg must not pretend one stood there.
+  // The last stretch of the vehicle's own run: from the stop before to here.
+  // That is the line on the ground, whatever brought one to that stop -- a
+  // picture drawing anything else would leap over stops the vehicle calls at.
   legInto(stationIndex) {
+    const arriving = this._arrivedOn[stationIndex];
+    if (arriving === NO_CONNECTION) {
+      return null;
+    }
+    return {
+      fromStation: this._list.departureStations[arriving],
+      departureTime: this._list.departureTimes[arriving],
+      arrivalTime: this._list.arrivalTimes[arriving],
+      trip: this._list.trips[arriving],
+    };
+  }
+
+  // The ride one is sitting in on arrival: where one got in, and how long one
+  // waited for it. A vehicle boarded earlier passes stops one could have been at
+  // long ago by another route -- riding through them is no wait.
+  rideInto(stationIndex) {
     const arriving = this._arrivedOn[stationIndex];
     if (arriving === NO_CONNECTION) {
       return null;
@@ -72,8 +87,6 @@ export class ReachabilityTree {
       departureTime,
       arrivalTime: this._list.arrivalTimes[arriving],
       trip,
-      // Sitting in the vehicle is not waiting, however long it stands; only
-      // what passes before one gets in counts.
       waitSeconds: rodeThrough
         ? 0
         : departureTime - this._arrivals[fromStation],
@@ -94,15 +107,20 @@ export class ReachabilityTree {
     );
   }
 
-  // The journey to a station, earliest leg first. Changes of vehicle -- whether
-  // at the arrival stop or at another stop of its interchange -- sit between
-  // consecutive legs and carry no entry of their own.
+  // The journey to a station, earliest leg first: a chain of stops without a
+  // hole, since every leg sets off where the one before it arrived. Changes of
+  // vehicle -- whether at the arrival stop or at another stop of its
+  // interchange -- sit between consecutive legs and carry no entry of their own.
   pathTo(stationIndex) {
     const reversed = [];
     let station = stationIndex;
-    while (station !== this._startStation && this.isReached(station)) {
+    let leg = this.legInto(station);
+    // The walk ends where nothing brought one: at the start, or at a stop of its
+    // interchange, which one stood at from the beginning.
+    while (leg !== null) {
       reversed.push(this._arrivedOn[station]);
-      station = this.legInto(station).fromStation;
+      station = leg.fromStation;
+      leg = this.legInto(station);
     }
     return reversed.reverse();
   }

@@ -18,3 +18,9 @@ export function formatDuration(seconds) {
 export function formatWait(seconds) {
   return seconds < 60 ? 'ohne Wartezeit' : `${formatDuration(seconds)} warten`;
 }
+
+// One is already sitting in the vehicle when this leg begins; naming where that
+// began keeps the leg from reading as a wait one never had.
+export function formatThroughRide(boardingName) {
+  return `durchgehend ab ${boardingName}`;
+}

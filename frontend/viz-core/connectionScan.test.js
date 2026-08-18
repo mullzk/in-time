@@ -320,7 +320,7 @@ const ridingThroughAStopReachedEarlier = () =>
     [station(100), station(101), station(102), station(103), station(104)],
   );
 
-test('a leg one rides through is told from where one boarded', () => {
+test('a leg is told from the stop before it, whoever reached that stop', () => {
   const list = ridingThroughAStopReachedEarlier();
 
   const tree = scanOf(list).from(list.stationOf(100), 36_000);
@@ -328,26 +328,42 @@ test('a leg one rides through is told from where one boarded', () => {
 
   assert.equal(
     leg.fromStation,
-    list.stationOf(102),
-    'one got on where one got on, not at the stop the bus last called at',
+    list.stationOf(101),
+    'the vehicle came from there, however one reached that stop oneself',
   );
-  assert.equal(leg.departureTime, 37_800);
+  assert.equal(leg.departureTime, 47_100);
   assert.equal(leg.arrivalTime, 47_400);
 });
 
-test('no leg of a tree waits longer than the maximum', () => {
+test('the ride says where one got in and how long one waited for it', () => {
+  const list = ridingThroughAStopReachedEarlier();
+
+  const tree = scanOf(list).from(list.stationOf(100), 36_000);
+  const ride = tree.rideInto(list.stationOf(103));
+
+  assert.equal(
+    ride.fromStation,
+    list.stationOf(102),
+    'one got on where one got on, not at the stop the bus last called at',
+  );
+  assert.equal(ride.departureTime, 37_800);
+  assert.equal(ride.arrivalTime, 47_400);
+  assert.equal(ride.waitSeconds, 600);
+});
+
+test('no ride of a tree waits longer than the maximum', () => {
   const list = ridingThroughAStopReachedEarlier();
 
   const tree = scanOf(list).from(list.stationOf(100), 36_000);
 
   tree.reachedStations().forEach((station) => {
-    const leg = tree.legInto(station);
-    if (leg === null) {
+    const ride = tree.rideInto(station);
+    if (ride === null) {
       return;
     }
     assert.ok(
-      leg.waitSeconds <= MAXIMUM_WAIT_SECONDS,
-      `${station} waits ${leg.waitSeconds} s`,
+      ride.waitSeconds <= MAXIMUM_WAIT_SECONDS,
+      `${station} waits ${ride.waitSeconds} s`,
     );
   });
 });
@@ -360,12 +376,49 @@ test('a stop the vehicle stands at is no wait for whoever sits in it', () => {
 
   const tree = scanOf(list).from(list.stationOf(100), 36_000);
 
-  assert.equal(tree.legInto(list.stationOf(102)).waitSeconds, 0);
+  assert.equal(tree.rideInto(list.stationOf(102)).waitSeconds, 0);
   assert.equal(
-    tree.legInto(list.stationOf(101)).waitSeconds,
+    tree.rideInto(list.stationOf(101)).waitSeconds,
     0,
     'boarding at the start is no wait either',
   );
+});
+
+test('a path back through the start interchange ends there', () => {
+  const list = listOf(
+    [trip([stop(1, 36_600), stop(2, 37_200)])],
+    [station(100, 100), station(101, 100), station(102)],
+  );
+
+  const tree = scanOf(list).from(list.stationOf(100), 36_000);
+  const path = tree
+    .pathTo(list.stationOf(102))
+    .map((connection) => list.connectionAt(connection));
+
+  assert.equal(path.length, 1, 'the one ride, and no leg back across the road');
+  assert.equal(
+    path[0].departureStation,
+    list.stationOf(101),
+    'the bus stop of the start interchange one boarded at',
+  );
+});
+
+test('the path is a chain without holes, stop by stop', () => {
+  const list = ridingThroughAStopReachedEarlier();
+
+  const tree = scanOf(list).from(list.stationOf(100), 36_000);
+  const path = tree
+    .pathTo(list.stationOf(104))
+    .map((connection) => list.connectionAt(connection));
+
+  path.slice(1).forEach((connection, index) => {
+    assert.equal(
+      connection.departureStation,
+      path[index].arrivalStation,
+      'every leg sets off where the one before it arrived',
+    );
+  });
+  assert.equal(path[0].departureStation, list.stationOf(100), 'from the start');
 });
 
 test('a leg that carries on from the stop before says so', () => {

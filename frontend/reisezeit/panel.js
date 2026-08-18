@@ -19,7 +19,7 @@ import {
 } from '../viz-core/transportCategories.js';
 import { VehiclePositionEngine } from '../viz-core/vehiclePositionEngine.js';
 import { buildInfoContent } from './infoContent.js';
-import { formatDuration, formatWait } from './labels.js';
+import { formatDuration, formatThroughRide, formatWait } from './labels.js';
 
 const SECONDS_PER_HOUR = 3600;
 const GROUND_COLOR = [250, 250, 248];
@@ -344,11 +344,15 @@ export class ReisezeitPanel extends Panel {
     return this.placeOfStation[leg.fromStation];
   }
 
-  // Where one got on the vehicle that brought one here, not merely the stop it
-  // last called at: a line is drawn for a journey one really makes.
+  // The vehicle's own last stretch, so a line follows the stops it calls at.
   #legIntoPlace(place) {
     const { servedStation } = this.places[place];
     return servedStation === null ? null : this.tree.legInto(servedStation);
+  }
+
+  #rideIntoPlace(place) {
+    const { servedStation } = this.places[place];
+    return servedStation === null ? null : this.tree.rideInto(servedStation);
   }
 
   #longestTravelTime() {
@@ -579,9 +583,11 @@ export class ReisezeitPanel extends Panel {
   }
 
   #nameOfPlace(place) {
-    const entry = this.catalog.entryOf(
-      this.connections.didokOf(this.places[place].station),
-    );
+    return this.#nameOfStation(this.places[place].station);
+  }
+
+  #nameOfStation(station) {
+    const entry = this.catalog.entryOf(this.connections.didokOf(station));
     return entry === null ? 'Station' : entry.name;
   }
 
@@ -602,8 +608,17 @@ export class ReisezeitPanel extends Panel {
       `${categoryLabel(this.connections.categoryOfTrip(leg.trip))}, ${formatDuration(
         leg.arrivalTime - leg.departureTime,
       )}`,
-      formatWait(leg.waitSeconds),
+      this.#describeBoarding(place, leg),
     ];
+  }
+
+  // Whether one got in here -- then the wait counts -- or is riding through,
+  // which is worth saying: it explains why one passes without waiting.
+  #describeBoarding(place, leg) {
+    const ride = this.#rideIntoPlace(place);
+    return ride.fromStation === leg.fromStation
+      ? formatWait(ride.waitSeconds)
+      : formatThroughRide(this.#nameOfStation(ride.fromStation));
   }
 
   #pick(screenX, screenY) {
