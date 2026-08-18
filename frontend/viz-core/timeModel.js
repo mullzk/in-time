@@ -33,8 +33,17 @@ export class TimeModel {
     this.seekToTime(rangeStart);
   }
 
+  // A spread that has run out is played again by running it again: there is
+  // nowhere left to go from its end, so the clock returns to the beginning.
   play() {
+    if (this.#hasRunOut()) {
+      this.seekToTime(this.rangeStart);
+    }
     this.playing = true;
+  }
+
+  #hasRunOut() {
+    return !this.repeats && this.current >= this.rangeEnd;
   }
 
   pause() {
@@ -42,7 +51,11 @@ export class TimeModel {
   }
 
   togglePlay() {
-    this.playing = !this.playing;
+    if (this.playing) {
+      this.pause();
+      return;
+    }
+    this.play();
   }
 
   setTempo(value) {

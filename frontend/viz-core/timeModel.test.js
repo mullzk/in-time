@@ -119,3 +119,41 @@ test('a clock that does not repeat stops at the end of its range', () => {
   assert.equal(time.current, 10 * 3600, 'and comes to rest at the end');
   assert.equal(time.playing, false);
 });
+
+const clockAtItsEnd = () => {
+  const time = new TimeModel(8 * 3600, 10 * 3600, { repeats: false });
+  time.setTempo(MAX_TEMPO);
+  time.play();
+  time.advance(3600);
+  return time;
+};
+
+test('a clock played again after it ran out starts over', () => {
+  const time = clockAtItsEnd();
+
+  time.play();
+
+  assert.equal(time.current, 8 * 3600, 'back at the beginning');
+  assert.equal(time.playing, true);
+});
+
+test('the same holds when it is played by the toggle', () => {
+  const time = clockAtItsEnd();
+
+  time.togglePlay();
+
+  assert.equal(time.current, 8 * 3600);
+  assert.equal(time.playing, true);
+});
+
+test('a clock paused halfway carries on where it stood', () => {
+  const time = new TimeModel(8 * 3600, 10 * 3600, { repeats: false });
+  time.setTempo(MAX_TEMPO);
+  time.play();
+  time.advance(4);
+  time.pause();
+
+  time.play();
+
+  assert.equal(time.current, 8 * 3600 + 4 * MAX_TEMPO, 'nothing was rewound');
+});
