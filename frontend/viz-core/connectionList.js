@@ -1,8 +1,8 @@
 // Every leg of every trip of a service day, in departure order: the one input a
 // connection scan reads. Trips arrive per network (rail and road are separate
 // blobs with separate station numbering), so the list also holds the shared
-// station space the scan works in -- one place per didok, however many networks
-// serve it.
+// station directory the scan works in -- one entry per didok, however many
+// networks serve it.
 //
 // A Swiss day carries some 2.3 million legs, so they are counted once and then
 // written straight into the columns. Collecting them as objects in between costs
@@ -13,7 +13,7 @@
 // for; a departure beyond it means the times are not what we think they are.
 const SECONDS_PAST_MIDNIGHT_LIMIT = 48 * 3600;
 
-class StationSpace {
+class StationDirectory {
   constructor() {
     this.didoks = [];
     this._indexByDidok = new Map();
@@ -23,7 +23,7 @@ class StationSpace {
   // The cluster a stop belongs to is its interchange, named by a representative
   // didok. A catalog that knows it wins over one that leaves it out, whichever
   // network came first.
-  place(didok, cluster) {
+  enter(didok, cluster) {
     const known = this._indexByDidok.get(didok);
     if (known !== undefined) {
       if (this._clusterOfIndex[known] === null) {
@@ -66,11 +66,13 @@ class StationSpace {
   }
 }
 
-// A blob addresses its stations by its own indices; this turns them into places
-// in the shared space. A station the catalog does not cover cannot be named, so
-// the legs touching it are left out rather than pointing nowhere.
-const stationPlacesOfNetwork = (stations, space) =>
-  stations.map((station) => space.place(station.didok, station.cluster));
+// A blob addresses its stations by its own indices; this turns them into entries
+// of the shared directory. A station the catalog does not cover cannot be named,
+// so the legs touching it are left out rather than pointing nowhere.
+const stationIndicesOfNetwork = (stations, stationDirectory) =>
+  stations.map((station) =>
+    stationDirectory.enter(station.didok, station.cluster),
+  );
 
 const firstTripOfEachNetwork = (networks) => {
   const firstTrips = [0];
@@ -82,18 +84,18 @@ const firstTripOfEachNetwork = (networks) => {
 
 // Walks the legs of every network in a fixed order, so counting them and writing
 // them out see exactly the same sequence.
-const forEachLeg = (networks, stationPlacesPerNetwork, visitLeg) => {
+const forEachLeg = (networks, stationIndicesPerNetwork, visitLeg) => {
   const firstTrips = firstTripOfEachNetwork(networks);
   networks.forEach(({ trips }, networkIndex) => {
-    const stationPlaces = stationPlacesPerNetwork[networkIndex];
+    const stationIndices = stationIndicesPerNetwork[networkIndex];
     trips.forEach((trip, tripIndexInNetwork) => {
       trip.events.forEach((departingEvent, eventIndex) => {
         if (eventIndex === trip.events.length - 1) {
           return;
         }
         const arrivingEvent = trip.events[eventIndex + 1];
-        const departureStation = stationPlaces[departingEvent.station];
-        const arrivalStation = stationPlaces[arrivingEvent.station];
+        const departureStation = stationIndices[departingEvent.station];
+        const arrivalStation = stationIndices[arrivingEvent.station];
         if (departureStation === undefined || arrivalStation === undefined) {
           return;
         }
@@ -110,35 +112,69 @@ const forEachLeg = (networks, stationPlacesPerNetwork, visitLeg) => {
   });
 };
 
-const countDeparturesPerSecond = (networks, stationPlacesPerNetwork) => {
-  const departuresPerSecond = new Int32Array(SECONDS_PAST_MIDNIGHT_LIMIT);
-  forEachLeg(networks, stationPlacesPerNetwork, ({ departureTime }) => {
+// How many legs depart in each second of the service day. Departure times are
+// whole seconds inside a known span, so the order can be counted rather than
+// compared -- a comparison sort of two million legs costs an order of magnitude
+// more.
+class DepartureCounts {
+  constructor() {
+    this._departuresPerSecond = new Int32Array(SECONDS_PAST_MIDNIGHT_LIMIT);
+  }
+
+  countDeparture(departureTime) {
     if (departureTime < 0 || departureTime >= SECONDS_PAST_MIDNIGHT_LIMIT) {
       throw new Error(
         `departure time outside the service day: ${departureTime}`,
       );
     }
-    departuresPerSecond[departureTime] += 1;
-  });
-  return departuresPerSecond;
-};
+    this._departuresPerSecond[departureTime] += 1;
+  }
 
-// Departure times are whole seconds inside a known span, so the order can be
-// counted rather than compared -- a comparison sort of two million legs costs an
-// order of magnitude more. Each second learns where its block of legs starts.
-const firstSlotOfEachSecond = (departuresPerSecond) => {
-  const firstSlots = new Int32Array(departuresPerSecond.length);
-  departuresPerSecond.reduce((nextSlot, departures, second) => {
-    firstSlots[second] = nextSlot;
-    return nextSlot + departures;
-  }, 0);
-  return firstSlots;
-};
+  // A second's block of slots begins where every earlier second's block ends,
+  // so the running sum over the counts is already the writing order.
+  slotsInDepartureOrder() {
+    const firstSlotOfSecond = new Int32Array(this._departuresPerSecond.length);
+    let slotsTaken = 0;
+    this._departuresPerSecond.forEach((departures, second) => {
+      firstSlotOfSecond[second] = slotsTaken;
+      slotsTaken += departures;
+    });
+    return new DepartureOrderedSlots(firstSlotOfSecond, slotsTaken);
+  }
+}
 
-const totalOf = (counts) => counts.reduce((sum, count) => sum + count, 0);
+// Hands out the position each leg is written to, one after another within its
+// departure second. Every slot is handed out once, so the legs land in departure
+// order without ever being sorted.
+class DepartureOrderedSlots {
+  constructor(nextSlotOfSecond, connectionCount) {
+    this._nextSlotOfSecond = nextSlotOfSecond;
+    this.connectionCount = connectionCount;
+  }
+
+  takeSlotFor(departureTime) {
+    const slot = this._nextSlotOfSecond[departureTime];
+    this._nextSlotOfSecond[departureTime] += 1;
+    return slot;
+  }
+}
+
+const departureCountsOf = (networks, stationIndicesPerNetwork) => {
+  const counts = new DepartureCounts();
+  forEachLeg(networks, stationIndicesPerNetwork, ({ departureTime }) =>
+    counts.countDeparture(departureTime),
+  );
+  return counts;
+};
 
 export class ConnectionList {
-  constructor(columns, space, networkOfTrip, tripInNetwork, categoryOfTrip) {
+  constructor(
+    columns,
+    stationDirectory,
+    networkOfTrip,
+    tripInNetwork,
+    categoryOfTrip,
+  ) {
     this.connectionCount = columns.departureStations.length;
     this.tripCount = networkOfTrip.length;
     this.departureStations = columns.departureStations;
@@ -147,23 +183,23 @@ export class ConnectionList {
     this.arrivalTimes = columns.arrivalTimes;
     this.trips = columns.trips;
     this.events = columns.events;
-    this._space = space;
-    this._siblingsPerStation = space.siblingsPerStation();
+    this._stationDirectory = stationDirectory;
+    this._siblingsPerStation = stationDirectory.siblingsPerStation();
     this._networkOfTrip = networkOfTrip;
     this._tripInNetwork = tripInNetwork;
     this._categoryOfTrip = categoryOfTrip;
   }
 
   get stationCount() {
-    return this._space.didoks.length;
+    return this._stationDirectory.didoks.length;
   }
 
   didokOf(stationIndex) {
-    return this._space.didoks[stationIndex];
+    return this._stationDirectory.didoks[stationIndex];
   }
 
   stationOf(didok) {
-    return this._space.indexOf(didok);
+    return this._stationDirectory.indexOf(didok);
   }
 
   networkOfTrip(trip) {
@@ -190,7 +226,7 @@ export class ConnectionList {
   // null for a stop that stands alone. Whoever shows an interchange as one place
   // groups by this.
   clusterOf(stationIndex) {
-    return this._space.clusterOfStation(stationIndex);
+    return this._stationDirectory.clusterOfStation(stationIndex);
   }
 
   // The columns carry the scan; this is for readers that want one connection as
@@ -207,23 +243,17 @@ export class ConnectionList {
   }
 }
 
-const columnsInDepartureOrder = (
-  networks,
-  stationPlacesPerNetwork,
-  connectionCount,
-  nextSlotOfSecond,
-) => {
+const columnsInDepartureOrder = (networks, stationIndicesPerNetwork, slots) => {
   const columns = {
-    departureStations: new Int32Array(connectionCount),
-    arrivalStations: new Int32Array(connectionCount),
-    departureTimes: new Int32Array(connectionCount),
-    arrivalTimes: new Int32Array(connectionCount),
-    trips: new Int32Array(connectionCount),
-    events: new Int32Array(connectionCount),
+    departureStations: new Int32Array(slots.connectionCount),
+    arrivalStations: new Int32Array(slots.connectionCount),
+    departureTimes: new Int32Array(slots.connectionCount),
+    arrivalTimes: new Int32Array(slots.connectionCount),
+    trips: new Int32Array(slots.connectionCount),
+    events: new Int32Array(slots.connectionCount),
   };
-  forEachLeg(networks, stationPlacesPerNetwork, (leg) => {
-    const slot = nextSlotOfSecond[leg.departureTime];
-    nextSlotOfSecond[leg.departureTime] += 1;
+  forEachLeg(networks, stationIndicesPerNetwork, (leg) => {
+    const slot = slots.takeSlotFor(leg.departureTime);
     columns.departureStations[slot] = leg.departureStation;
     columns.arrivalStations[slot] = leg.arrivalStation;
     columns.departureTimes[slot] = leg.departureTime;
@@ -238,22 +268,17 @@ const columnsInDepartureOrder = (
 // read from a blob, and the published station catalog in that blob's index
 // order.
 export function buildConnectionList(networks) {
-  const space = new StationSpace();
-  const stationPlacesPerNetwork = networks.map(({ stations }) =>
-    stationPlacesOfNetwork(stations, space),
+  const stationDirectory = new StationDirectory();
+  const stationIndicesPerNetwork = networks.map(({ stations }) =>
+    stationIndicesOfNetwork(stations, stationDirectory),
   );
-  const departuresPerSecond = countDeparturesPerSecond(
+  const slots = departureCountsOf(
     networks,
-    stationPlacesPerNetwork,
-  );
+    stationIndicesPerNetwork,
+  ).slotsInDepartureOrder();
   return new ConnectionList(
-    columnsInDepartureOrder(
-      networks,
-      stationPlacesPerNetwork,
-      totalOf(departuresPerSecond),
-      firstSlotOfEachSecond(departuresPerSecond),
-    ),
-    space,
+    columnsInDepartureOrder(networks, stationIndicesPerNetwork, slots),
+    stationDirectory,
     networks.flatMap(({ trips }, networkIndex) =>
       trips.map(() => networkIndex),
     ),
