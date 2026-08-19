@@ -9,22 +9,27 @@ tempo) and _on time_ (Swiss punctuality).
 
 ## Product vision & scope
 
-A web app as a **gallery of five views** onto the same public-transport data,
-each a distinct perspective:
+A web app as a **gallery of views** onto the same public-transport data, each a
+distinct perspective. **Three are built**, and they are what the app delivers:
 
 1. **Spread** — how reachability spreads out from a location over time
    (wildfire).
 2. **Travel-time graph** — a radial still image of travel times from a location.
 3. **Takt** — the day's timetable as a pulsing motion; also **sonified**.
-4. **Delays** — the delays actually measured on a past day.
-5. **Hotspots** — aggregated delay hotspots over a freely chosen time range.
+
+Two further views live on the planned timetable's counterpart, the delays
+actually measured, and are **deferred**: **Delays** (a past day as it really
+ran) and **Hotspots** (aggregated delay hotspots over a freely chosen time
+range). Nothing of that chain is built — no measured data is fetched, no delay
+artifact is written — and the app makes no claim about punctuality until it is.
 
 **Two usage contexts:** the regular web app and an **exhibition mode** (kiosk,
-unattended). Data sources: the GTFS planned timetable, actual (measured) data,
-and swisstopo geometry — Switzerland-wide, always the **current day**. Rail and
-tram run on the real geometry of the BAV rail network; buses are drawn as
-straight lines between their stops, since routing them over the road network
-would buy little at the zoom levels the views live at.
+unattended). Data sources: the GTFS planned timetable and swisstopo geometry —
+Switzerland-wide, always the **current day**; measured data joins them with the
+two deferred views. Rail and tram run on the real geometry of the BAV rail
+network; buses are drawn as straight lines between their stops, since routing
+them over the road network would buy little at the zoom levels the views live
+at.
 
 ## Running locally
 
@@ -157,13 +162,13 @@ _All in Time_ expects of its runtime environment:
   proxy adds the swisstopo host, referer and cache, so the layer choice lives in
   the path and the client stays origin-agnostic.
 - **A MariaDB database** (per app, with its own user).
-- **A scheduler** running **two commands** daily (`build_schedule` for the
-  planned timetable, `build_actuals` for the measured data) and alerting on
-  failure. `build_schedule` builds the **current** day (Europe/Zurich), so it
-  must run **after local midnight**; it briefly needs extra disk (a new raw feed
-  is fetched next to the previous one before the old is pruned), so it should
-  run **before the nightly VM snapshot** and not overlap it, keeping the
-  snapshot consistent and free of the transient peak.
+- **A scheduler** running `build_schedule` daily and alerting on failure. A
+  second command for the measured data comes with the two deferred views.
+  `build_schedule` builds the **current** day (Europe/Zurich), so it must run
+  **after local midnight**; it briefly needs extra disk (a new raw feed is
+  fetched next to the previous one before the old is pruned), so it should run
+  **before the nightly VM snapshot** and not overlap it, keeping the snapshot
+  consistent and free of the transient peak.
 - **An env file** with the configuration/secret values (no hostname, no
   infrastructure reference in the code repo).
 - **A persistent data directory** that survives deploys and is shared by the app

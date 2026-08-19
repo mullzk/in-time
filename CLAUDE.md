@@ -7,14 +7,15 @@ governs how we build it.
 ## Repository structure
 
 - `backend/` — the Django project. Built: `pipeline` (build jobs, `BuildRun`)
-  and `web` (pages + config/station endpoints). Planned: `hotspots`
-  (aggregation); routing needs no app of its own, since the connection scan runs
-  in the browser. The browser-facing delivery app is `web`, not `frontend`, so
-  its name does not collide with the `frontend/` client tree below.
-- `frontend/` — `viz-core` + the five panels: static ES modules, **no bundler**,
-  **p5 instance mode**. Node/npm is a dev-time tool only; the runtime stays
-  bundler-free. `frontend/vendor/` holds vendored runtime dependencies (see
-  _Vendoring_).
+  and `web` (pages + config/station endpoints). Deferred with the delay views:
+  `hotspots` (aggregation); routing needs no app of its own, since the
+  connection scan runs in the browser. The browser-facing delivery app is `web`,
+  not `frontend`, so its name does not collide with the `frontend/` client tree
+  below.
+- `frontend/` — `viz-core` + the three panels: static ES modules, **no
+  bundler**, **p5 instance mode**. Node/npm is a dev-time tool only; the runtime
+  stays bundler-free. `frontend/vendor/` holds vendored runtime dependencies
+  (see _Vendoring_).
 - `tooling/` — the dev-time scripts: `check.sh` (format + lint), `test.sh` (both
   test suites), the vendoring scripts.
 - `docs/` — documentation that ships with the repo, e.g. `performance.md`.
