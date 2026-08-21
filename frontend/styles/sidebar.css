@@ -72,13 +72,6 @@
   display: block;
 }
 
-/* A control the current view holds fixed: it stays readable but shows it cannot
-   be moved. */
-.sidebar-option:has(:disabled) {
-  opacity: 0.45;
-  cursor: default;
-}
-
 .sidebar-options {
   display: flex;
   flex-direction: column;

@@ -306,16 +306,18 @@ export class PanelShell {
 
   #backgroundControl() {
     const group = element('div', 'sidebar-options');
+    const select = element('select', 'sidebar-select');
     BACKGROUNDS.forEach((background) => {
-      const input = element('input');
-      input.type = 'radio';
-      input.name = 'background';
-      input.checked = background === this.background;
-      input.addEventListener('change', () =>
-        this.#chooseBackground(background),
-      );
-      group.appendChild(this.#option(input, background.label));
+      const option = element('option');
+      option.value = background.id;
+      option.textContent = background.label;
+      select.appendChild(option);
     });
+    select.value = this.background.id;
+    select.addEventListener('change', () =>
+      this.#chooseBackground(backgroundById(select.value)),
+    );
+    group.appendChild(select);
     return group;
   }
 
@@ -357,13 +359,5 @@ export class PanelShell {
         zoomSliderPosition(this.camera.zoomFraction()),
       );
     }
-  }
-
-  #option(input, label) {
-    const option = element('label', 'sidebar-option');
-    const text = element('span');
-    text.textContent = label;
-    option.append(input, text);
-    return option;
   }
 }
