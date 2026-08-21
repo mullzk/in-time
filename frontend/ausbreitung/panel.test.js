@@ -99,13 +99,22 @@ test('a new departure time moves the clock with it', () => {
   assert.equal(time.current, 9 * 3600);
 });
 
-test('a panel nobody chose a station for sets off by itself', () => {
+test('a panel nobody chose a station for waits at none', () => {
   const panel = new AusbreitungPanel(railBuffer(), STATIONS, 10 * 3600);
+
+  assert.equal(panel.startStation, null);
+  assert.equal(panel.placesReachedAt(24 * 3600).length, 0, 'and shows nothing');
+});
+
+test('the station a panel draws is one it can travel from', () => {
+  const panel = new AusbreitungPanel(railBuffer(), STATIONS, 10 * 3600);
+
+  panel.revealStation(panel.drawStation());
 
   assert.notEqual(panel.startStation, null);
   assert.ok(
     panel.placesReachedAt(24 * 3600).length > 1,
-    'and from a station it can travel from',
+    'so the picture is not a single dot',
   );
 });
 
@@ -210,8 +219,12 @@ test('a station no schedule on hand knows is waited for', () => {
 
   panel.noFurtherScheduleIsComing();
 
-  assert.notEqual(panel.startsFrom(), null, 'a station of its own after all');
-  assert.equal(time.playing, true);
+  assert.equal(
+    panel.startsFrom(),
+    null,
+    'the name went unanswered, and the view waits to be asked again',
+  );
+  assert.equal(time.playing, false);
 });
 
 test('a spread that gains vehicles carries on where it stood', () => {

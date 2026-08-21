@@ -44,11 +44,13 @@ export function stationToTravelFrom(
 // Where a view sets off from until somebody picks a station on it. The address
 // may name the stop, and the answer to a name is worth waiting for: a stop lives
 // in a schedule that may still be on its way, and a picture of a stop nobody
-// asked for would only have to be taken back. An address naming nothing is
-// answered at once, by drawing a stop that travels.
+// asked for would only have to be taken back. A view that draws on its own
+// answers an address naming nothing at once, by drawing a stop that travels; one
+// that does not rests at no station until somebody names one.
 export class StartStationChoice {
-  constructor(addressedSlug = null) {
+  constructor(addressedSlug = null, { drawsOnItsOwn = true } = {}) {
     this.addressedSlug = addressedSlug;
+    this.drawsOnItsOwn = drawsOnItsOwn;
     this.station = null;
     this.drawnByThePanel = false;
     this.moreScheduleIsComing = true;
@@ -79,7 +81,7 @@ export class StartStationChoice {
       this.station = null;
       return null;
     }
-    if (this.station === null) {
+    if (this.station === null && this.drawsOnItsOwn) {
       this.station = stationToTravelFrom(
         catalog,
         connections,

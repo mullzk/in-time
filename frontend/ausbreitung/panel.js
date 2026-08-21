@@ -6,7 +6,10 @@ import { element } from '../viz-core/dom.js';
 import { HEADLINE_WHILE_LOADING } from '../viz-core/headline.js';
 import { Panel } from '../viz-core/panel.js';
 import { placesOfReachedStations } from '../viz-core/places.js';
-import { StartStationChoice } from '../viz-core/startStation.js';
+import {
+  StartStationChoice,
+  stationToTravelFrom,
+} from '../viz-core/startStation.js';
 import { StationCatalog } from '../viz-core/stationCatalog.js';
 import {
   dominantStationMode,
@@ -81,6 +84,7 @@ export class AusbreitungPanel extends Panel {
     stationPicking: true,
     mapBackground: true,
     zoomSlider: true,
+    needsAStation: true,
   };
 
   constructor(
@@ -93,7 +97,9 @@ export class AusbreitungPanel extends Panel {
     this.catalog = new StationCatalog([]);
     this.networks = [];
     this.startTimeSeconds = startTimeSeconds;
-    this.startStationChoice = new StartStationChoice(addressedStationSlug);
+    this.startStationChoice = new StartStationChoice(addressedStationSlug, {
+      drawsOnItsOwn: false,
+    });
     this.startStation = null;
     this.spreadOnScreen = null;
     this.tree = null;
@@ -161,6 +167,15 @@ export class AusbreitungPanel extends Panel {
 
   startsFrom() {
     return this.startStation;
+  }
+
+  drawStation() {
+    return stationToTravelFrom(
+      this.catalog,
+      this.connections,
+      this.scan,
+      this.startTimeSeconds,
+    );
   }
 
   revealStation(station) {

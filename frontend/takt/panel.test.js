@@ -88,6 +88,19 @@ test('a searched bus stop brings the tram along with the buses', () => {
   assert.equal(panel.layers.fernverkehr, true, 'the trains stay on as well');
 });
 
+test('the station drawn to be sounded is one the trains call at', () => {
+  const panel = new TaktPanel(RAIL_BUFFER, RAIL_STATIONS);
+  panel.adoptSchedule(ROAD_BUFFER, ROAD_STATIONS);
+
+  const drawn = panel.drawStation();
+
+  assert.deepEqual(drawn.modes, ['rail'], 'never one of the bus stops');
+  assert.ok(
+    panel.stationSoundEvents(drawn).length > 0,
+    'and one that has something to sound',
+  );
+});
+
 const backgroundNamed = (id) => BACKGROUNDS.find((entry) => entry.id === id);
 
 // The view opens without the overlay, so these start by switching it on, the

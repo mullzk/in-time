@@ -8,7 +8,10 @@ import { Panel } from '../viz-core/panel.js';
 import { placesOfReachedStations } from '../viz-core/places.js';
 import { RadialTravelTimeLayout } from '../viz-core/radialTravelTime.js';
 import { distanceToSegmentSquared } from '../viz-core/segmentDistance.js';
-import { StartStationChoice } from '../viz-core/startStation.js';
+import {
+  StartStationChoice,
+  stationToTravelFrom,
+} from '../viz-core/startStation.js';
 import { StationCatalog } from '../viz-core/stationCatalog.js';
 import { TapInteraction } from '../viz-core/tapInteraction.js';
 import {
@@ -126,6 +129,7 @@ const labelSize = (p, lines) => ({
 export class ReisezeitPanel extends Panel {
   capabilities = {
     stationSearch: true,
+    needsAStation: true,
   };
 
   constructor(
@@ -138,7 +142,9 @@ export class ReisezeitPanel extends Panel {
     this.catalog = new StationCatalog([]);
     this.networks = [];
     this.startTimeSeconds = startTimeSeconds;
-    this.startStationChoice = new StartStationChoice(addressedStationSlug);
+    this.startStationChoice = new StartStationChoice(addressedStationSlug, {
+      drawsOnItsOwn: false,
+    });
     this.startStation = null;
     this.viewHasReachedAPicture = false;
     this.tree = null;
@@ -238,6 +244,15 @@ export class ReisezeitPanel extends Panel {
 
   startsFrom() {
     return this.startStation;
+  }
+
+  drawStation() {
+    return stationToTravelFrom(
+      this.catalog,
+      this.connections,
+      this.scan,
+      this.startTimeSeconds,
+    );
   }
 
   revealStation(station) {

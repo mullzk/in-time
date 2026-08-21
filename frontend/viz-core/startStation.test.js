@@ -136,6 +136,26 @@ test('an address naming nothing is answered by a drawn station at once', () => {
   assert.equal(choice.drawnByThePanel, true);
 });
 
+test('a view that draws nothing of its own rests at no station', () => {
+  const choice = new StartStationChoice(null, { drawsOnItsOwn: false });
+
+  assert.equal(settleOn(choice, railOnly), null);
+
+  choice.noFurtherScheduleIsComing();
+
+  assert.equal(
+    settleOn(choice, railAndRoad),
+    null,
+    'nothing is drawn once the schedules are all in either',
+  );
+});
+
+test('a view that draws nothing still sets off from the name it was given', () => {
+  const choice = new StartStationChoice('bern', { drawsOnItsOwn: false });
+
+  assert.equal(settleOn(choice, railOnly), RAIL_STATION);
+});
+
 test('a station chosen on the picture survives the next schedule', () => {
   const choice = new StartStationChoice();
   settleOn(choice, railOnly);

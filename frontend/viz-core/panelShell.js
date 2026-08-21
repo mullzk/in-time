@@ -37,6 +37,8 @@ const BLACK_BACKGROUND = backgroundById('black');
 
 const sectionWhen = (isOffered, section) => (isOffered ? [section] : []);
 
+const NAME_A_STATION = 'Gib den Namen einer Haltestelle ein';
+
 // The frame every panel runs in: it owns the camera, the render core and all
 // global controls (background, zoom, info, search, cockpit), and
 // mounts the sections the panel supplies. The panel is asked for its own
@@ -51,6 +53,9 @@ export class PanelShell {
     this.stationInUrl = stationInUrl;
     this.canvasReady = false;
     this.stationChosen = false;
+    this.everyScheduleHasArrived = false;
+    this.soundIsWaitedOn = false;
+    this.invitationShown = false;
     // A panel that draws no map has no use for a ground under it: it gets the
     // black one and no chooser, rather than a relief nobody can see. A panel
     // that draws one may name the ground it reads best on; otherwise the first.
@@ -194,7 +199,6 @@ export class PanelShell {
   #adoptStation(station) {
     this.stationChosen = true;
     this.sonifier?.setStation(station);
-    this.panel.setSonifiedStation?.(station);
     this.stationSearch?.showSelection(station);
     this.stationInUrl.show(station);
     this.viewSwitcher?.refreshLinks();
@@ -236,13 +240,20 @@ export class PanelShell {
           this.instrumentationEditor.toggle(templateDocument);
   }
 
+  // An instrument that has nobody to listen to voices nothing, so choosing one
+  // is the moment the view has to know which station it is meant to sound.
+  #setInstrumentation(instrumentation) {
+    this.soundIsWaitedOn = instrumentation !== null;
+    this.sonifier?.setInstrumentation(instrumentation);
+  }
+
   #adoptCustomInstrumentation(instrumentation) {
     this.panel.useCustomInstrumentation?.(instrumentation);
-    this.sonifier.setInstrumentation(instrumentation);
+    this.#setInstrumentation(instrumentation);
   }
 
   #dropCustomInstrumentation() {
-    this.sonifier.setInstrumentation(
+    this.#setInstrumentation(
       this.panel.forgetCustomInstrumentation?.() ?? null,
     );
   }
@@ -250,6 +261,7 @@ export class PanelShell {
   // Derived state the panel handed out earlier goes stale when it gains data
   // after the first picture (the road blob), so whoever adopts it says so.
   onPanelDataChanged() {
+    this.everyScheduleHasArrived = true;
     this.sonifier?.refreshStation();
     // A linked-to bus stop is in no catalog until the road stations arrive, so
     // the address is read again once they have.
@@ -275,6 +287,50 @@ export class PanelShell {
     this.selection?.onFrameRendered();
     this.sonifier?.onFrameRendered();
     this.#syncZoomSlider();
+    this.#syncStationInvitation();
+  }
+
+  // Nobody is there to answer an exhibition, so what the ask offers as a button
+  // it does for itself and gets on with the picture.
+  #syncStationInvitation() {
+    const awaited = this.#aStationIsAwaited();
+    if (awaited && this.exhibition) {
+      this.#chooseDrawnStation();
+      return;
+    }
+    if (awaited === this.invitationShown) {
+      return;
+    }
+    this.invitationShown = awaited;
+    if (awaited) {
+      this.stationSearch.invite(NAME_A_STATION, () =>
+        this.#chooseDrawnStation(),
+      );
+      return;
+    }
+    this.stationSearch.endInvitation();
+  }
+
+  // A view whose picture is drawn from one station has nothing to show until it
+  // has one, and a sound voices one station or none; either way the ask belongs
+  // in the middle of what would otherwise be an empty stage. While the address
+  // still names a stop that a schedule on its way may yet know, asking would
+  // only have to be taken back a moment later.
+  #aStationIsAwaited() {
+    if (this.stationSearch === null || this.stationChosen) {
+      return false;
+    }
+    if (this.stationInUrl.slug !== null && !this.everyScheduleHasArrived) {
+      return false;
+    }
+    return this.panel.capabilities.needsAStation || this.soundIsWaitedOn;
+  }
+
+  #chooseDrawnStation() {
+    const drawn = this.panel.drawStation?.() ?? null;
+    if (drawn !== null) {
+      this.#chooseStation(drawn);
+    }
   }
 
   // Global sections come first, the panel's own below them: the sidebar reads as
@@ -282,7 +338,7 @@ export class PanelShell {
   #sections() {
     const panelSections = this.panel.sidebarSections({
       setInstrumentation: (instrumentation) =>
-        this.sonifier?.setInstrumentation(instrumentation),
+        this.#setInstrumentation(instrumentation),
       toggleInstrumentationEditor: this.#instrumentationEditorToggle(),
     });
     const globalSections = [

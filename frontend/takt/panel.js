@@ -4,6 +4,7 @@ import { Panel } from '../viz-core/panel.js';
 import { INSTRUMENTATIONS } from '../viz-core/sonification/presets.js';
 import { TRANSPORT_GROUPS } from '../viz-core/sonification/scheduling.js';
 import { SonificationEngine } from '../viz-core/sonification/sonificationEngine.js';
+import { drawnStationThatTravels } from '../viz-core/startStation.js';
 import { StationCatalog } from '../viz-core/stationCatalog.js';
 import {
   dominantStationMode,
@@ -150,9 +151,6 @@ const LAYER_LABELS = [
 const didokToIndex = (stations) =>
   new Map(stations.map((station, index) => [station.didok, index]));
 
-const SOUND_STATION_HINT =
-  'Sound erklingt erst, wenn eine Station gewählt ist.';
-
 // The dropdown is keyed by option value, not by name: an own instrumentation may
 // carry the name of a delivered one, and then only the value tells them apart.
 export const SILENT_OPTION_VALUE = '';
@@ -198,8 +196,6 @@ export class TaktPanel extends Panel {
       bus: false,
     };
     this.currentTimeSeconds = 0;
-    this.sonifiedStation = null;
-    this.soundHint = null;
     this.customInstrumentation = null;
     this.customOption = null;
     this.background = BACKGROUNDS[0];
@@ -427,10 +423,7 @@ export class TaktPanel extends Panel {
     this.soundSelect.addEventListener('change', () =>
       setInstrumentation?.(this.#selectedInstrumentation()),
     );
-    this.soundHint = element('p', 'sidebar-hint');
-    this.soundHint.textContent = SOUND_STATION_HINT;
-    this.#syncSoundHint();
-    group.append(this.soundSelect, this.soundHint);
+    group.appendChild(this.soundSelect);
     if (toggleInstrumentationEditor) {
       group.appendChild(this.#ownSoundButton(toggleInstrumentationEditor));
     }
@@ -501,17 +494,17 @@ export class TaktPanel extends Panel {
     return this.#selectedInstrumentation();
   }
 
-  // An instrument on its own stays silent: the sonifier voices one chosen
-  // station, so until there is one the dropdown looks broken.
-  setSonifiedStation(station) {
-    this.sonifiedStation = station;
-    this.#syncSoundHint();
-  }
-
-  #syncSoundHint() {
-    this.soundHint?.classList.toggle(
-      'is-visible',
-      this.sonifiedStation === null,
+  // A stop nothing calls at would stay as silent as no stop at all, so the drawn
+  // one has to have something to sound. Only railway stations are drawn: a
+  // station voices its whole interchange, so a drawn one carries the tram and bus
+  // stops around it as well, where a bus stop drawn out of the country sounds a
+  // few times an hour. Searching for one by name reaches every stop as before.
+  drawStation() {
+    return drawnStationThatTravels(
+      this.catalog.entries.filter(
+        (station) => dominantStationMode(station.modes) === 'rail',
+      ),
+      (station) => this.stationSoundEvents(station).length > 0,
     );
   }
 

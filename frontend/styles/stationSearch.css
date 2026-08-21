@@ -2,8 +2,96 @@
    the cockpit, with a suggestion list that drops below it. Its column caps how
    wide it grows; beyond that a station name gains nothing. */
 .station-search {
+  /* Room the ask opens above and below the field, for the sentence and the
+     button. Symmetric, so the card it opens stays centred on the field. */
+  --ask-inset: calc(var(--control-height) + var(--space-m));
   position: relative;
   min-width: 0;
+  transition:
+    transform var(--transition-panel),
+    width var(--transition-panel),
+    padding var(--transition-panel),
+    margin var(--transition-panel),
+    background var(--transition-panel);
+}
+
+/* A view that cannot draw anything without a station asks for one: the field
+   moves out onto the empty stage and opens into a card that holds the sentence,
+   the field and the button together, and answering it carries the same field
+   back into the bar.
+
+   The card is made by padding the field's own box, with the vertical padding
+   taken straight back off as margin: the margin box keeps the size the bar gave
+   it, so the buttons beside it never move while the card opens. How far it has
+   to travel depends on where the bar put it, which differs between the layouts,
+   so the script measures it. */
+.station-search.is-inviting {
+  width: var(--invitation-width);
+  padding: var(--ask-inset) var(--space-m);
+  margin-block: calc(-1 * var(--ask-inset));
+  border-radius: var(--radius-m);
+  background: var(--color-surface);
+  backdrop-filter: blur(6px);
+  transform: translate(
+    var(--invitation-shift-x, 0),
+    var(--invitation-shift-y, 0)
+  );
+}
+
+/* Inside one card the three parts no longer each need a surface to be read on,
+   so the sentence is plain type: the only thing on the stage that is not a
+   control, and it should not look like one. Both stand off the field rather than
+   off the card, which is still opening its padding around them at the time. */
+.station-search-prompt,
+.station-search-lucky {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-panel);
+}
+
+.station-search-prompt {
+  bottom: calc(100% + var(--space-m));
+  left: 0;
+  right: 0;
+  margin: 0;
+  text-align: center;
+  color: var(--color-control-text);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.station-search-lucky {
+  top: calc(100% + var(--space-m));
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 18px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--color-control-text);
+  color: var(--color-background);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.station-search-lucky:hover {
+  filter: brightness(1.1);
+}
+
+.station-search.is-inviting .station-search-prompt,
+.station-search.is-inviting .station-search-lucky {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* The suggestions drop into the space the button stands in, so the button gives
+   way while there are any. */
+.station-search.is-inviting.is-open .station-search-lucky {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .station-search-input {
@@ -16,6 +104,27 @@
   backdrop-filter: blur(6px);
   color: var(--color-text);
   font: inherit;
+  /* The height is not among these: the button stands off the field's lower edge,
+     so a height that grew over the transition would carry the button down with
+     it and settle last of all. It takes its size for the ask at once. */
+  transition:
+    background var(--transition-panel),
+    font-size var(--transition-panel);
+}
+
+/* Grown for the ask: a deeper well than the bar's, and at a size iOS does not
+   zoom the page in for when the field takes focus. */
+.station-search.is-inviting .station-search-input {
+  height: calc(var(--control-height) + 12px);
+  background: var(--color-background);
+  font-size: 16px;
+}
+
+/* The box everything the ask shows is measured against: the field alone, so the
+   suggestions drop right under it whether it stands in the bar or in the opened
+   card, and the sentence and the button keep their distance from it throughout. */
+.station-search-field {
+  position: relative;
 }
 
 .station-search-suggestions {
