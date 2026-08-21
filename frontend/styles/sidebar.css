@@ -59,13 +59,6 @@
   opacity: 0.7;
 }
 
-/* A section whose switch reshapes the whole view rather than toggling one part
-   of it, set apart by a rule from the plain switches above. */
-.sidebar-section-standout {
-  padding-top: var(--space-m);
-  border-top: 1px solid var(--color-border);
-}
-
 /* A note under a control, shown only while the control cannot yet do its job. */
 .sidebar-hint {
   display: none;

@@ -284,7 +284,6 @@ export class PanelShell {
       setInstrumentation: (instrumentation) =>
         this.sonifier?.setInstrumentation(instrumentation),
       toggleInstrumentationEditor: this.#instrumentationEditorToggle(),
-      holdBackground: (backgroundId) => this.#holdBackground(backgroundId),
     });
     const globalSections = [
       ...sectionWhen(this.panel.capabilities.mapBackground, {
@@ -307,7 +306,7 @@ export class PanelShell {
 
   #backgroundControl() {
     const group = element('div', 'sidebar-options');
-    this.backgroundOptions = BACKGROUNDS.map((background) => {
+    BACKGROUNDS.forEach((background) => {
       const input = element('input');
       input.type = 'radio';
       input.name = 'background';
@@ -316,22 +315,8 @@ export class PanelShell {
         this.#chooseBackground(background),
       );
       group.appendChild(this.#option(input, background.label));
-      return { input, background };
     });
     return group;
-  }
-
-  // A panel mode may be legible on one ground only; while it holds the
-  // background, the chooser shows that choice and cannot be moved. A null id
-  // hands the chooser back without undoing the choice.
-  #holdBackground(backgroundId) {
-    if (backgroundId !== null) {
-      this.#chooseBackground(backgroundById(backgroundId));
-    }
-    this.backgroundOptions.forEach(({ input, background }) => {
-      input.disabled = backgroundId !== null;
-      input.checked = background === this.background;
-    });
   }
 
   #chooseBackground(background) {

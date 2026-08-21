@@ -6,10 +6,8 @@ import { element } from './dom.js';
 // the panel's. The open state is a class on the container so siblings (the
 // cockpit) can shift out of the panel's way with it.
 export class Sidebar {
-  // `sections` is a list of { id, title, element, standout } already selected by
-  // the shell; element is the section's own control DOM, rendered under a
-  // heading. A standout section is set apart from the plain switches above it,
-  // for a control that reshapes the whole view rather than toggling one part.
+  // `sections` is a list of { id, title, element } already selected by the
+  // shell; element is the section's own control DOM, rendered under a heading.
   // The panel slides in over `container`; its button rides in `buttonRow`.
   constructor(container, buttonRow, sections) {
     this.container = container;
@@ -35,11 +33,8 @@ export class Sidebar {
     this.#setOpen(!this.open);
   }
 
-  #section({ id, title, element: content, standout }) {
-    const section = element(
-      'section',
-      standout ? 'sidebar-section sidebar-section-standout' : 'sidebar-section',
-    );
+  #section({ id, title, element: content }) {
+    const section = element('section', 'sidebar-section');
     section.dataset.section = id;
     const heading = element('h2', 'sidebar-heading');
     heading.textContent = title;
