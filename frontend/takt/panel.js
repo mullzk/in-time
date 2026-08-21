@@ -680,6 +680,7 @@ export class TaktPanel extends Panel {
     );
     return {
       label: categoryLabel(vehicle.category),
+      category: vehicle.category,
       origin: stations[originStation]?.name,
       destination: stations[destinationStation]?.name,
     };

@@ -19,6 +19,16 @@
   display: block;
 }
 
+/* A vehicle popover takes its category's colour as its ground, so the label
+   names the service twice: in words and in the colour it is drawn in on the map.
+   The colour is used as it is: darkening it would have to leave the sRGB gamut
+   for six of the seven categories, and a dark yellow is a brown whatever the
+   colour space. Both colours are supplied by the script. */
+.popover.is-accented {
+  background: var(--popover-accent);
+  color: var(--popover-accent-text);
+}
+
 /* The hover preview reads quieter than a committed selection and sits beneath it,
    so the two never compete when both point at the same place. */
 .popover-hover {

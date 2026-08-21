@@ -21,6 +21,27 @@ const FALLBACK_COLOR = [200, 200, 200];
 export const categoryColor = (category) =>
   CATEGORY_COLORS[category] ?? FALLBACK_COLOR;
 
+const TEXT_ON_DARK_GROUND = [255, 255, 255];
+const TEXT_ON_LIGHT_GROUND = [16, 18, 26];
+
+// What reads on each colour where it is used as a ground rather than as a dot.
+// Written out per category rather than computed from a lightness threshold: the
+// palette is near iso-lightness -- five of the seven lie within a thirtieth of
+// each other -- so any threshold cuts through the middle of it, and four
+// categories would flip on the smallest palette correction.
+const CATEGORY_TEXT_COLORS = [
+  TEXT_ON_DARK_GROUND,
+  TEXT_ON_LIGHT_GROUND,
+  TEXT_ON_LIGHT_GROUND,
+  TEXT_ON_LIGHT_GROUND,
+  TEXT_ON_LIGHT_GROUND,
+  TEXT_ON_LIGHT_GROUND,
+  TEXT_ON_LIGHT_GROUND,
+];
+
+export const categoryTextColor = (category) =>
+  CATEGORY_TEXT_COLORS[category] ?? TEXT_ON_LIGHT_GROUND;
+
 const CATEGORY_LABELS = [
   'Fernverkehr',
   'InterRegio',
