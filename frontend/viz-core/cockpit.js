@@ -44,7 +44,7 @@ export class Cockpit {
   }
 
   #buildTempo() {
-    const group = this.#group('Tempo');
+    const group = this.#group('Simulations-Tempo');
     const controls = element('div', 'cockpit-controls');
 
     this.playButton = element('button', 'cockpit-play');
@@ -85,7 +85,7 @@ export class Cockpit {
   // A view whose time cannot be sought keeps the scrubber as a reading: it says
   // how far the clock has come, and the hand is turned away from it.
   #buildScrubber(seekable) {
-    const group = this.#group('Zeit');
+    const group = this.#group('Tageszeit');
     const controls = element('div', 'cockpit-controls');
 
     this.timeLabel = element('span', 'cockpit-clock');
