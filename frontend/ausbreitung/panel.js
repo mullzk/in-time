@@ -32,7 +32,7 @@ import { SettledLayer } from './settledLayer.js';
 // keeps: the flash says "just now", the node says "already been". The flash is
 // measured in schedule seconds, so it keeps its meaning whatever the tempo.
 const FLASH_SECONDS = 480;
-const FLASH_EXTRA_DIAMETER_PIXELS = 9;
+const FLASH_EXTRA_DIAMETER_PIXELS = 6;
 const SETTLED_ALPHA = 210;
 
 // A node keeps the size the map layer gives it at this zoom, weighted by the
