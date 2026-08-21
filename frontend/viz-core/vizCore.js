@@ -12,6 +12,12 @@ p5.disableFriendlyErrors = true;
 // light. A panel that wants another one says so.
 const DEFAULT_GROUND_COLOR = [16, 18, 22];
 
+// A frame the browser stalled on -- a schedule adopted while the picture runs, a
+// tab that was away -- carries the wall clock of the whole stall, and at the
+// fastest tempo that would jump the schedule a quarter of an hour on. It counts
+// for no more than an ordinary frame.
+const LONGEST_FRAME_SECONDS = 0.1;
+
 // Owns the single p5 instance-mode loop and drives the active panel. Panels draw
 // in world coordinates (LV95); VizCore pushes the camera transform so geometry
 // and, later, tiles stay coincident in one render loop.
@@ -54,7 +60,7 @@ export class VizCore {
   }
 
   #renderFrame(p) {
-    const deltaSeconds = p.deltaTime / 1000;
+    const deltaSeconds = Math.min(p.deltaTime / 1000, LONGEST_FRAME_SECONDS);
     this.context.time.advance(deltaSeconds);
     this.panel.update?.(this.context.time.current, deltaSeconds);
 

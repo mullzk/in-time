@@ -2,12 +2,13 @@ import { readStationPoints } from '../viz-core/blobStations.js';
 import { formatTimeOfDay } from '../viz-core/clock.js';
 import { buildConnectionList } from '../viz-core/connectionList.js';
 import { ConnectionScan } from '../viz-core/connectionScan.js';
+import { HEADLINE_WHILE_LOADING } from '../viz-core/headline.js';
 import { HoverInteraction } from '../viz-core/hoverInteraction.js';
 import { Panel } from '../viz-core/panel.js';
 import { placesOfReachedStations } from '../viz-core/places.js';
 import { RadialTravelTimeLayout } from '../viz-core/radialTravelTime.js';
 import { distanceToSegmentSquared } from '../viz-core/segmentDistance.js';
-import { stationToTravelFrom } from '../viz-core/startStation.js';
+import { StartStationChoice } from '../viz-core/startStation.js';
 import { StationCatalog } from '../viz-core/stationCatalog.js';
 import { TapInteraction } from '../viz-core/tapInteraction.js';
 import {
@@ -127,13 +128,19 @@ export class ReisezeitPanel extends Panel {
     stationSearch: true,
   };
 
-  constructor(railBuffer, railStations, startTimeSeconds) {
+  constructor(
+    railBuffer,
+    railStations,
+    startTimeSeconds,
+    addressedStationSlug = null,
+  ) {
     super();
     this.catalog = new StationCatalog([]);
     this.networks = [];
     this.startTimeSeconds = startTimeSeconds;
+    this.startStationChoice = new StartStationChoice(addressedStationSlug);
     this.startStation = null;
-    this.startStationIsThePanelsOwn = false;
+    this.viewHasReachedAPicture = false;
     this.tree = null;
     this.layout = null;
     this.positions = null;
@@ -198,28 +205,43 @@ export class ReisezeitPanel extends Panel {
     });
     this.connections = buildConnectionList(this.networks);
     this.scan = new ConnectionScan(this.connections);
-    this.#pickAStartStationIfNobodyChoseOne();
+    this.#settleOnAStartStation();
     // Someone is already looking, so the view stays where it was put -- unless
-    // it is still the panel's own starting point, which nobody has framed yet.
-    this.#rescan({ openTheView: this.startStationIsThePanelsOwn });
+    // it is still the panel's own starting point, which nobody has framed yet,
+    // or there was no picture to look at at all.
+    this.#rescan({
+      openTheView:
+        this.startStationChoice.drawnByThePanel || !this.viewHasReachedAPicture,
+    });
   }
 
-  #pickAStartStationIfNobodyChoseOne() {
+  // Nothing more is on its way, so a stop the address names that no schedule
+  // knows is not going to turn up: the picture stops waiting for it and is drawn
+  // from a stop of the panel's own.
+  noFurtherScheduleIsComing() {
+    this.startStationChoice.noFurtherScheduleIsComing();
     if (this.startStation !== null) {
       return;
     }
-    this.startStation = stationToTravelFrom(
+    this.#settleOnAStartStation();
+    this.#rescan({ openTheView: true });
+  }
+
+  #settleOnAStartStation() {
+    this.startStation = this.startStationChoice.settleOn(
       this.catalog,
       this.connections,
       this.scan,
       this.startTimeSeconds,
     );
-    this.startStationIsThePanelsOwn = this.startStation !== null;
+  }
+
+  startsFrom() {
+    return this.startStation;
   }
 
   revealStation(station) {
-    this.startStation = station;
-    this.startStationIsThePanelsOwn = false;
+    this.startStation = this.startStationChoice.choose(station);
     this.hovered = null;
     this.#rescan({ openTheView: true });
   }
@@ -373,9 +395,10 @@ export class ReisezeitPanel extends Panel {
   // opens on it.
   #letTheViewReachThePicture(openTheView) {
     const camera = this.context?.camera;
-    if (camera === undefined) {
+    if (camera === undefined || this.tree === null) {
       return;
     }
+    this.viewHasReachedAPicture = true;
     const radius = this.#ringRadius(this.hourRings);
     camera.setWorldBounds({
       eastMin: this.startStation.east - radius,
@@ -511,6 +534,9 @@ export class ReisezeitPanel extends Panel {
   }
 
   headline() {
+    if (this.startStation === null) {
+      return HEADLINE_WHILE_LOADING;
+    }
     return `Wenn ich um ${formatTimeOfDay(this.startTimeSeconds)} in ${this.startStation.name} losfahre, wo komme ich heute noch hin?`;
   }
 

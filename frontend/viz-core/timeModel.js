@@ -33,6 +33,15 @@ export class TimeModel {
     this.seekToTime(rangeStart);
   }
 
+  // A spread that gains the vehicles it was still missing stays the spread one
+  // is watching: it may end later than it did, but the clock keeps its place in
+  // it rather than sending the picture back to the beginning.
+  setRangeKeepingTime(rangeStart, rangeEnd) {
+    this.rangeStart = rangeStart;
+    this.rangeEnd = rangeEnd;
+    this.current = clamp(this.current, rangeStart, rangeEnd);
+  }
+
   // A spread that has run out is played again by running it again: there is
   // nowhere left to go from its end, so the clock returns to the beginning.
   play() {

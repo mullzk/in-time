@@ -43,12 +43,12 @@ const sectionWhen = (isOffered, section) => (isOffered ? [section] : []);
 // controls, its key bindings and its info text, and is told when a global choice
 // has a consequence only it can decide.
 export class PanelShell {
-  constructor(root, panel, time) {
+  constructor(root, panel, time, stationInUrl = new StationInUrl()) {
     this.root = root;
     this.panel = panel;
     this.time = time;
     this.exhibition = isExhibition();
-    this.stationInUrl = new StationInUrl();
+    this.stationInUrl = stationInUrl;
     this.canvasReady = false;
     this.stationChosen = false;
     // A panel that draws no map has no use for a ground under it: it gets the
@@ -147,8 +147,10 @@ export class PanelShell {
   }
 
   // A view is linked to with a station in its address, and opens on that one
-  // rather than on whatever the panel would have picked itself. It takes a
-  // camera to show a station on, so this waits for the canvas.
+  // rather than on whatever the panel would have picked itself. The panel is
+  // handed the name before it works anything out, so it usually sets off from
+  // that station already: then the station is only marked as chosen, since
+  // working the same picture out again would send it back to its beginning.
   #openOnTheStationNamedInTheUrl() {
     if (this.stationChosen || this.stationInUrl.slug === null) {
       return;
@@ -157,9 +159,22 @@ export class PanelShell {
       this.panel.stationCatalog?.().entries ?? [],
       this.stationInUrl.slug,
     );
-    if (station !== null) {
-      this.#chooseStation(station);
+    if (station === null) {
+      return;
     }
+    if (this.panel.startsFrom?.() === station) {
+      this.#markAsChosen(station);
+      return;
+    }
+    this.#chooseStation(station);
+  }
+
+  #markAsChosen(station) {
+    if (this.selection) {
+      this.selection.selectStation(station);
+      return;
+    }
+    this.#adoptStation(station);
   }
 
   // Choosing by name goes the same way as choosing on the map, so a panel is
