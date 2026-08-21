@@ -1,4 +1,4 @@
-export const MIN_TEMPO = 60;
+export const MIN_TEMPO = 10;
 export const MAX_TEMPO = 900;
 export const DEFAULT_TEMPO = 240;
 export const SECONDS_PER_DAY = 24 * 3600;

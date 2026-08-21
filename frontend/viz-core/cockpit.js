@@ -1,10 +1,19 @@
 import { formatTimeOfDay } from './clock.js';
 import { element } from './dom.js';
-import { MAX_TEMPO, MIN_TEMPO } from './timeModel.js';
+import {
+  isPausePosition,
+  PAUSE_POSITION,
+  sliderPositionForTempo,
+  tempoForSliderPosition,
+} from './tempoSlider.js';
 
 // Tempo is schedule-seconds advanced per real second; show the wall-clock span
-// one real second covers.
-const formatTempo = (tempo) => `1 s ≙ ${Math.round(tempo / 60)} min`;
+// one real second covers, in the unit that span is legible in.
+const SECONDS_PER_MINUTE = 60;
+const formatTempo = (tempo) =>
+  tempo < SECONDS_PER_MINUTE
+    ? `1 s ≙ ${Math.round(tempo)} s`
+    : `1 s ≙ ${Math.round(tempo / SECONDS_PER_MINUTE)} min`;
 
 // Floating DOM control surface: renders only the controls the panel declares
 // through its capabilities, split into a tempo cluster and a time cluster.
@@ -42,13 +51,14 @@ export class Cockpit {
     this.playButton.type = 'button';
     this.playButton.addEventListener('click', () => this.time.togglePlay());
 
-    // The lowest value is pause; above it the range is MIN_TEMPO..MAX_TEMPO.
+    // The slider carries a travel position, not a tempo: its left anchor is
+    // pause, the rest runs geometrically over the tempo range.
     this.tempoSlider = element('input', 'cockpit-tempo');
     this.tempoSlider.type = 'range';
     this.tempoSlider.min = '0';
-    this.tempoSlider.max = String(MAX_TEMPO);
+    this.tempoSlider.max = '1';
     this.tempoSlider.step = 'any';
-    this.tempoSlider.value = String(this.time.tempo);
+    this.tempoSlider.value = String(sliderPositionForTempo(this.time.tempo));
     this.tempoSlider.addEventListener('input', () => this.#onTempoInput());
     this.tempoSlider.addEventListener('change', () => {
       this.tempoScrubbing = false;
@@ -63,11 +73,11 @@ export class Cockpit {
 
   #onTempoInput() {
     this.tempoScrubbing = true;
-    const value = Number(this.tempoSlider.value);
-    if (value < MIN_TEMPO) {
+    const position = Number(this.tempoSlider.value);
+    if (isPausePosition(position)) {
       this.time.pause();
     } else {
-      this.time.setTempo(value);
+      this.time.setTempo(tempoForSliderPosition(position));
       this.time.play();
     }
   }
@@ -124,7 +134,11 @@ export class Cockpit {
         : 'Pause';
     }
     if (this.tempoSlider && !this.tempoScrubbing) {
-      this.tempoSlider.value = String(this.time.playing ? this.time.tempo : 0);
+      this.tempoSlider.value = String(
+        this.time.playing
+          ? sliderPositionForTempo(this.time.tempo)
+          : PAUSE_POSITION,
+      );
     }
     if (this.timeLabel) {
       this.timeLabel.textContent = formatTimeOfDay(this.time.current);
