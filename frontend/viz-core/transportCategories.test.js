@@ -16,7 +16,7 @@ test('a category is named, an unknown one generically', () => {
 });
 
 test('every category has a colour, an unknown one a grey', () => {
-  assert.deepEqual(categoryColor(CATEGORY_BUS), [240, 205, 70]);
+  assert.deepEqual(categoryColor(CATEGORY_BUS), [242, 183, 5]);
   assert.deepEqual(categoryColor(42), [200, 200, 200]);
 });
 

@@ -46,8 +46,8 @@ const drawPriority = (category) => DRAW_PRIORITY_BY_CATEGORY.get(category) ?? 2;
 // far more numerous trams and buses smaller.
 const BASE_DIAMETER_PIXELS = 7;
 const DIAMETER_FACTOR_BY_CATEGORY = new Map([
-  [CATEGORY_TRAM, 0.75],
-  [CATEGORY_BUS, 0.75],
+  [CATEGORY_TRAM, 1],
+  [CATEGORY_BUS, 1],
 ]);
 const diameterFactor = (category) =>
   DIAMETER_FACTOR_BY_CATEGORY.get(category) ?? 1.5;
@@ -106,7 +106,9 @@ const trailAlpha = (sample, sampleCount) =>
   ((TRAIL_TAIL_ALPHA - TRAIL_HEAD_ALPHA) * sample) / (sampleCount - 1);
 // Behind a trail the head only has to mark where the vehicle is, so it shrinks
 // -- and further still in the far view, where full-size heads would close into a
-// carpet of dots and swallow the trails they belong to.
+// carpet of dots and swallow the trails they belong to. Tram and bus draw no
+// trail but shrink with the rest, so a background showing trails keeps one head
+// size and the untrailed vehicles do not tower over the trailed ones.
 const TRAIL_HEAD_FACTOR_NEAR = 0.55;
 const TRAIL_HEAD_FACTOR_FAR = 0.28;
 const trailHeadFactor = (zoomFraction) =>
@@ -133,6 +135,10 @@ const withinWorldBounds = (bounds, { east, north }) =>
   north <= bounds.northMax;
 
 const STATION_NODE_FILL = [255, 255, 255];
+// On the black ground the nodes carry no outline, so a white fill puts them at
+// the same weight as the vehicles and the net reads as dots rather than as the
+// stage the traffic moves on. A dark grey holds the places without competing.
+const STATION_NODE_FILL_ON_BLACK = [64, 64, 64];
 // Over a raster background a white node needs an outline; its colour marks the
 // station's mode, using the same hues the tram and bus vehicles carry (rail
 // keeps a plain black outline). On the black background nodes read on their own.
@@ -364,14 +370,14 @@ export class TaktPanel extends Panel {
 
   #drawVehicleHeads(p, context, vehicles) {
     const worldPerPixel = context.camera.worldPerPixel();
-    const trailedFactor = trailHeadFactor(context.camera.zoomFraction());
+    const headFactor = trailHeadFactor(context.camera.zoomFraction());
     vehicles.forEach((vehicle) => {
       const [r, g, b] = this.#vehicleColor(vehicle.category);
       p.fill(r, g, b);
       const diameter =
         BASE_DIAMETER_PIXELS *
         diameterFactor(vehicle.category) *
-        (this.#trailShown(vehicle.category) ? trailedFactor : 1) *
+        (trailShownOn(this.background) ? headFactor : 1) *
         worldPerPixel;
       p.circle(vehicle.east, vehicle.north, diameter);
     });
@@ -698,7 +704,10 @@ export class TaktPanel extends Panel {
       context.camera.worldPerPixel();
     const bounds = context.camera.visibleWorldBounds();
     const outlined = this.background.source !== null;
-    p.fill(STATION_NODE_FILL[0], STATION_NODE_FILL[1], STATION_NODE_FILL[2]);
+    const [fillRed, fillGreen, fillBlue] = outlined
+      ? STATION_NODE_FILL
+      : STATION_NODE_FILL_ON_BLACK;
+    p.fill(fillRed, fillGreen, fillBlue);
     if (outlined) {
       p.strokeWeight(
         STATION_STROKE_WIDTH_PIXELS * context.camera.worldPerPixel(),
