@@ -8,6 +8,7 @@ import { StationCatalog } from '../viz-core/stationCatalog.js';
 import {
   dominantStationMode,
   fallbackLayerForStops,
+  layersDownTo,
   layerToRevealStation,
   nearestStation,
   nodeDiameterPixels,
@@ -544,9 +545,15 @@ export class TaktPanel extends Panel {
   revealStation(station) {
     const layer = layerToRevealStation(station.modes, this.layers);
     if (layer) {
-      this.layers[layer] = true;
+      this.#showLayer(layer);
     }
     this.#setStops(true);
+  }
+
+  #showLayer(layer) {
+    layersDownTo(layer).forEach((key) => {
+      this.layers[key] = true;
+    });
   }
 
   #setStops(on) {
@@ -561,7 +568,7 @@ export class TaktPanel extends Panel {
   #ensureVisibleMode() {
     const fallback = fallbackLayerForStops(this.layers);
     if (fallback) {
-      this.layers[fallback] = true;
+      this.#showLayer(fallback);
     }
   }
 

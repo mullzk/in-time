@@ -75,6 +75,19 @@ test('adopting the road schedule after init matches adopting it before', () => {
   assert.equal(afterInit.stationCatalog().matching('dorfplatz')[0].didok, 11);
 });
 
+test('a searched bus stop brings the tram along with the buses', () => {
+  const panel = new TaktPanel(RAIL_BUFFER, RAIL_STATIONS);
+  panel.adoptSchedule(ROAD_BUFFER, ROAD_STATIONS);
+  assert.equal(panel.layers.bus, false);
+  assert.equal(panel.layers.tram, false);
+
+  panel.revealStation(panel.stationCatalog().matching('dorfplatz')[0]);
+
+  assert.equal(panel.layers.bus, true);
+  assert.equal(panel.layers.tram, true);
+  assert.equal(panel.layers.fernverkehr, true, 'the trains stay on as well');
+});
+
 const backgroundNamed = (id) => BACKGROUNDS.find((entry) => entry.id === id);
 
 // The view opens without the overlay, so these start by switching it on, the
