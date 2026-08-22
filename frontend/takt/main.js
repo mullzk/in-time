@@ -25,7 +25,11 @@ async function bootstrap() {
   );
   time.seekToTime(PLAYBACK_START_SECONDS);
 
-  const panel = new TaktPanel(result.railBuffer, result.railStations);
+  const panel = new TaktPanel(
+    result.railBuffer,
+    result.railStations,
+    result.config.serviceDate,
+  );
   const shell = new PanelShell(root, panel, time);
   shell.start();
   time.play();

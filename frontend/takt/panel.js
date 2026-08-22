@@ -35,6 +35,8 @@ import { VehiclePositionEngine } from '../viz-core/vehiclePositionEngine.js';
 import { buildInfoContent } from './infoContent.js';
 import { drawStationClock } from './stationClock.js';
 
+const todayIso = () => new Date().toISOString().slice(0, 10);
+
 // Stacking order where points overlap: buses at the bottom, trams above,
 // trains on top, so the far more numerous buses never hide the trains.
 const DRAW_PRIORITY_BY_CATEGORY = new Map([
@@ -203,8 +205,12 @@ export class TaktPanel extends Panel {
     sonification: true,
   };
 
-  constructor(railBuffer, railStations) {
+  // The service day is the day the artifacts were built for; it decides where
+  // the clock puts sunrise and sunset. Today stands in for it while nothing has
+  // said otherwise.
+  constructor(railBuffer, railStations, serviceDateIso = todayIso()) {
     super();
+    this.serviceDateIso = serviceDateIso;
     this.catalog = new StationCatalog([]);
     this.positionEngines = [];
     this.soundEngines = [];
@@ -326,7 +332,7 @@ export class TaktPanel extends Panel {
   }
 
   drawOverlay(p) {
-    drawStationClock(p, this.currentTimeSeconds);
+    drawStationClock(p, this.currentTimeSeconds, this.serviceDateIso);
   }
 
   #drawVehicles(p, context) {

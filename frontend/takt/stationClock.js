@@ -1,11 +1,45 @@
 // The clock in the picture's top right corner, drawn after the Swiss railway
-// station clock: white dial in a black case, bar markers, tapered black hands.
-// It carries no second hand -- the panel runs time at whatever tempo the user
-// picks, where a sweeping second hand would only smear.
+// station clock: a dial in a dark case, bar markers, tapered hands. It carries
+// no second hand -- the panel runs time at whatever tempo the user picks, where
+// a sweeping second hand would only smear. Around the sunset and the sunrise
+// of the day being shown it turns its palette over into a night one.
 
-const CASE_COLOR = [16, 18, 26];
-const DIAL_COLOR = [255, 255, 255];
-const MARK_COLOR = [16, 18, 26];
+const DAY_PALETTE = {
+  case: [16, 18, 26],
+  dial: [255, 255, 255],
+  mark: [16, 18, 26],
+};
+// Through the night the dial turns dark and the marks and hands turn light, so
+// the clock stops being the brightest thing on a picture of a sleeping country.
+const NIGHT_PALETTE = {
+  case: [8, 9, 13],
+  dial: [30, 33, 44],
+  mark: [226, 230, 240],
+};
+
+// Sunrise and sunset in local time (daylight saving included) for the middle of
+// each month, computed for Zurich and taken as good enough for the whole
+// country: the ends of Switzerland part by about a quarter of an hour, which is
+// less than the twilight the palette fades across anyway.
+const SUN_BY_MONTH = [
+  [8.15, 17.03],
+  [7.53, 17.82],
+  [6.67, 18.52],
+  [6.63, 20.23],
+  [5.83, 20.93],
+  [5.48, 21.42],
+  [5.75, 21.33],
+  [6.37, 20.67],
+  [7.07, 19.67],
+  [7.73, 18.67],
+  [7.52, 16.87],
+  [8.12, 16.6],
+];
+
+// The changeover is drawn out over dusk and dawn, or it would flick from one
+// palette to the other mid-frame at the tempi the panel plays the day at.
+const TWILIGHT_HOURS = 0.5;
+const HOURS_PER_DAY = 24;
 
 const DIAMETER_FRACTION_OF_SHORTER_SIDE = 0.11;
 const SMALLEST_DIAMETER_PIXELS = 56;
@@ -79,9 +113,40 @@ const handTurns = (timeOfDaySeconds) => ({
   hour: (timeOfDaySeconds / 3600 / HOURS_PER_TURN) % 1,
 });
 
-const drawMarkers = (p, radius) => {
+// An operating day runs past midnight, the clock on the wall does not.
+const hourOfDay = (timeOfDaySeconds) =>
+  (timeOfDaySeconds / 3600) % HOURS_PER_DAY;
+
+// Month of an ISO date, without going through Date: the string is the service
+// day as the build named it, and parsing it would only invite a time zone.
+const sunOfServiceDate = (serviceDateIso) =>
+  SUN_BY_MONTH[Number(serviceDateIso.slice(5, 7)) - 1];
+
+const nightAmount = (timeOfDaySeconds, [sunrise, sunset]) => {
+  const hour = hourOfDay(timeOfDaySeconds);
+  const afterSunset = (hour - sunset) / TWILIGHT_HOURS;
+  const beforeSunrise = (sunrise - hour) / TWILIGHT_HOURS;
+  return Math.max(clamp(afterSunset, 0, 1), clamp(beforeSunrise, 0, 1));
+};
+
+const blended = (day, night, amount) =>
+  day.map((channel, index) => channel + (night[index] - channel) * amount);
+
+const paletteAt = (timeOfDaySeconds, serviceDateIso) => {
+  const amount = nightAmount(
+    timeOfDaySeconds,
+    sunOfServiceDate(serviceDateIso),
+  );
+  return {
+    case: blended(DAY_PALETTE.case, NIGHT_PALETTE.case, amount),
+    dial: blended(DAY_PALETTE.dial, NIGHT_PALETTE.dial, amount),
+    mark: blended(DAY_PALETTE.mark, NIGHT_PALETTE.mark, amount),
+  };
+};
+
+const drawMarkers = (p, radius, markColor) => {
   p.noStroke();
-  p.fill(...MARK_COLOR);
+  p.fill(...markColor);
   MINUTE_POSITIONS.forEach((minute) => {
     const onTheHour = minute % 5 === 0;
     const width =
@@ -112,19 +177,20 @@ const drawHand = (p, radius, turns, hand) => {
   p.pop();
 };
 
-export function drawStationClock(p, timeOfDaySeconds) {
+export function drawStationClock(p, timeOfDaySeconds, serviceDateIso) {
   const { x, y, radius } = centreOfClock(p.width, p.height);
   const dialRadius = radius * DIAL_RADIUS_IN_CASE;
   const turns = handTurns(timeOfDaySeconds);
+  const palette = paletteAt(timeOfDaySeconds, serviceDateIso);
 
   p.push();
   p.translate(x, y);
   p.noStroke();
-  p.fill(...CASE_COLOR);
+  p.fill(...palette.case);
   p.circle(0, 0, radius * 2);
-  p.fill(...DIAL_COLOR);
+  p.fill(...palette.dial);
   p.circle(0, 0, dialRadius * 2);
-  drawMarkers(p, dialRadius);
+  drawMarkers(p, dialRadius, palette.mark);
   drawHand(p, dialRadius, turns.hour, HOUR_HAND);
   drawHand(p, dialRadius, turns.minute, MINUTE_HAND);
   p.pop();
