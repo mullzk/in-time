@@ -75,6 +75,32 @@ test('adopting the road schedule after init matches adopting it before', () => {
   assert.equal(afterInit.stationCatalog().matching('dorfplatz')[0].didok, 11);
 });
 
+test('a searched bus stop brings the tram along with the buses', () => {
+  const panel = new TaktPanel(RAIL_BUFFER, RAIL_STATIONS);
+  panel.adoptSchedule(ROAD_BUFFER, ROAD_STATIONS);
+  assert.equal(panel.layers.bus, false);
+  assert.equal(panel.layers.tram, false);
+
+  panel.revealStation(panel.stationCatalog().matching('dorfplatz')[0]);
+
+  assert.equal(panel.layers.bus, true);
+  assert.equal(panel.layers.tram, true);
+  assert.equal(panel.layers.fernverkehr, true, 'the trains stay on as well');
+});
+
+test('the station drawn to be sounded is one the trains call at', () => {
+  const panel = new TaktPanel(RAIL_BUFFER, RAIL_STATIONS);
+  panel.adoptSchedule(ROAD_BUFFER, ROAD_STATIONS);
+
+  const drawn = panel.drawStation();
+
+  assert.deepEqual(drawn.modes, ['rail'], 'never one of the bus stops');
+  assert.ok(
+    panel.stationSoundEvents(drawn).length > 0,
+    'and one that has something to sound',
+  );
+});
+
 const backgroundNamed = (id) => BACKGROUNDS.find((entry) => entry.id === id);
 
 // The view opens without the overlay, so these start by switching it on, the
@@ -105,29 +131,6 @@ test('the network overlay stays off once the user switched it back on', () => {
 
   panel.onBackgroundChange(backgroundNamed('pixel-grey'));
   assert.equal(panel.layers.network, false);
-});
-
-test('the pulse mode draws the network and keeps it when it ends', () => {
-  const panel = new TaktPanel(RAIL_BUFFER, RAIL_STATIONS);
-
-  panel.setPulseMode(true);
-  assert.equal(panel.layers.network, true);
-  assert.equal(panel.layers.tram, false);
-
-  panel.setPulseMode(false);
-  assert.equal(panel.layers.network, true);
-});
-
-test('the pulse of the rail blob is ready right after construction', () => {
-  const panel = new TaktPanel(RAIL_BUFFER, RAIL_STATIONS);
-  panel.init({ camera: { zoomFraction: () => 0.5 } });
-  panel.pulseMode = true;
-
-  // The golden rail blob holds one long-distance trip; at 10:10 it stands at
-  // its middle station.
-  panel.update(36600, 1 / 60);
-
-  assert.equal(panel.longDistancePulse.visiblePulses().length, 1);
 });
 
 test('an adopted interchange sounds its rail and bus stops as one place', () => {

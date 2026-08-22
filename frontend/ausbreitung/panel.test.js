@@ -99,13 +99,22 @@ test('a new departure time moves the clock with it', () => {
   assert.equal(time.current, 9 * 3600);
 });
 
-test('a panel nobody chose a station for sets off by itself', () => {
+test('a panel nobody chose a station for waits at none', () => {
   const panel = new AusbreitungPanel(railBuffer(), STATIONS, 10 * 3600);
+
+  assert.equal(panel.startStation, null);
+  assert.equal(panel.placesReachedAt(24 * 3600).length, 0, 'and shows nothing');
+});
+
+test('the station a panel draws is one it can travel from', () => {
+  const panel = new AusbreitungPanel(railBuffer(), STATIONS, 10 * 3600);
+
+  panel.revealStation(panel.drawStation());
 
   assert.notEqual(panel.startStation, null);
   assert.ok(
     panel.placesReachedAt(24 * 3600).length > 1,
-    'and from a station it can travel from',
+    'so the picture is not a single dot',
   );
 });
 
@@ -182,4 +191,48 @@ test('a new starting point pulls the view back to the whole country', () => {
   panel.frameStation({ camera });
 
   assert.equal(camera.zoomFraction(), 0, 'zoomed all the way out again');
+});
+
+test('a view linked to a station opens on it, without drawing another', () => {
+  const panel = new AusbreitungPanel(
+    railBuffer(),
+    STATIONS,
+    10 * 3600,
+    'mitte',
+  );
+
+  assert.equal(panel.startsFrom().didok, 8_500_002);
+});
+
+test('a station no schedule on hand knows is waited for', () => {
+  const panel = new AusbreitungPanel(
+    railBuffer(),
+    STATIONS,
+    10 * 3600,
+    'hohenrain-post',
+  );
+  const time = withTime(panel);
+
+  assert.equal(panel.startsFrom(), null, 'and nothing is drawn meanwhile');
+  assert.equal(panel.placesReachedAt(24 * 3600).length, 0);
+  assert.equal(time.playing, false, 'the clock has nothing to count');
+
+  panel.noFurtherScheduleIsComing();
+
+  assert.equal(
+    panel.startsFrom(),
+    null,
+    'the name went unanswered, and the view waits to be asked again',
+  );
+  assert.equal(time.playing, false);
+});
+
+test('a spread that gains vehicles carries on where it stood', () => {
+  const panel = panelFrom(10 * 3600);
+  const time = withTime(panel);
+  time.seekToTime(10 * 3600 + 5 * 60);
+
+  panel.adoptSchedule(railBuffer(), STATIONS);
+
+  assert.equal(time.current, 10 * 3600 + 5 * 60);
 });

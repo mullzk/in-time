@@ -163,3 +163,13 @@ test('a clock paused halfway carries on where it stood', () => {
 
   assert.equal(time.current, 8 * 3600 + 4 * MAX_TEMPO, 'nothing was rewound');
 });
+
+test('a spread gaining vehicles keeps the clock where it stood', () => {
+  const time = new TimeModel(7 * 3600, 8 * 3600, { repeats: false });
+  time.seekToTime(7 * 3600 + 12 * 60);
+
+  time.setRangeKeepingTime(7 * 3600, 9 * 3600);
+
+  assert.equal(time.current, 7 * 3600 + 12 * 60);
+  assert.equal(time.rangeEnd, 9 * 3600);
+});

@@ -112,3 +112,27 @@ test('a forgotten layer is painted anew', () => {
 
   assert.deepEqual(graphics.painted, ['clear', 0, 1, 2]);
 });
+
+test('a rank drawn higher up is painted again over what settled under it', () => {
+  const { graphics, layer } = layerOf();
+  layer.paint(camera(), [run(6, 5, 2), run(0, 3, 1)], () => 2);
+  graphics.painted.length = 0;
+
+  layer.paint(camera(), [run(6, 5, 4), run(0, 3, 1)], () => 2);
+
+  assert.deepEqual(
+    graphics.painted,
+    [2, 3, 0],
+    'the two new bus stops, then the station over them again',
+  );
+});
+
+test('a rank drawn under a gaining one is left where it is', () => {
+  const { graphics, layer } = layerOf();
+  layer.paint(camera(), [run(6, 5, 2), run(0, 3, 1)], () => 2);
+  graphics.painted.length = 0;
+
+  layer.paint(camera(), [run(6, 5, 2), run(0, 3, 3)], () => 2);
+
+  assert.deepEqual(graphics.painted, [1, 2], 'only the new stations');
+});

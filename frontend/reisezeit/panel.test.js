@@ -110,14 +110,20 @@ test('the stops of an interchange share one place in the picture', () => {
   assert.equal(panel.places.length, 2, 'the start and the interchange');
 });
 
-test('a panel nobody chose a station for sets off by itself', () => {
+test('a panel nobody chose a station for waits at none', () => {
   const panel = new ReisezeitPanel(railBuffer(), STATIONS, 10 * 3600);
 
-  assert.notEqual(panel.startStation, null, 'a start station was picked');
-  assert.ok(
-    panel.places.length > 1,
-    'and one it can travel from, so the picture is not a single dot',
-  );
+  assert.equal(panel.startStation, null);
+  assert.equal(panel.places.length, 0, 'and shows nothing');
+});
+
+test('the station a panel draws is one it can travel from', () => {
+  const panel = new ReisezeitPanel(railBuffer(), STATIONS, 10 * 3600);
+
+  panel.revealStation(panel.drawStation());
+
+  assert.notEqual(panel.startStation, null);
+  assert.ok(panel.places.length > 1, 'so the picture is not a single dot');
 });
 
 test('the rings reach past the furthest place', () => {
