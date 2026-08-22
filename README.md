@@ -83,9 +83,11 @@ day: a deploy can change the config URLs and a rebuild can re-emit the same day
 with new fields, and a day-keyed validator would strand clients on a stale body.
 
 The schedule blobs themselves are **not** served by the app in production: the
-proxy serves them from the published `current` symlink under the stable URLs
+proxy serves them from the published `current` symlink under
 `/artifacts/schedule-rail.itsb` and `/artifacts/schedule-road.itsb` (the dev
-server stands in for the proxy under `DEBUG`).
+server stands in for the proxy under `DEBUG`). The config hands out those paths
+with the published file's version appended as `?v=…`, so a rebuild is a new
+address and no cache can hold a blob against a catalog that has moved on.
 
 ## Frontend (viz-core)
 
@@ -167,6 +169,12 @@ _All in Time_ expects of its runtime environment:
   expected to serve them via its _static_ pre-compression (gzip/brotli), so
   nothing is recompressed per request. Sidecars sit in the per-day directory and
   swap atomically with the blob, so they never go stale.
+- **Versioned artifact URLs.** `/api/config` addresses each blob with the
+  version of the published file (`?v=…`), the way the static files carry their
+  content hash. A rebuilt day is a new address, so a client can never read a
+  cached blob against the station catalog whose indices no longer match it. The
+  config response itself revalidates, which is what makes the new address reach
+  clients at all; the blobs behind those addresses may be cached freely.
 - **A tile proxy with cache** (server-to-server to swisstopo) — the client talks
   **only** to our server, never to third-party hosts (for all assets, fonts,
   maps). The client requests same-origin `/tiles/{layer}/{z}/{x}/{y}.{ext}`; the
