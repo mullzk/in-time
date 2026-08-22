@@ -92,7 +92,7 @@ const dialRadiusPixels = (canvasWidth, canvasHeight) =>
     LARGEST_DIAMETER_PIXELS,
   ) / 2;
 
-const centreOfClock = (canvasWidth, canvasHeight) => {
+export const centreOfClock = (canvasWidth, canvasHeight) => {
   const radius = dialRadiusPixels(canvasWidth, canvasHeight);
   const topOfRow =
     canvasWidth < WIDTH_SHARING_THE_TOP_BAR_ROW_PIXELS
@@ -108,7 +108,7 @@ const centreOfClock = (canvasWidth, canvasHeight) => {
 // Both hands run continuously. The station clock's minute hand steps from
 // minute to minute, but the panel plays the day at a tempo of the viewer's
 // choosing, where that step turns into a stutter several times a second.
-const handTurns = (timeOfDaySeconds) => ({
+export const handTurns = (timeOfDaySeconds) => ({
   minute: (timeOfDaySeconds / 60 / MINUTES_PER_TURN) % 1,
   hour: (timeOfDaySeconds / 3600 / HOURS_PER_TURN) % 1,
 });
@@ -117,12 +117,15 @@ const handTurns = (timeOfDaySeconds) => ({
 const hourOfDay = (timeOfDaySeconds) =>
   (timeOfDaySeconds / 3600) % HOURS_PER_DAY;
 
-// Month of an ISO date, without going through Date: the string is the service
-// day as the build named it, and parsing it would only invite a time zone.
+// The month is read off the ISO string rather than through Date: it is the
+// service day as the build named it, and parsing it would only invite a time
+// zone into a question that has none.
 const sunOfServiceDate = (serviceDateIso) =>
   SUN_BY_MONTH[Number(serviceDateIso.slice(5, 7)) - 1];
 
-const nightAmount = (timeOfDaySeconds, [sunrise, sunset]) => {
+// 0 in broad daylight, 1 in full night, in between across dusk and dawn.
+export const nightAmount = (timeOfDaySeconds, serviceDateIso) => {
+  const [sunrise, sunset] = sunOfServiceDate(serviceDateIso);
   const hour = hourOfDay(timeOfDaySeconds);
   const afterSunset = (hour - sunset) / TWILIGHT_HOURS;
   const beforeSunrise = (sunrise - hour) / TWILIGHT_HOURS;
