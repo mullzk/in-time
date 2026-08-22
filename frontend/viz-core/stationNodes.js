@@ -22,6 +22,8 @@ const REVEALING_LAYERS_BY_MODE = new Map([
   ['tram', ['tram']],
   ['bus', ['bus']],
 ]);
+// From the most structural service to the least, which is also the order the
+// layers are offered in.
 const VEHICLE_LAYER_KEYS = [
   'fernverkehr',
   'interregio',
@@ -29,6 +31,13 @@ const VEHICLE_LAYER_KEYS = [
   'tram',
   'bus',
 ];
+
+// A layer switched on for the user brings the more structural ones with it: a
+// bus stop revealed while the trains calling at the same place stay hidden reads
+// as if it were served by buses alone.
+export function layersDownTo(layer) {
+  return VEHICLE_LAYER_KEYS.slice(0, VEHICLE_LAYER_KEYS.indexOf(layer) + 1);
+}
 
 export function stationIsShown(modes, stopsShown, layers) {
   return (

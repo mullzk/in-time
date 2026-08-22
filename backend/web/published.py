@@ -18,6 +18,17 @@ class PublishedSchedule:
             return None
         return date.fromisoformat(target)
 
+    def artifact_version(self, name: str) -> str | None:
+        """Identifies the published copy of one artifact, so its URL can carry
+        the version and a rebuild reaches clients through a fresh address rather
+        than through cache negotiation. Taken from the file rather than from the
+        service day: a day republished from a later build keeps its name."""
+        path = self._data_dir.current_link / name
+        if not path.is_file():
+            return None
+        published = path.stat()
+        return f"{int(published.st_mtime)}-{published.st_size}"
+
     def stations_rail_bytes(self) -> bytes | None:
         return self._read(STATIONS_RAIL_NAME)
 

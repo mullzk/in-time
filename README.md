@@ -9,22 +9,27 @@ tempo) and _on time_ (Swiss punctuality).
 
 ## Product vision & scope
 
-A web app as a **gallery of five views** onto the same public-transport data,
-each a distinct perspective:
+A web app as a **gallery of views** onto the same public-transport data, each a
+distinct perspective. **Three are built**, and they are what the app delivers:
 
 1. **Spread** — how reachability spreads out from a location over time
    (wildfire).
 2. **Travel-time graph** — a radial still image of travel times from a location.
 3. **Takt** — the day's timetable as a pulsing motion; also **sonified**.
-4. **Delays** — the delays actually measured on a past day.
-5. **Hotspots** — aggregated delay hotspots over a freely chosen time range.
+
+Two further views live on the planned timetable's counterpart, the delays
+actually measured, and are **deferred**: **Delays** (a past day as it really
+ran) and **Hotspots** (aggregated delay hotspots over a freely chosen time
+range). Nothing of that chain is built — no measured data is fetched, no delay
+artifact is written — and the app makes no claim about punctuality until it is.
 
 **Two usage contexts:** the regular web app and an **exhibition mode** (kiosk,
-unattended). Data sources: the GTFS planned timetable, actual (measured) data,
-and swisstopo geometry — Switzerland-wide, always the **current day**. Rail and
-tram run on the real geometry of the BAV rail network; buses are drawn as
-straight lines between their stops, since routing them over the road network
-would buy little at the zoom levels the views live at.
+unattended). Data sources: the GTFS planned timetable and swisstopo geometry —
+Switzerland-wide, always the **current day**; measured data joins them with the
+two deferred views. Rail and tram run on the real geometry of the BAV rail
+network; buses are drawn as straight lines between their stops, since routing
+them over the road network would buy little at the zoom levels the views live
+at.
 
 ## Running locally
 
@@ -61,7 +66,7 @@ client needs is served directly by the reverse proxy.
 - `GET /` — the entry point, redirecting to `/takt`.
 - `GET /takt`, `GET /ausbreitung`, `GET /reisezeit` — one page per view, each
   carrying its own panel. Switching between them is a page load, reached through
-  the view switcher in the top bar.
+  the view switcher in the dock's app tile.
 - `GET /api/config` — JSON
   `{ serviceDate, railScheduleBlobUrl, roadScheduleBlobUrl, railStationsUrl, roadStationsUrl }`.
   The service day is read from the `current` artifact symlink. Returns `503`
@@ -78,9 +83,11 @@ day: a deploy can change the config URLs and a rebuild can re-emit the same day
 with new fields, and a day-keyed validator would strand clients on a stale body.
 
 The schedule blobs themselves are **not** served by the app in production: the
-proxy serves them from the published `current` symlink under the stable URLs
+proxy serves them from the published `current` symlink under
 `/artifacts/schedule-rail.itsb` and `/artifacts/schedule-road.itsb` (the dev
-server stands in for the proxy under `DEBUG`).
+server stands in for the proxy under `DEBUG`). The config hands out those paths
+with the published file's version appended as `?v=…`, so a rebuild is a new
+address and no cache can hold a blob against a catalog that has moved on.
 
 ## Frontend (viz-core)
 
@@ -105,11 +112,11 @@ runtime stays bundler-free. `viz-core` is a small framework the views plug into
   proof that reader and writer agree on the format.
 - **Journeys are computed in the browser**, not on the server. A
   `ConnectionList` turns the loaded blobs into every leg of the day in departure
-  order — one shared station space over both networks — and a `ConnectionScan`
-  walks it once to leave the earliest arrival at every station, with the
-  connection one came on. That reachability tree is what the Spread animates and
-  the travel-time graph draws: some 2.3 million legs scanned in a few
-  milliseconds, so a visitor may pick any starting point without the server
+  order — one shared station directory over both networks — and a
+  `ConnectionScan` walks it once to leave the earliest arrival at every station,
+  with the connection one came on. That reachability tree is what the Spread
+  animates and the travel-time graph draws: some 2.3 million legs scanned in a
+  few milliseconds, so a visitor may pick any starting point without the server
   hearing of it.
 - **Sonification** is a sibling of the position engine and runs entirely in the
   browser off the same daily blobs: a `SonificationEngine` indexes a blob's
@@ -126,10 +133,21 @@ runtime stays bundler-free. `viz-core` is a small framework the views plug into
   `sonification/sounds/`, and that same registry is what the vendoring script
   mirrors — so a sound the app offers is one it can play.
 - **A listener may write one.** The `InstrumentationEditor` is a drawer opposite
-  the sidebar in which such a document is typed and checked on every keystroke;
+  the dock in which such a document is typed and checked on every keystroke;
   what plays is heard at once and kept in the browser's local storage, so it
-  outlasts the page and joins the dropdown. It never reaches the server, and the
-  exhibition mode does not build it.
+  outlasts the page and joins the sound list. It never reaches the server, and
+  the exhibition mode does not build it.
+- **The controls live in a dock**, not in a chrome of their own: a strip of
+  tiles down the left edge of the picture, along its foot on a narrow screen.
+  One tile per group — the gallery of views, play, time, elements, map, sound,
+  info. A tile is hovered to learn its name and clicked to open the card holding
+  its controls; only one card stands open, so the picture is never covered by
+  more than the one thing being set. Which control belongs to which tile is held
+  once, in `dockTiles`, so a panel supplies its sections without knowing where
+  they surface, and a tile whose sections a view does not offer is not hung at
+  all — which is how the exhibition and the travel-time view thin the dock out
+  by themselves. Play is the one tile that answers the press itself, wearing the
+  face of what pressing it will do next.
 - **Styling** follows [SMACSS](http://smacss.com/) as static CSS under
   `frontend/styles/` (base with design tokens, layout, one file per module) — no
   inline styles, bundler-free, biome-formatted. A base template carries the
@@ -151,19 +169,25 @@ _All in Time_ expects of its runtime environment:
   expected to serve them via its _static_ pre-compression (gzip/brotli), so
   nothing is recompressed per request. Sidecars sit in the per-day directory and
   swap atomically with the blob, so they never go stale.
+- **Versioned artifact URLs.** `/api/config` addresses each blob with the
+  version of the published file (`?v=…`), the way the static files carry their
+  content hash. A rebuilt day is a new address, so a client can never read a
+  cached blob against the station catalog whose indices no longer match it. The
+  config response itself revalidates, which is what makes the new address reach
+  clients at all; the blobs behind those addresses may be cached freely.
 - **A tile proxy with cache** (server-to-server to swisstopo) — the client talks
   **only** to our server, never to third-party hosts (for all assets, fonts,
   maps). The client requests same-origin `/tiles/{layer}/{z}/{x}/{y}.{ext}`; the
   proxy adds the swisstopo host, referer and cache, so the layer choice lives in
   the path and the client stays origin-agnostic.
 - **A MariaDB database** (per app, with its own user).
-- **A scheduler** running **two commands** daily (`build_schedule` for the
-  planned timetable, `build_actuals` for the measured data) and alerting on
-  failure. `build_schedule` builds the **current** day (Europe/Zurich), so it
-  must run **after local midnight**; it briefly needs extra disk (a new raw feed
-  is fetched next to the previous one before the old is pruned), so it should
-  run **before the nightly VM snapshot** and not overlap it, keeping the
-  snapshot consistent and free of the transient peak.
+- **A scheduler** running `build_schedule` daily and alerting on failure. A
+  second command for the measured data comes with the two deferred views.
+  `build_schedule` builds the **current** day (Europe/Zurich), so it must run
+  **after local midnight**; it briefly needs extra disk (a new raw feed is
+  fetched next to the previous one before the old is pruned), so it should run
+  **before the nightly VM snapshot** and not overlap it, keeping the snapshot
+  consistent and free of the transient peak.
 - **An env file** with the configuration/secret values (no hostname, no
   infrastructure reference in the code repo).
 - **A persistent data directory** that survives deploys and is shared by the app

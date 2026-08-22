@@ -5,8 +5,12 @@ import { ConnectionScan } from '../viz-core/connectionScan.js';
 import { element } from '../viz-core/dom.js';
 import { Panel } from '../viz-core/panel.js';
 import { placesOfReachedStations } from '../viz-core/places.js';
-import { stationToTravelFrom } from '../viz-core/startStation.js';
+import {
+  StartStationChoice,
+  stationToTravelFrom,
+} from '../viz-core/startStation.js';
 import { StationCatalog } from '../viz-core/stationCatalog.js';
+import { drawStationClock, todayIso } from '../viz-core/stationClock.js';
 import {
   dominantStationMode,
   nearestStation,
@@ -32,7 +36,7 @@ import { SettledLayer } from './settledLayer.js';
 // keeps: the flash says "just now", the node says "already been". The flash is
 // measured in schedule seconds, so it keeps its meaning whatever the tempo.
 const FLASH_SECONDS = 480;
-const FLASH_EXTRA_DIAMETER_PIXELS = 9;
+const FLASH_EXTRA_DIAMETER_PIXELS = 6;
 const SETTLED_ALPHA = 210;
 
 // A node keeps the size the map layer gives it at this zoom, weighted by the
@@ -80,14 +84,26 @@ export class AusbreitungPanel extends Panel {
     stationPicking: true,
     mapBackground: true,
     zoomSlider: true,
+    needsAStation: true,
   };
 
-  constructor(railBuffer, railStations, startTimeSeconds) {
+  constructor(
+    railBuffer,
+    railStations,
+    startTimeSeconds,
+    addressedStationSlug = null,
+    serviceDateIso = todayIso(),
+  ) {
     super();
+    this.serviceDateIso = serviceDateIso;
     this.catalog = new StationCatalog([]);
     this.networks = [];
     this.startTimeSeconds = startTimeSeconds;
+    this.startStationChoice = new StartStationChoice(addressedStationSlug, {
+      drawsOnItsOwn: false,
+    });
     this.startStation = null;
+    this.spreadOnScreen = null;
     this.tree = null;
     this.rides = [];
     this.places = new ReachedPlaces([]);
@@ -126,15 +142,37 @@ export class AusbreitungPanel extends Panel {
     this.networks.push({ engine, trips: engine.trips, stations });
     this.connections = buildConnectionList(this.networks);
     this.scan = new ConnectionScan(this.connections);
-    this.#pickAStartStationIfNobodyChoseOne();
+    this.#settleOnAStartStation();
     this.#rescan();
   }
 
-  #pickAStartStationIfNobodyChoseOne() {
+  // Nothing more is on its way, so a stop the address names that no schedule
+  // knows is not going to turn up: the spread stops waiting for it and sets off
+  // from a stop of the panel's own.
+  noFurtherScheduleIsComing() {
+    this.startStationChoice.noFurtherScheduleIsComing();
     if (this.startStation !== null) {
       return;
     }
-    this.startStation = stationToTravelFrom(
+    this.#settleOnAStartStation();
+    this.#rescan();
+  }
+
+  #settleOnAStartStation() {
+    this.startStation = this.startStationChoice.settleOn(
+      this.catalog,
+      this.connections,
+      this.scan,
+      this.startTimeSeconds,
+    );
+  }
+
+  startsFrom() {
+    return this.startStation;
+  }
+
+  drawStation() {
+    return stationToTravelFrom(
       this.catalog,
       this.connections,
       this.scan,
@@ -143,7 +181,7 @@ export class AusbreitungPanel extends Panel {
   }
 
   revealStation(station) {
-    this.startStation = station;
+    this.startStation = this.startStationChoice.choose(station);
     this.#rescan();
   }
 
@@ -153,20 +191,58 @@ export class AusbreitungPanel extends Panel {
     context.camera.fit();
   }
 
+  // Only the departure to set off from next: a spread already running keeps
+  // running, since recomputing it under the viewer would take away the picture
+  // being watched. It is the restart that sets off from the new time.
   setStartTime(seconds) {
     this.startTimeSeconds = seconds;
-    this.#rescan();
   }
 
-  #rescan() {
+  // Whatever is on screen is given up for a spread from the departure now
+  // chosen, played from its first minute -- even where that is the spread
+  // already shown, since asking for it again is asking to see it again.
+  restart() {
+    this.#rescan({ againFromTheBeginning: true });
+  }
+
+  #rescan({ againFromTheBeginning = false } = {}) {
     const start = this.connections.stationOf(this.startStation?.didok);
     if (start === undefined) {
+      this.#showNothingYet();
       return;
     }
+    const carriesOnTheSpreadOnScreen =
+      !againFromTheBeginning && this.#carriesOnTheSpreadOnScreen();
     this.tree = this.scan.from(start, this.startTimeSeconds);
     this.rides = this.#ridesOfTree();
     this.places = new ReachedPlaces(this.#placesOfTree());
     this.settled?.forget();
+    this.spreadOnScreen = {
+      station: this.startStation,
+      departureSeconds: this.startTimeSeconds,
+    };
+    this.#handTheClockItsRange({
+      fromTheBeginning: !carriesOnTheSpreadOnScreen,
+    });
+  }
+
+  // A spread that gains the buses it was missing is the one already on screen,
+  // carried on rather than begun again; another starting point or another
+  // departure makes a spread of its own.
+  #carriesOnTheSpreadOnScreen() {
+    return (
+      this.spreadOnScreen !== null &&
+      this.spreadOnScreen.station === this.startStation &&
+      this.spreadOnScreen.departureSeconds === this.startTimeSeconds
+    );
+  }
+
+  #showNothingYet() {
+    this.tree = null;
+    this.rides = [];
+    this.places = new ReachedPlaces([]);
+    this.settled?.forget();
+    this.spreadOnScreen = null;
     this.#handTheClockItsRange();
   }
 
@@ -220,9 +296,21 @@ export class AusbreitungPanel extends Panel {
 
   // The spread has a beginning and an end of its own: it starts when one sets
   // off and is over when the last vehicle has landed. A fresh one runs from its
-  // beginning, whether or not the last had come to rest.
-  #handTheClockItsRange() {
-    if (this.time === null || this.tree === null) {
+  // beginning, whether or not the last had come to rest; while there is no
+  // spread to show, the clock has nothing to count and stands.
+  #handTheClockItsRange({ fromTheBeginning = true } = {}) {
+    if (this.time === null) {
+      return;
+    }
+    if (this.tree === null) {
+      this.time.pause();
+      return;
+    }
+    if (!fromTheBeginning) {
+      this.time.setRangeKeepingTime(
+        this.startTimeSeconds,
+        this.tree.latestArrival(),
+      );
       return;
     }
     this.time.setRange(this.startTimeSeconds, this.tree.latestArrival());
@@ -263,6 +351,12 @@ export class AusbreitungPanel extends Panel {
     this.#drawReachedPlaces(p, context);
     this.#drawVehicles(p, context);
     this.#drawStart(p, context);
+  }
+
+  // Where the spread has got to. Nothing else on the picture says which moment
+  // it stands at, and the spread is about time passing.
+  drawOverlay(p) {
+    drawStationClock(p, this.currentTimeSeconds, this.serviceDateIso);
   }
 
   #drawReachedPlaces(p, context) {
@@ -350,12 +444,6 @@ export class AusbreitungPanel extends Panel {
     p.circle(this.startStation.east, this.startStation.north, ringDiameter);
   }
 
-  // The question the picture answers, and where the spread has got to: without
-  // the clock nothing would say which moment is on screen.
-  headline() {
-    return `Wenn ich um ${formatTimeOfDay(this.startTimeSeconds)} in ${this.startStation.name} losfahre, wo bin ich um ${formatTimeOfDay(this.currentTimeSeconds)}?`;
-  }
-
   // Only what is already lit can be picked: the picture answers for where one
   // has got to, not for where one will be later.
   stationNear(screenX, screenY) {
@@ -414,6 +502,7 @@ export class AusbreitungPanel extends Panel {
     );
     return {
       label: categoryLabel(vehicle.category),
+      category: vehicle.category,
       origin: stations[originStation]?.name,
       destination: stations[destinationStation]?.name,
     };
@@ -430,7 +519,7 @@ export class AusbreitungPanel extends Panel {
     return buildInfoContent();
   }
 
-  sidebarSections() {
+  controlSections() {
     return [
       {
         id: 'departure',
@@ -442,24 +531,28 @@ export class AusbreitungPanel extends Panel {
   }
 
   #departureControl() {
-    const group = element('div', 'sidebar-options');
+    const group = element('div', 'control-options');
     const slider = this.#departureSlider();
-    const chosenTime = element('p', 'sidebar-hint is-visible');
+    const chosenTime = element('p', 'control-hint is-visible');
     chosenTime.textContent = formatTimeOfDay(this.startTimeSeconds);
-    // While the slider is moved only the reading follows; the spread is
-    // recomputed once the hand lets go of it.
     slider.addEventListener('input', () => {
       chosenTime.textContent = formatTimeOfDay(Number(slider.value));
-    });
-    slider.addEventListener('change', () => {
       this.setStartTime(Number(slider.value));
     });
-    group.append(slider, chosenTime);
+    group.append(slider, chosenTime, this.#restartButton());
     return group;
   }
 
+  #restartButton() {
+    const button = element('button', 'control-button');
+    button.type = 'button';
+    button.textContent = 'Neu starten';
+    button.addEventListener('click', () => this.restart());
+    return button;
+  }
+
   #departureSlider() {
-    const slider = element('input', 'sidebar-departure');
+    const slider = element('input', 'control-slider');
     slider.type = 'range';
     slider.min = '0';
     slider.max = String(SECONDS_PER_DAY - DEPARTURE_STEP_SECONDS);

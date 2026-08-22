@@ -53,7 +53,7 @@ const soundNameRows = () =>
       .join(', '),
   ]);
 
-// A drawer opposite the sidebar in which a listener writes an instrumentation
+// A drawer opposite the dock in which a listener writes an instrumentation
 // document and hears it at once. Every keystroke is checked: a document that
 // plays is kept and handed on, a faulty one only names its mistake, so a
 // half-written state never breaks off the sound. The drawer keeps no state of

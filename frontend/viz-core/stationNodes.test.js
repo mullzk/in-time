@@ -4,6 +4,7 @@ import { Camera } from './camera.js';
 import {
   dominantStationMode,
   fallbackLayerForStops,
+  layersDownTo,
   layerToRevealStation,
   nearestStation,
   nodeDiameterPixels,
@@ -142,6 +143,27 @@ test('layerToRevealStation leaves a station alone when its layer already shows',
     bus: true,
   };
   assert.equal(layerToRevealStation(['bus'], busOnly), null);
+});
+
+test('layersDownTo names the layer and every more structural one', () => {
+  assert.deepEqual(layersDownTo('bus'), [
+    'fernverkehr',
+    'interregio',
+    'regionalverkehr',
+    'tram',
+    'bus',
+  ]);
+  assert.deepEqual(layersDownTo('tram'), [
+    'fernverkehr',
+    'interregio',
+    'regionalverkehr',
+    'tram',
+  ]);
+  assert.deepEqual(layersDownTo('fernverkehr'), ['fernverkehr']);
+});
+
+test('layersDownTo names nothing for a layer that carries no vehicles', () => {
+  assert.deepEqual(layersDownTo('stops'), []);
 });
 
 test('stopsToggleOnZoomCross toggles only when the threshold is crossed', () => {

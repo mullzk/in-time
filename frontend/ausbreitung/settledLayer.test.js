@@ -11,29 +11,33 @@ const camera = (scale = 1) => ({
 });
 
 // Records what was painted, in the terms the layer speaks: cleared, and the
-// stretch of each run it drew.
-const fakeGraphics = () => ({
-  width: 800,
-  height: 600,
-  painted: [],
-  clear() {
-    this.painted.push('clear');
-  },
-  push() {},
-  pop() {},
-  resetMatrix() {},
-  translate() {},
-  scale() {},
-  noFill() {},
-  stroke() {},
-  strokeWeight() {},
-  strokeCap() {},
-  beginShape() {},
-  vertex(east) {
-    this.painted.push(east);
-  },
-  endShape() {},
-});
+// stretch of each run it drew. The places go into the raw canvas context, one
+// arc each, so that is where they are caught.
+const fakeGraphics = () => {
+  const painted = [];
+  return {
+    width: 800,
+    height: 600,
+    painted,
+    clear() {
+      painted.push('clear');
+    },
+    push() {},
+    pop() {},
+    resetMatrix() {},
+    translate() {},
+    scale() {},
+    drawingContext: {
+      fillStyle: '',
+      beginPath() {},
+      moveTo() {},
+      arc(east) {
+        painted.push(east);
+      },
+      fill() {},
+    },
+  };
+};
 
 const run = (category, count, settledUntil) => ({
   category,
@@ -47,8 +51,6 @@ const layerOf = () => {
   const sketch = {
     width: graphics.width,
     height: graphics.height,
-    POINTS: 0,
-    ROUND: 'round',
     createGraphics: () => graphics,
   };
   return { graphics, layer: new SettledLayer(sketch, () => [1, 2, 3, 200]) };
@@ -111,4 +113,28 @@ test('a forgotten layer is painted anew', () => {
   layer.paint(camera(), [run(6, 5, 3)], () => 2);
 
   assert.deepEqual(graphics.painted, ['clear', 0, 1, 2]);
+});
+
+test('a rank drawn higher up is painted again over what settled under it', () => {
+  const { graphics, layer } = layerOf();
+  layer.paint(camera(), [run(6, 5, 2), run(0, 3, 1)], () => 2);
+  graphics.painted.length = 0;
+
+  layer.paint(camera(), [run(6, 5, 4), run(0, 3, 1)], () => 2);
+
+  assert.deepEqual(
+    graphics.painted,
+    [2, 3, 0],
+    'the two new bus stops, then the station over them again',
+  );
+});
+
+test('a rank drawn under a gaining one is left where it is', () => {
+  const { graphics, layer } = layerOf();
+  layer.paint(camera(), [run(6, 5, 2), run(0, 3, 1)], () => 2);
+  graphics.painted.length = 0;
+
+  layer.paint(camera(), [run(6, 5, 2), run(0, 3, 3)], () => 2);
+
+  assert.deepEqual(graphics.painted, [1, 2], 'only the new stations');
 });

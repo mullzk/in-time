@@ -1,4 +1,4 @@
-export const MIN_TEMPO = 60;
+export const MIN_TEMPO = 10;
 export const MAX_TEMPO = 900;
 export const DEFAULT_TEMPO = 240;
 export const SECONDS_PER_DAY = 24 * 3600;
@@ -31,6 +31,15 @@ export class TimeModel {
     this.rangeStart = rangeStart;
     this.rangeEnd = rangeEnd;
     this.seekToTime(rangeStart);
+  }
+
+  // A spread that gains the vehicles it was still missing stays the spread one
+  // is watching: it may end later than it did, but the clock keeps its place in
+  // it rather than sending the picture back to the beginning.
+  setRangeKeepingTime(rangeStart, rangeEnd) {
+    this.rangeStart = rangeStart;
+    this.rangeEnd = rangeEnd;
+    this.current = clamp(this.current, rangeStart, rangeEnd);
   }
 
   // A spread that has run out is played again by running it again: there is

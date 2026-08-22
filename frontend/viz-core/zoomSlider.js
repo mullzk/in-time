@@ -1,4 +1,4 @@
-// Fixed, countable zoom stops for the sidebar slider; the wheel and pinch stay
+// Fixed, countable zoom stops for the display tile's slider; the wheel and pinch stay
 // continuous and the slider snaps to the nearest stop.
 export const ZOOM_STEPS = 7;
 

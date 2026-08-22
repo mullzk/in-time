@@ -1,0 +1,79 @@
+/* SMACSS Module: the info card — what the dock's info tile opens: the project
+   described, its controls explained, its shortcuts listed. Type only; the card
+   around it is the dock's. */
+.info-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-m);
+  font-size: 13px;
+}
+
+.info-card-title {
+  margin: 0;
+  font-size: 16px;
+}
+
+.info-card-intro {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.info-card-link {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.info-card-link:hover {
+  color: var(--color-control-text);
+}
+
+.info-card-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s);
+}
+
+.info-card-heading {
+  margin: var(--space-s) 0 0;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.5;
+}
+
+.info-card-shortcuts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-s) var(--space-m);
+  margin: 0;
+}
+
+/* Each shortcut is a dt/dd pair that flows into the parent's two columns. */
+.info-card-shortcut {
+  display: contents;
+}
+
+.info-card-shortcut dt,
+.info-card-shortcut dd {
+  margin: 0;
+}
+
+.info-card-key {
+  display: inline-block;
+  min-width: 1.5em;
+  padding: 1px 6px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: var(--color-control);
+  color: var(--color-control-text);
+  font: inherit;
+  font-size: 12px;
+  text-align: center;
+}
+
+/* Given the width, the shortcuts pair up: two key-and-meaning columns halve a
+   list that would otherwise be the tallest thing in the card. */
+.dock-card-wide .info-card-shortcuts {
+  grid-template-columns: auto 1fr auto 1fr;
+}

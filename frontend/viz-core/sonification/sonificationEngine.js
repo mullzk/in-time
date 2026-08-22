@@ -10,7 +10,7 @@
 //    voice budget thin out what is left, and the schedule time is divided by the
 //    tempo to become an absolute time on the audio clock.
 // 3. What it sounds like -- a document, not code. presets.js imports the
-//    instrumentations the sidebar offers from instrumentations/; each names a
+//    instrumentations the sound card offers from instrumentations/; each names a
 //    sound per transport group and per event, and instrumentation.js resolves a
 //    group and an event kind against it into concrete superdough parameters. The
 //    document may say as little as one sound for everything: what it leaves out

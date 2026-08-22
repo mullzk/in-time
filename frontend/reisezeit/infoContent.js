@@ -29,7 +29,8 @@ export function buildInfoContent() {
     ],
     controlHelp:
       'Der Standort wird über das Suchfeld oben gewählt, gezoomt wird mit ' +
-      'dem Mausrad oder mit + und −.',
+      'dem Mausrad oder mit + und −. Die Ansicht wird über das Dock am ' +
+      'linken Rand gewechselt.',
     shortcuts: [
       { keys: '+', description: 'Hineinzoomen' },
       { keys: '−', description: 'Herauszoomen' },

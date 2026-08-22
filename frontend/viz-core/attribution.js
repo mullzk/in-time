@@ -1,8 +1,8 @@
 import { element } from './dom.js';
 
-// The map source credit, pinned to the lower-right corner. swisstopo's terms of
-// use require a visible reference wherever their raster maps are shown; the
-// credit names the map layer (not the app) and links only the source name.
+// The map source credit, hung in the lower-right corner of the page. swisstopo's
+// terms of use require a visible reference wherever their raster maps are shown;
+// the credit names the map layer (not the app) and links only the source name.
 // Passing a null attribution (the black background) hides it again.
 export class Attribution {
   constructor(container) {

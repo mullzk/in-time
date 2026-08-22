@@ -40,7 +40,12 @@ def test_category_of_rail(route_type: int, expected: int) -> None:
 
 @pytest.mark.parametrize(
     "route_type,expected",
-    [(900, CATEGORY_TRAM), (700, CATEGORY_BUS), (702, CATEGORY_BUS)],
+    [
+        (900, CATEGORY_TRAM),
+        (401, CATEGORY_TRAM),
+        (700, CATEGORY_BUS),
+        (702, CATEGORY_BUS),
+    ],
 )
 def test_category_of_tram_and_bus(route_type: int, expected: int) -> None:
     assert category_of(route_type) == expected
