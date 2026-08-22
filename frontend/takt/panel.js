@@ -33,6 +33,7 @@ import {
 } from '../viz-core/transportCategories.js';
 import { VehiclePositionEngine } from '../viz-core/vehiclePositionEngine.js';
 import { buildInfoContent } from './infoContent.js';
+import { drawStationClock } from './stationClock.js';
 
 // Stacking order where points overlap: buses at the bottom, trams above,
 // trains on top, so the far more numerous buses never hide the trains.
@@ -322,6 +323,10 @@ export class TaktPanel extends Panel {
     }
     this.#drawStationNodes(p, context);
     this.#drawVehicles(p, context);
+  }
+
+  drawOverlay(p) {
+    drawStationClock(p, this.currentTimeSeconds);
   }
 
   #drawVehicles(p, context) {
