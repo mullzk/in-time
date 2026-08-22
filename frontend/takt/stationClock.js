@@ -136,10 +136,7 @@ const blended = (day, night, amount) =>
   day.map((channel, index) => channel + (night[index] - channel) * amount);
 
 const paletteAt = (timeOfDaySeconds, serviceDateIso) => {
-  const amount = nightAmount(
-    timeOfDaySeconds,
-    sunOfServiceDate(serviceDateIso),
-  );
+  const amount = nightAmount(timeOfDaySeconds, serviceDateIso);
   return {
     case: blended(DAY_PALETTE.case, NIGHT_PALETTE.case, amount),
     dial: blended(DAY_PALETTE.dial, NIGHT_PALETTE.dial, amount),

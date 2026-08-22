@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { centreOfClock, handTurns, nightAmount } from './stationClock.js';
+import {
+  centreOfClock,
+  drawStationClock,
+  handTurns,
+  nightAmount,
+} from './stationClock.js';
 
 const at = (hours, minutes = 0) => hours * 3600 + minutes * 60;
 
@@ -75,4 +80,35 @@ test('on a narrow canvas the clock drops below the top bar', () => {
 test('the dial keeps a sane size on any canvas', () => {
   assert.equal(centreOfClock(4000, 3000).radius, 52);
   assert.equal(centreOfClock(320, 200).radius, 28);
+});
+
+// Straight through the drawing, which is what the panel calls: the pieces above
+// can each be right while the call between them passes the wrong thing.
+const dialFillOf = (timeOfDaySeconds, serviceDateIso) => {
+  const fills = [];
+  const sketch = {
+    width: 1200,
+    height: 800,
+    fill: (...color) => fills.push(color),
+    push() {},
+    pop() {},
+    translate() {},
+    rotate() {},
+    noStroke() {},
+    circle() {},
+    rect() {},
+    quad() {},
+  };
+  drawStationClock(sketch, timeOfDaySeconds, serviceDateIso);
+  return fills[1];
+};
+
+test('the drawn dial is light by day and dark by night', () => {
+  assert.deepEqual(dialFillOf(at(12), JUNE), [255, 255, 255]);
+
+  const [red, green, blue] = dialFillOf(at(3), JUNE);
+  assert.ok(
+    red < 60 && green < 60 && blue < 60,
+    `the night dial stood at ${red}, ${green}, ${blue}`,
+  );
 });
