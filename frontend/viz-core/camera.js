@@ -73,7 +73,7 @@ export class Camera {
 
   // 0 at the fully zoomed-out fit, 1 at the maximum zoom-in, logarithmic in
   // between so equal fractions are equal zoom ratios — the basis for the
-  // sidebar's fixed zoom steps.
+  // slider's fixed zoom steps.
   zoomFraction() {
     const minScale = this.#minScale();
     return (

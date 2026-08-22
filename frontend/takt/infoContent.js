@@ -11,7 +11,6 @@ export function buildInfoContent({ stationSearch }) {
     { keys: '−', description: 'Herauszoomen' },
     { keys: 'F', description: 'Ganze Schweiz einpassen' },
     { keys: 'H', description: 'Haltestellen ein- und ausblenden' },
-    { keys: 'S', description: 'Seitenleiste öffnen und schließen' },
   ];
   if (stationSearch) {
     shortcuts.push({ keys: 'G', description: 'Stationssuche öffnen' });
@@ -48,9 +47,10 @@ export function buildInfoContent({ stationSearch }) {
       ],
     ],
     controlHelp:
-      'In der Seitenleiste (☰ oben links) lassen sich verschiedene ' +
-      'Karten-Hintergründe wählen und einzelne Inhalts-Ebenen ein- oder ' +
-      'ausblenden.',
+      'Die Bedienung liegt im Dock am linken Rand: jede Kachel öffnet eine ' +
+      'Karte mit ihren Einstellungen — Ansicht, Zeit, Elemente (die ' +
+      'Inhalts-Ebenen), Karte (Hintergrund und Zoom) und Sound. Die ' +
+      'Wiedergabe-Kachel hält die Simulation an und lässt sie weiterlaufen.',
     shortcuts,
   };
 }

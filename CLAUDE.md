@@ -96,7 +96,7 @@ Work is organised into packages (P0–P6) across three phases; see
 - **SMACSS**, delivered as static files — **no inline `<style>`, no CSS-in-JS**.
   Layers: **base** (reset, element defaults, design tokens as `:root` custom
   properties), **layout** (`l-` regions), **module** (one component per file,
-  e.g. the cockpit), **state** (`is-`). Modules reference tokens, never raw
+  e.g. the dock), **state** (`is-`). Modules reference tokens, never raw
   colours/spacing.
 - **Delivery:** plain CSS under `frontend/styles/`, collected by
   `collectstatic`, linked via `{% static %}`. A base template carries the global

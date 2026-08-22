@@ -4,9 +4,8 @@ import { element } from './dom.js';
 // does, so there is no question to ask yet -- this stands in its place.
 export const HEADLINE_WHILE_LOADING = 'Fahrplan wird geladen …';
 
-// The question a view answers, written over its picture. Plain DOM: the layout
-// -- including making way for the sidebar -- is the stylesheet's business, not
-// the canvas's.
+// The question a view answers, written over its picture. Plain DOM: where it
+// hangs is the stylesheet's business, not the canvas's.
 export class Headline {
   constructor(container) {
     this.root = element('p', 'panel-headline');

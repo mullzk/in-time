@@ -1,11 +1,12 @@
-/* SMACSS Module: the station search — the middle of the top bar, styled like
-   the cockpit, with a suggestion list that drops below it. Its column caps how
-   wide it grows; beyond that a station name gains nothing. */
+/* SMACSS Module: the station search — the middle of the top bar, with a
+   suggestion list that drops below it. Its width is capped; beyond that a
+   station name gains nothing. */
 .station-search {
   /* Room the ask opens above and below the field, for the sentence and the
      button. Symmetric, so the card it opens stays centred on the field. */
   --ask-inset: calc(var(--control-height) + var(--space-m));
   position: relative;
+  width: min(360px, 100%);
   min-width: 0;
   transition:
     transform var(--transition-panel),
@@ -155,12 +156,4 @@
 .station-search-suggestion.is-active,
 .station-search-suggestion:hover {
   background: var(--color-control);
-}
-
-/* Two rows: the search shares the lower one with the buttons and takes whatever
-   they leave. */
-@media (max-width: 640px) {
-  .station-search {
-    grid-area: search;
-  }
 }

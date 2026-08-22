@@ -65,6 +65,14 @@ export class Sonifier {
     this.#ensureAudio();
   }
 
+  // Nobody is listening to a place any more: the events are dropped rather than
+  // asked of a station that is no longer there.
+  forgetStation() {
+    this.station = null;
+    this.events = [];
+    this.#resync();
+  }
+
   // Re-reads the chosen station's events after the panel gained a schedule, so a
   // station picked before the buses arrived starts sounding them too.
   refreshStation() {

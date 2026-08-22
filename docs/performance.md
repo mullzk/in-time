@@ -67,15 +67,20 @@ operating days **and** `≥4` departures per day. Local run, Apple Silicon.
 
 Two blobs per day: `schedule-rail.itsb` (rail + tram routed over the BAV
 network) and `schedule-road.itsb` (buses drawn as straight lines between stops,
-no geometry). GTFS feed 2026 + rail network GDB, day 2026-07-17. Local run,
-Apple Silicon.
+no geometry). GTFS feed 2026-08-19 + rail network GDB, day 2026-08-22 (a
+Saturday, hence fewer trips than the weekday run this table held before). Local
+run, Apple Silicon.
 
-| metric                                | rail (rail+tram)    | road (bus)      |
-| ------------------------------------- | ------------------- | --------------- |
-| trips                                 | 27 004              | 129 056         |
-| stations                              | 2 017               | 21 400          |
-| blob raw / gz                         | 7.85 / 1.03 MB      | 31.39 / 4.26 MB |
-| routing direct/multi/recover/straight | 99.22/0.74/0/0.04 % | — (straight)    |
+| metric                                | rail (rail+tram+metro) | road (bus)      |
+| ------------------------------------- | ---------------------- | --------------- |
+| trips                                 | 25 330                 | 102 225         |
+| stations                              | 2 093                  | 20 686          |
+| blob raw / gz                         | 7.77 / 1.03 MB         | 25.57 / 3.45 MB |
+| inputs load / day build               | 70.3 s / 45.5 s        | (same run)      |
+| routing direct/multi/recover/straight | 99.20/0.76/0/0.04 %    | — (straight)    |
+
+The two straight-line fallbacks left are Croix-du-Nant <-> Monthey-Hôpital (1.7
+km each way).
 
 Blob v2 dropped the four per-trip columns no reader consumed (first departure,
 last arrival, and the path slice bounds), 16 bytes per trip: 0.43 MB off the

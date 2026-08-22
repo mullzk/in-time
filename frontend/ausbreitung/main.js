@@ -27,6 +27,7 @@ async function bootstrap() {
     result.railStations,
     DEPARTURE_SECONDS,
     stationInUrl.slug,
+    result.config.serviceDate,
   );
   // The panel hands the clock the stretch its own spread covers as soon as it
   // has one; until then it runs from the departure. A spread is over when the

@@ -1,17 +1,18 @@
 import { element } from './dom.js';
 import { VIEWS } from './views.js';
 
-// The gallery as one pill in the control row: every view side by side, the one
-// on screen filled in. Plain links, because switching views is a page load --
-// they can be opened in a new tab, and the current one is marked rather than
-// made clickable to nowhere. Each link carries the station on show, so the next
-// view opens on the same place.
+// The gallery in the app tile's card: every view under the other, the one on
+// screen filled in. It wears the choice list's face but is built of links,
+// because switching views is a page load -- they can be opened in a new tab, and
+// the current one is marked rather than made clickable to nowhere. Each link
+// carries the station on show, so the next view opens on the same place. Where
+// the switcher hangs is the caller's: it is handed the DOM rather than mounting
+// itself.
 export class ViewSwitcher {
-  constructor(container, stationInUrl) {
+  constructor(stationInUrl) {
     this.stationInUrl = stationInUrl;
-    this.root = element('nav', 'view-switcher');
+    this.root = element('nav', 'choice-list');
     this.root.setAttribute('aria-label', 'Ansicht');
-    container.appendChild(this.root);
     this.refreshLinks();
   }
 
@@ -26,7 +27,7 @@ export class ViewSwitcher {
   }
 
   #link(view) {
-    const anchor = element('a', 'view-switcher-view');
+    const anchor = element('a', 'choice-list-option');
     anchor.textContent = view.label;
     anchor.href = this.stationInUrl.linkTo(view.path);
     return anchor;
@@ -34,7 +35,7 @@ export class ViewSwitcher {
 }
 
 function currentView(view) {
-  const marked = element('span', 'view-switcher-view is-current');
+  const marked = element('span', 'choice-list-option is-current');
   marked.textContent = view.label;
   marked.setAttribute('aria-current', 'page');
   return marked;

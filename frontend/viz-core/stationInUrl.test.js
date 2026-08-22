@@ -109,6 +109,23 @@ test('what else the address carries survives naming a station', () => {
   );
 });
 
+test('giving the station up leaves the view alone in the address', () => {
+  const stationInUrl = stationInUrlAt('/takt/bern');
+
+  stationInUrl.forget();
+
+  assert.equal(stationInUrl.slug, null);
+  assert.equal(stationInUrl.history.written.at(-1), '/takt');
+});
+
+test('what else the address carries survives giving the station up', () => {
+  const stationInUrl = stationInUrlAt('/takt/bern', '?mode=exhibition');
+
+  stationInUrl.forget();
+
+  assert.equal(stationInUrl.history.written.at(-1), '/takt?mode=exhibition');
+});
+
 test('a page outside the gallery is left alone', () => {
   const stationInUrl = stationInUrlAt('/health/');
 

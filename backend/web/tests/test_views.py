@@ -6,7 +6,12 @@ import pytest
 from django.test import Client
 from pytest_django.fixtures import SettingsWrapper
 
-from pipeline.artifacts import STATIONS_RAIL_NAME, STATIONS_ROAD_NAME
+from pipeline.artifacts import (
+    SCHEDULE_RAIL_BLOB_NAME,
+    SCHEDULE_ROAD_BLOB_NAME,
+    STATIONS_RAIL_NAME,
+    STATIONS_ROAD_NAME,
+)
 from pipeline.datadir import DataDir
 
 STATIONS = json.dumps([{"didok": 8_507_000, "name": "Bern"}]).encode("utf-8")
@@ -15,12 +20,14 @@ STATIONS_ROAD = json.dumps([{"didok": 8_500_100, "name": "Basel, Bahnhof"}]).enc
 )
 
 
-def _publish(root: Path, service_date: date) -> None:
+def _publish(root: Path, service_date: date, blob: bytes = b"itsb") -> None:
     data_dir = DataDir(root)
     artifact_dir = data_dir.artifact_dir(service_date)
     artifact_dir.mkdir(parents=True, exist_ok=True)
     (artifact_dir / STATIONS_RAIL_NAME).write_bytes(STATIONS)
     (artifact_dir / STATIONS_ROAD_NAME).write_bytes(STATIONS_ROAD)
+    (artifact_dir / SCHEDULE_RAIL_BLOB_NAME).write_bytes(blob)
+    (artifact_dir / SCHEDULE_ROAD_BLOB_NAME).write_bytes(blob)
     data_dir.publish(service_date)
 
 
@@ -37,8 +44,8 @@ def test_config_returns_the_published_day(client: Client, published: Path) -> No
     assert response.status_code == 200
     body = response.json()
     assert body["serviceDate"] == "2026-07-16"
-    assert body["railScheduleBlobUrl"] == "/artifacts/schedule-rail.itsb"
-    assert body["roadScheduleBlobUrl"] == "/artifacts/schedule-road.itsb"
+    assert body["railScheduleBlobUrl"].startswith("/artifacts/schedule-rail.itsb?v=")
+    assert body["roadScheduleBlobUrl"].startswith("/artifacts/schedule-road.itsb?v=")
     assert body["railStationsUrl"] == "/api/stations-rail"
     assert body["roadStationsUrl"] == "/api/stations-road"
     assert "no-cache" in response["Cache-Control"]
@@ -96,16 +103,17 @@ def test_api_revalidates_across_a_swap(client: Client, published: Path) -> None:
     assert after_swap.json()["serviceDate"] == "2026-07-17"
 
 
-def test_config_etag_tracks_content_not_only_the_day(
-    client: Client, published: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    etag = client.get("/api/config")["ETag"]
+# A day rebuilt from the same sources keeps its name, so only the blob URL can
+# tell a client that what sits behind it has changed.
+def test_a_rebuilt_blob_gets_a_new_url(client: Client, published: Path) -> None:
+    first = client.get("/api/config")
+    before = first.json()["railScheduleBlobUrl"]
 
-    monkeypatch.setattr("web.views.RAIL_SCHEDULE_BLOB_URL", "/artifacts/changed.itsb")
-    after_deploy = client.get("/api/config", HTTP_IF_NONE_MATCH=etag)
+    _publish(published, date(2026, 7, 16), blob=b"itsb rebuilt")
+    after_rebuild = client.get("/api/config", HTTP_IF_NONE_MATCH=first["ETag"])
 
-    assert after_deploy.status_code == 200
-    assert after_deploy.json()["railScheduleBlobUrl"] == "/artifacts/changed.itsb"
+    assert after_rebuild.status_code == 200
+    assert after_rebuild.json()["railScheduleBlobUrl"] != before
 
 
 def test_stations_etag_tracks_content_not_only_the_day(

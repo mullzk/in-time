@@ -2,6 +2,14 @@
 // station gets centred at, unless the view is already closer.
 export const MEDIUM_ZOOM_FRACTION = 0.5;
 
+// The network holds the ground it is drawn on by going the other way than that
+// ground: a light blue-grey lifts it off the black canvas, while over a raster
+// it goes dark, which carries on the pale relief and on the aerial imagery
+// alike -- the imagery is dark, but nowhere near this dark, so the line reads as
+// a drawn one rather than as part of the photo.
+const NETWORK_ON_BLACK = [90, 100, 115];
+const NETWORK_ON_RASTER = [18, 22, 30];
+
 // Curated facade onto the core services a panel is allowed to touch — camera,
 // projection, time, and the drawing helpers — rather than the whole VizCore.
 // Panel-specific state (its VehiclePositionEngine) lives in the panel, not here.
@@ -45,7 +53,7 @@ export class PanelContext {
   // from the calling panel's engine; the style and world-unit width live here.
   drawBasemap(p, edges) {
     p.noFill();
-    p.stroke(90, 100, 115);
+    p.stroke(...(this.tilesVisible ? NETWORK_ON_RASTER : NETWORK_ON_BLACK));
     p.strokeWeight(1.1 / this.camera.scale);
     edges.forEach((polyline) => {
       p.beginShape();

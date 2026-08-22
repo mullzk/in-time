@@ -29,16 +29,18 @@ export function buildInfoContent() {
     controlHelp:
       'Der Standort wird über das Suchfeld oben oder mit einem Klick auf ' +
       'einen erreichten Ort gewählt; ein Klick auf ein Fahrzeug zeigt, ' +
-      'woher es kommt und wohin es fährt. Die Seitenleiste (☰ oben links) ' +
-      'trägt die Abfahrtszeit, den Hintergrund und den Zoom; Tempo und ' +
-      'Uhrzeit der Ausbreitung stehen unten am Bildrand.',
+      'woher es kommt und wohin es fährt. Die Bedienung liegt im Dock am ' +
+      'linken Rand: die Kachel Zeit trägt Tempo, Uhrzeit und Abfahrtszeit, ' +
+      'die Kachel Karte den Hintergrund und den Zoom. Eine neue ' +
+      'Abfahrtszeit unterbricht die laufende Ausbreitung nicht — sie gilt, ' +
+      'sobald Neu starten gedrückt wird. Die Wiedergabe-Kachel hält die ' +
+      'Ausbreitung an und lässt sie weiterlaufen.',
     shortcuts: [
       { keys: 'Leertaste', description: 'Wiedergabe anhalten und fortsetzen' },
       { keys: '+', description: 'Hineinzoomen' },
       { keys: '−', description: 'Herauszoomen' },
       { keys: 'F', description: 'Ganze Schweiz einpassen' },
       { keys: 'G', description: 'Stationssuche öffnen' },
-      { keys: 'S', description: 'Seitenleiste öffnen und schließen' },
       { keys: 'I', description: 'Diese Information öffnen und schließen' },
     ],
   };

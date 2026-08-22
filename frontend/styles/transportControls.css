@@ -1,0 +1,34 @@
+/* SMACSS Module: the transport controls — the tempo, and the time of day with
+   the hand that starts and stops it, each a section of the time tile's card. */
+.transport-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-s);
+  min-width: 0;
+}
+
+/* The scrubber gets a line to itself: play and clock beside each other leave it
+   too little of the card's width to be worth dragging. */
+.transport-scrubber {
+  flex: 1 0 100%;
+  min-width: 0;
+}
+
+.transport-tempo {
+  flex: 1;
+  min-width: 0;
+}
+
+.transport-clock {
+  min-width: 62px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.transport-tempo-value {
+  min-width: 74px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.7;
+}

@@ -6,11 +6,11 @@ from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.views.decorators.http import condition
 
+from pipeline.artifacts import SCHEDULE_RAIL_BLOB_NAME, SCHEDULE_ROAD_BLOB_NAME
 from pipeline.datadir import DataDir
 from web.published import PublishedSchedule
 
-RAIL_SCHEDULE_BLOB_URL = "/artifacts/schedule-rail.itsb"
-ROAD_SCHEDULE_BLOB_URL = "/artifacts/schedule-road.itsb"
+ARTIFACT_URL_PREFIX = "/artifacts/"
 RAIL_STATIONS_URL = "/api/stations-rail"
 ROAD_STATIONS_URL = "/api/stations-road"
 
@@ -33,11 +33,20 @@ def _road_stations_etag(request: HttpRequest) -> str | None:
     return _content_etag(_published().stations_road_bytes())
 
 
-def _config_body(service_date_iso: str) -> dict[str, str]:
+# The blob URLs carry the version of the file they address, the way the static
+# files carry their content hash: a rebuilt day is a new address, so no client
+# can read a cached blob against the station catalog it no longer matches. An
+# unversioned name is answered while nothing is published.
+def _blob_url(published: PublishedSchedule, name: str) -> str:
+    version = published.artifact_version(name)
+    return f"{ARTIFACT_URL_PREFIX}{name}" + (f"?v={version}" if version else "")
+
+
+def _config_body(published: PublishedSchedule, service_date_iso: str) -> dict[str, str]:
     return {
         "serviceDate": service_date_iso,
-        "railScheduleBlobUrl": RAIL_SCHEDULE_BLOB_URL,
-        "roadScheduleBlobUrl": ROAD_SCHEDULE_BLOB_URL,
+        "railScheduleBlobUrl": _blob_url(published, SCHEDULE_RAIL_BLOB_NAME),
+        "roadScheduleBlobUrl": _blob_url(published, SCHEDULE_ROAD_BLOB_NAME),
         "railStationsUrl": RAIL_STATIONS_URL,
         "roadStationsUrl": ROAD_STATIONS_URL,
     }
@@ -48,10 +57,11 @@ def _config_body(service_date_iso: str) -> dict[str, str]:
 # new fields), so a day-keyed ETag would let `no-cache` revalidation answer 304
 # and strand clients on a stale body. Key every endpoint to its payload instead.
 def _config_etag(request: HttpRequest) -> str | None:
-    service_date = _published().service_date()
+    published = _published()
+    service_date = published.service_date()
     if service_date is None:
         return None
-    body = json.dumps(_config_body(service_date.isoformat()), sort_keys=True)
+    body = json.dumps(_config_body(published, service_date.isoformat()), sort_keys=True)
     return _content_etag(body.encode())
 
 
@@ -66,10 +76,11 @@ def _revalidated(response: HttpResponse) -> HttpResponse:
 
 @condition(etag_func=_config_etag)
 def config(request: HttpRequest) -> HttpResponse:
-    service_date = _published().service_date()
+    published = _published()
+    service_date = published.service_date()
     if service_date is None:
         return _no_publication()
-    return _revalidated(JsonResponse(_config_body(service_date.isoformat())))
+    return _revalidated(JsonResponse(_config_body(published, service_date.isoformat())))
 
 
 @condition(etag_func=_rail_stations_etag)

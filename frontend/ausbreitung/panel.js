@@ -3,7 +3,6 @@ import { formatTimeOfDay } from '../viz-core/clock.js';
 import { buildConnectionList } from '../viz-core/connectionList.js';
 import { ConnectionScan } from '../viz-core/connectionScan.js';
 import { element } from '../viz-core/dom.js';
-import { HEADLINE_WHILE_LOADING } from '../viz-core/headline.js';
 import { Panel } from '../viz-core/panel.js';
 import { placesOfReachedStations } from '../viz-core/places.js';
 import {
@@ -11,6 +10,7 @@ import {
   stationToTravelFrom,
 } from '../viz-core/startStation.js';
 import { StationCatalog } from '../viz-core/stationCatalog.js';
+import { drawStationClock, todayIso } from '../viz-core/stationClock.js';
 import {
   dominantStationMode,
   nearestStation,
@@ -92,8 +92,10 @@ export class AusbreitungPanel extends Panel {
     railStations,
     startTimeSeconds,
     addressedStationSlug = null,
+    serviceDateIso = todayIso(),
   ) {
     super();
+    this.serviceDateIso = serviceDateIso;
     this.catalog = new StationCatalog([]);
     this.networks = [];
     this.startTimeSeconds = startTimeSeconds;
@@ -189,18 +191,28 @@ export class AusbreitungPanel extends Panel {
     context.camera.fit();
   }
 
+  // Only the departure to set off from next: a spread already running keeps
+  // running, since recomputing it under the viewer would take away the picture
+  // being watched. It is the restart that sets off from the new time.
   setStartTime(seconds) {
     this.startTimeSeconds = seconds;
-    this.#rescan();
   }
 
-  #rescan() {
+  // Whatever is on screen is given up for a spread from the departure now
+  // chosen, played from its first minute -- even where that is the spread
+  // already shown, since asking for it again is asking to see it again.
+  restart() {
+    this.#rescan({ againFromTheBeginning: true });
+  }
+
+  #rescan({ againFromTheBeginning = false } = {}) {
     const start = this.connections.stationOf(this.startStation?.didok);
     if (start === undefined) {
       this.#showNothingYet();
       return;
     }
-    const carriesOnTheSpreadOnScreen = this.#carriesOnTheSpreadOnScreen();
+    const carriesOnTheSpreadOnScreen =
+      !againFromTheBeginning && this.#carriesOnTheSpreadOnScreen();
     this.tree = this.scan.from(start, this.startTimeSeconds);
     this.rides = this.#ridesOfTree();
     this.places = new ReachedPlaces(this.#placesOfTree());
@@ -341,6 +353,12 @@ export class AusbreitungPanel extends Panel {
     this.#drawStart(p, context);
   }
 
+  // Where the spread has got to. Nothing else on the picture says which moment
+  // it stands at, and the spread is about time passing.
+  drawOverlay(p) {
+    drawStationClock(p, this.currentTimeSeconds, this.serviceDateIso);
+  }
+
   #drawReachedPlaces(p, context) {
     const runs = this.places.runsAt(this.currentTimeSeconds, FLASH_SECONDS);
     const diameterOf = this.#placeDiameter(context.camera);
@@ -426,15 +444,6 @@ export class AusbreitungPanel extends Panel {
     p.circle(this.startStation.east, this.startStation.north, ringDiameter);
   }
 
-  // The question the picture answers, and where the spread has got to: without
-  // the clock nothing would say which moment is on screen.
-  headline() {
-    if (this.startStation === null) {
-      return HEADLINE_WHILE_LOADING;
-    }
-    return `Wenn ich um ${formatTimeOfDay(this.startTimeSeconds)} in ${this.startStation.name} losfahre, wo bin ich um ${formatTimeOfDay(this.currentTimeSeconds)}?`;
-  }
-
   // Only what is already lit can be picked: the picture answers for where one
   // has got to, not for where one will be later.
   stationNear(screenX, screenY) {
@@ -510,7 +519,7 @@ export class AusbreitungPanel extends Panel {
     return buildInfoContent();
   }
 
-  sidebarSections() {
+  controlSections() {
     return [
       {
         id: 'departure',
@@ -522,24 +531,28 @@ export class AusbreitungPanel extends Panel {
   }
 
   #departureControl() {
-    const group = element('div', 'sidebar-options');
+    const group = element('div', 'control-options');
     const slider = this.#departureSlider();
-    const chosenTime = element('p', 'sidebar-hint is-visible');
+    const chosenTime = element('p', 'control-hint is-visible');
     chosenTime.textContent = formatTimeOfDay(this.startTimeSeconds);
-    // While the slider is moved only the reading follows; the spread is
-    // recomputed once the hand lets go of it.
     slider.addEventListener('input', () => {
       chosenTime.textContent = formatTimeOfDay(Number(slider.value));
-    });
-    slider.addEventListener('change', () => {
       this.setStartTime(Number(slider.value));
     });
-    group.append(slider, chosenTime);
+    group.append(slider, chosenTime, this.#restartButton());
     return group;
   }
 
+  #restartButton() {
+    const button = element('button', 'control-button');
+    button.type = 'button';
+    button.textContent = 'Neu starten';
+    button.addEventListener('click', () => this.restart());
+    return button;
+  }
+
   #departureSlider() {
-    const slider = element('input', 'sidebar-departure');
+    const slider = element('input', 'control-slider');
     slider.type = 'range';
     slider.min = '0';
     slider.max = String(SECONDS_PER_DAY - DEPARTURE_STEP_SECONDS);

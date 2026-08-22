@@ -2,17 +2,17 @@
 
 An instrumentation is a JSON document that says what a station sounds like:
 which sound each transport group plays, and how its events differ. The four
-documents in this directory are what the sidebar offers; they use nothing a
+documents in this directory are what the sound card offers; they use nothing a
 document of your own could not use.
 
-To write one, open the sidebar's _Selber vertonen_ and edit the document in the
+To write one, open the pencil beside the sound list and edit the document in the
 drawer that appears on the right. Every keystroke is checked: as long as it
 plays, it is heard at the chosen station right away and kept in the browser, so
-it survives a reload and stays in the dropdown; while it does not, the drawer
-names the mistake and the last working version keeps playing. _Herunterladen_
-hands the document out as a file — it lives in the browser only, never on the
-server. A document joins the four delivered ones by being added here and
-imported in `../presets.js`.
+it survives a reload and stays in the list; while it does not, the drawer names
+the mistake and the last working version keeps playing. _Herunterladen_ hands
+the document out as a file — it lives in the browser only, never on the server.
+A document joins the four delivered ones by being added here and imported in
+`../presets.js`.
 
 ## The shape of a document
 
@@ -36,7 +36,7 @@ group, which is more specific?" never comes up.
 
 | Key               | Where              | Meaning                                           |
 | ----------------- | ------------------ | ------------------------------------------------- |
-| `instrumentation` | root only          | the name in the dropdown; required                |
+| `instrumentation` | root only          | the name in the list; required                    |
 | `sound`           | root, group, event | a name from the table below; required at the root |
 | `dwellType`       | root, group        | `none`, `once` or `repeat`                        |
 | any sound setting | root, group, event | see _Settings_                                    |
