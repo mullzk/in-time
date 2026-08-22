@@ -1,9 +1,8 @@
 import { element } from './dom.js';
 
-// How wide the ask stands, and how much screen it leaves beside it. The field's
-// width in the bar is whatever the buttons to its left leave over, which differs
-// from view to view -- a view without a sidebar has one button fewer -- so the
-// ask takes a width of its own rather than growing out of that one.
+// How wide the ask stands, and how much screen it leaves beside it. The field in
+// the bar is capped narrower than that, so the ask takes a width of its own
+// rather than growing out of the field's.
 const INVITED_WIDTH_PIXELS = 380;
 const INVITED_MARGIN_PIXELS = 24;
 
@@ -13,13 +12,17 @@ const INVITED_MARGIN_PIXELS = 24;
 // into a list nobody can see. It stays in the upper part instead.
 const INVITED_DROP_PIXELS = 200;
 
-// Floating search field (top centre, cockpit-styled): the panel supplies the
+// Floating search field in the middle of the top bar: the panel supplies the
 // StationCatalog, and a chosen station is handed back through onSelect so the
 // caller can move the camera. It owns only its DOM and selection state.
 export class StationSearch {
-  constructor(container, catalog, { onSelect }) {
+  // `onClear` answers an empty field committed with Enter -- the way to say that
+  // no station is chosen any more. A view that cannot do without one passes a
+  // handler that does nothing.
+  constructor(container, catalog, { onSelect, onClear = () => {} }) {
     this.catalog = catalog;
     this.onSelect = onSelect;
+    this.onClear = onClear;
     this.suggestions = [];
     this.activeIndex = -1;
 
@@ -145,6 +148,12 @@ export class StationSearch {
     } else if (event.key === 'Enter' && this.activeIndex >= 0) {
       this.#choose(this.activeIndex);
       event.preventDefault();
+    } else if (event.key === 'Enter' && this.input.value === '') {
+      // Emptying the field and committing it is how a station is given up: the
+      // field is what shows which one is chosen, so an empty one shows none.
+      this.onClear();
+      event.preventDefault();
+      this.input.blur();
     } else if (event.key === 'Escape') {
       // Keep this Escape to the search; without it the same press also reaches
       // the document-level info modal and closes both at once.

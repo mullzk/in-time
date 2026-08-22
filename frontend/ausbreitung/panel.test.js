@@ -88,15 +88,36 @@ test('the clock runs from the departure to the last arrival', () => {
   assert.equal(time.current, 10 * 3600, 'and starts over at the departure');
 });
 
-test('a new departure time moves the clock with it', () => {
+test('a new departure time leaves the spread on screen running', () => {
   const panel = panelFrom(10 * 3600);
   const time = withTime(panel);
 
   panel.setStartTime(9 * 3600);
 
-  assert.equal(panel.startTimeSeconds, 9 * 3600);
+  assert.equal(panel.startTimeSeconds, 9 * 3600, 'chosen for the next spread');
+  assert.equal(time.rangeStart, 10 * 3600, 'while the clock keeps its stretch');
+  assert.equal(time.current, 10 * 3600);
+});
+
+test('a restart sets off from the departure now chosen', () => {
+  const panel = panelFrom(10 * 3600);
+  const time = withTime(panel);
+  panel.setStartTime(9 * 3600);
+
+  panel.restart();
+
   assert.equal(time.rangeStart, 9 * 3600);
   assert.equal(time.current, 9 * 3600);
+});
+
+test('a restart plays the same spread again from its first minute', () => {
+  const panel = panelFrom(10 * 3600);
+  const time = withTime(panel);
+  time.seekToTime(10 * 3600 + 15 * 60);
+
+  panel.restart();
+
+  assert.equal(time.current, 10 * 3600);
 });
 
 test('a panel nobody chose a station for waits at none', () => {
@@ -173,12 +194,12 @@ test('a place is picked where it sits on the screen', () => {
   assert.equal(panel.railStationNear(20, 20), null, 'and nowhere else');
 });
 
-test('a new spread runs, even after the last one came to rest', () => {
+test('a restarted spread runs, even after the last one came to rest', () => {
   const panel = panelFrom(10 * 3600);
   const time = withTime(panel);
   time.pause();
 
-  panel.setStartTime(9 * 3600);
+  panel.restart();
 
   assert.equal(time.playing, true);
 });

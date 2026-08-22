@@ -1,11 +1,9 @@
 /* SMACSS Module: the instrumentation editor — a drawer on the right in which an
-   own instrumentation is written, opposite the sidebar so its switches stay
-   reachable while the document is being tuned. The open state lives as
-   `is-open` on the drawer. Below the narrow breakpoint the sidebar claims the
-   whole width, so drawer and opening button step aside entirely; CSS alone
-   decides that, and widening the window brings the drawer back as it was. */
-/* Above the top bar rather than under it: while the drawer is open, a control
-   lying on top of it would only be in the way. */
+   own instrumentation is written, opposite the dock so the sound tile stays
+   reachable while the document is being tuned. The open state lives as `is-open`
+   on the drawer. On a narrow screen drawer and opening button step aside
+   entirely; CSS alone decides that, and widening the window brings the drawer
+   back as it was. */
 .instrumentation-editor {
   position: absolute;
   z-index: 14;
@@ -16,7 +14,7 @@
   flex-direction: column;
   gap: var(--space-s);
   width: 420px;
-  max-width: calc(100vw - var(--sidebar-width));
+  max-width: calc(100vw - var(--dock-outset));
   padding: var(--space-m);
   overflow-y: auto;
   background: var(--color-surface);
@@ -128,13 +126,26 @@
   line-height: 1.5;
 }
 
+/* A pencil and nothing else: the button stands beside the sound it would rewrite,
+   where a sentence would read as a second topic. */
 .instrumentation-editor-open {
-  padding: 6px 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-end;
+  width: var(--control-height);
+  height: var(--control-height);
+  padding: 0;
   border: 0;
   border-radius: 6px;
   background: var(--color-control);
   color: var(--color-control-text);
   cursor: pointer;
+}
+
+.instrumentation-editor-open svg {
+  width: 20px;
+  height: 20px;
 }
 
 .instrumentation-editor-open:hover {

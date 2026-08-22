@@ -1,4 +1,6 @@
 import { readStationPoints } from '../viz-core/blobStations.js';
+import { ChoiceList } from '../viz-core/choiceList.js';
+import { pencilIcon } from '../viz-core/dockIcons.js';
 import { element } from '../viz-core/dom.js';
 import { Panel } from '../viz-core/panel.js';
 import { INSTRUMENTATIONS } from '../viz-core/sonification/presets.js';
@@ -21,6 +23,9 @@ import {
 import { BACKGROUNDS } from '../viz-core/tiles/tileSource.js';
 import {
   CATEGORY_BUS,
+  CATEGORY_INTERCITY,
+  CATEGORY_INTERREGIO,
+  CATEGORY_REGIO,
   CATEGORY_TRAM,
   categoryColor,
   categoryLabel,
@@ -138,20 +143,26 @@ const VEHICLE_HIT_RADIUS_PIXELS = 10;
 // switches off. A manual toggle persists until the next crossing.
 const STOPS_ZOOM_THRESHOLD = 0.5;
 
-const LAYER_LABELS = [
+// The traffic first, each layer under the colour it is drawn in, and the ground
+// it moves over after it -- the two are read as different kinds of thing, so the
+// card keeps them apart.
+const TRAFFIC_LAYERS = [
+  ['fernverkehr', 'Fernverkehr', CATEGORY_INTERCITY],
+  ['interregio', 'InterRegio', CATEGORY_INTERREGIO],
+  ['regionalverkehr', 'Regionalverkehr', CATEGORY_REGIO],
+  ['tram', 'Tram', CATEGORY_TRAM],
+  ['bus', 'Bus', CATEGORY_BUS],
+];
+
+const GROUND_LAYERS = [
   ['network', 'Netz'],
   ['stops', 'Haltestellen'],
-  ['fernverkehr', 'Fernverkehr'],
-  ['interregio', 'InterRegio'],
-  ['regionalverkehr', 'Regionalverkehr'],
-  ['tram', 'Tram'],
-  ['bus', 'Bus'],
 ];
 
 const didokToIndex = (stations) =>
   new Map(stations.map((station, index) => [station.didok, index]));
 
-// The dropdown is keyed by option value, not by name: an own instrumentation may
+// The sound list is keyed by option value, not by name: an own instrumentation may
 // carry the name of a delivered one, and then only the value tells them apart.
 export const SILENT_OPTION_VALUE = '';
 export const CUSTOM_OPTION_VALUE = 'custom';
@@ -360,7 +371,7 @@ export class TaktPanel extends Panel {
     });
   }
 
-  sidebarSections({ setInstrumentation, toggleInstrumentationEditor } = {}) {
+  controlSections({ setInstrumentation, toggleInstrumentationEditor } = {}) {
     const sections = [
       {
         id: 'layers',
@@ -403,44 +414,42 @@ export class TaktPanel extends Panel {
     }
   }
 
-  // A single dropdown selects the instrumentation; "Kein Sound" is silence. An
-  // own instrumentation joins the list only once one has been written, and the
-  // way to write one sits right under the dropdown -- it is a further way to
-  // choose a sound, not a topic of its own. Without a way to reach the drawer
-  // the button stays away, which is how the exhibition does without it. The
-  // sonified station, tempo and per-group mutes come from the existing controls.
+  // The instrumentations stand open, "Kein Sound" among them as silence. An own
+  // instrumentation joins the list only once one has been written, and the way
+  // to write one sits under it -- it is a further way to choose a sound, not a
+  // topic of its own. Without a way to reach the drawer the button stays away,
+  // which is how the exhibition does without it. The sonified station, tempo and
+  // per-group mutes come from the existing controls.
   #soundControl(setInstrumentation, toggleInstrumentationEditor) {
-    const group = element('div', 'sidebar-options');
-    this.soundSelect = element('select', 'sidebar-select');
-    this.soundSelect.appendChild(
-      this.#soundOption(SILENT_OPTION_VALUE, 'Kein Sound'),
+    const group = element('div', 'control-options');
+    this.soundChoices = new ChoiceList(
+      [
+        { value: SILENT_OPTION_VALUE, label: 'Kein Sound' },
+        ...INSTRUMENTATIONS.map((instrumentation, index) => ({
+          value: presetOptionValue(index),
+          label: instrumentation.name,
+        })),
+      ],
+      {
+        chosen: SILENT_OPTION_VALUE,
+        onChoose: () => setInstrumentation?.(this.#selectedInstrumentation()),
+      },
     );
-    INSTRUMENTATIONS.forEach((instrumentation, index) => {
-      this.soundSelect.appendChild(
-        this.#soundOption(presetOptionValue(index), instrumentation.name),
-      );
-    });
-    this.soundSelect.addEventListener('change', () =>
-      setInstrumentation?.(this.#selectedInstrumentation()),
-    );
-    group.appendChild(this.soundSelect);
+    group.appendChild(this.soundChoices.root);
     if (toggleInstrumentationEditor) {
       group.appendChild(this.#ownSoundButton(toggleInstrumentationEditor));
     }
     return group;
   }
 
-  #soundOption(value, label) {
-    const option = element('option');
-    option.value = value;
-    option.textContent = label;
-    return option;
-  }
-
+  // The pencil says it: the way to write an instrumentation of one's own stands
+  // beside the choice of a delivered one, not under a sentence of its own.
   #ownSoundButton(toggleInstrumentationEditor) {
     const button = element('button', 'instrumentation-editor-open');
     button.type = 'button';
-    button.textContent = 'Selber vertonen';
+    button.setAttribute('aria-label', 'Selber vertonen');
+    button.setAttribute('title', 'Selber vertonen');
+    button.appendChild(pencilIcon());
     button.addEventListener('click', () =>
       toggleInstrumentationEditor(this.#templateDocument()),
     );
@@ -455,42 +464,38 @@ export class TaktPanel extends Panel {
 
   #selectedInstrumentation() {
     return instrumentationForOptionValue(
-      this.soundSelect.value,
+      this.soundChoices.chosen,
       this.customInstrumentation,
     );
   }
 
-  // The editor announces every version that plays; the dropdown carries it under
-  // its current name, so renaming it in the document renames it here.
+  // The editor announces every version that plays; the list carries it under its
+  // current name, so renaming it in the document renames it here.
   offerCustomInstrumentation(instrumentation) {
     this.customInstrumentation = instrumentation;
-    if (!this.customOption) {
-      this.customOption = this.#soundOption(CUSTOM_OPTION_VALUE, '');
-      this.soundSelect.appendChild(this.customOption);
-    }
-    this.customOption.textContent = instrumentation.name;
+    this.soundChoices.offer({
+      value: CUSTOM_OPTION_VALUE,
+      label: instrumentation.name,
+    });
   }
 
   // While the drawer is open, its document is what is being listened to --
   // otherwise writing it would say nothing about how it sounds.
   useCustomInstrumentation(instrumentation) {
     this.offerCustomInstrumentation(instrumentation);
-    this.soundSelect.value = CUSTOM_OPTION_VALUE;
+    this.soundChoices.show(CUSTOM_OPTION_VALUE);
   }
 
-  // The discarded document leaves the dropdown with it. Whoever was listening to
-  // it falls back to silence, while a listener who had meanwhile picked a
-  // delivered instrumentation keeps hearing it -- hence the answer of what plays
-  // now rather than a fixed one.
+  // The discarded document leaves the list with it. Whoever was listening to it
+  // falls back to silence, while a listener who had meanwhile picked a delivered
+  // instrumentation keeps hearing it -- hence the answer of what plays now rather
+  // than a fixed one.
   forgetCustomInstrumentation() {
-    const remaining =
-      this.soundSelect.value === CUSTOM_OPTION_VALUE
-        ? SILENT_OPTION_VALUE
-        : this.soundSelect.value;
+    if (this.soundChoices.chosen === CUSTOM_OPTION_VALUE) {
+      this.soundChoices.show(SILENT_OPTION_VALUE);
+    }
     this.customInstrumentation = null;
-    this.customOption?.remove();
-    this.customOption = null;
-    this.soundSelect.value = remaining;
+    this.soundChoices.withdraw(CUSTOM_OPTION_VALUE);
     return this.#selectedInstrumentation();
   }
 
@@ -698,29 +703,51 @@ export class TaktPanel extends Panel {
   }
 
   #layerControl() {
-    const group = element('div', 'sidebar-options');
-    LAYER_LABELS.forEach(([key, label]) => {
-      const input = element('input');
-      input.type = 'checkbox';
-      input.checked = this.layers[key];
-      input.addEventListener('change', () => {
-        if (key === 'stops') {
-          this.#setStops(input.checked);
-        } else {
-          this.layers[key] = input.checked;
-        }
-      });
-      this.layerOptions[key] = input;
-      group.appendChild(this.#option(input, label));
+    const control = element('div', 'layer-choices');
+    control.append(
+      this.#layerGroup(TRAFFIC_LAYERS),
+      this.#layerGroup(GROUND_LAYERS),
+    );
+    return control;
+  }
+
+  #layerGroup(layers) {
+    const group = element('div', 'control-options');
+    layers.forEach(([key, label, category]) => {
+      group.appendChild(this.#layerOption(key, label, category));
     });
     return group;
   }
 
-  #option(input, label) {
-    const option = element('label', 'sidebar-option');
+  #layerOption(key, label, category) {
+    const input = element('input');
+    input.type = 'checkbox';
+    input.checked = this.layers[key];
+    input.addEventListener('change', () => {
+      if (key === 'stops') {
+        this.#setStops(input.checked);
+      } else {
+        this.layers[key] = input.checked;
+      }
+    });
+    this.layerOptions[key] = input;
+
+    const option = element('label', 'control-option');
     const text = element('span');
     text.textContent = label;
-    option.append(input, text);
+    option.append(input, ...this.#swatchFor(category), text);
     return option;
+  }
+
+  // Only the colour comes from here; what the dot made of it looks like is the
+  // stylesheet's. A layer that is not a kind of traffic carries none.
+  #swatchFor(category) {
+    if (category === undefined) {
+      return [];
+    }
+    const [red, green, blue] = categoryColor(category);
+    const swatch = element('span', 'control-swatch');
+    swatch.style.setProperty('--swatch-color', `rgb(${red} ${green} ${blue})`);
+    return [swatch];
   }
 }

@@ -66,7 +66,7 @@ client needs is served directly by the reverse proxy.
 - `GET /` — the entry point, redirecting to `/takt`.
 - `GET /takt`, `GET /ausbreitung`, `GET /reisezeit` — one page per view, each
   carrying its own panel. Switching between them is a page load, reached through
-  the view switcher in the top bar.
+  the view switcher in the dock's app tile.
 - `GET /api/config` — JSON
   `{ serviceDate, railScheduleBlobUrl, roadScheduleBlobUrl, railStationsUrl, roadStationsUrl }`.
   The service day is read from the `current` artifact symlink. Returns `503`
@@ -131,10 +131,21 @@ runtime stays bundler-free. `viz-core` is a small framework the views plug into
   `sonification/sounds/`, and that same registry is what the vendoring script
   mirrors — so a sound the app offers is one it can play.
 - **A listener may write one.** The `InstrumentationEditor` is a drawer opposite
-  the sidebar in which such a document is typed and checked on every keystroke;
+  the dock in which such a document is typed and checked on every keystroke;
   what plays is heard at once and kept in the browser's local storage, so it
-  outlasts the page and joins the dropdown. It never reaches the server, and the
-  exhibition mode does not build it.
+  outlasts the page and joins the sound list. It never reaches the server, and
+  the exhibition mode does not build it.
+- **The controls live in a dock**, not in a chrome of their own: a strip of
+  tiles down the left edge of the picture, along its foot on a narrow screen.
+  One tile per group — the gallery of views, play, time, elements, map, sound,
+  info. A tile is hovered to learn its name and clicked to open the card holding
+  its controls; only one card stands open, so the picture is never covered by
+  more than the one thing being set. Which control belongs to which tile is held
+  once, in `dockTiles`, so a panel supplies its sections without knowing where
+  they surface, and a tile whose sections a view does not offer is not hung at
+  all — which is how the exhibition and the travel-time view thin the dock out
+  by themselves. Play is the one tile that answers the press itself, wearing the
+  face of what pressing it will do next.
 - **Styling** follows [SMACSS](http://smacss.com/) as static CSS under
   `frontend/styles/` (base with design tokens, layout, one file per module) — no
   inline styles, bundler-free, biome-formatted. A base template carries the

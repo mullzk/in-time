@@ -2,7 +2,7 @@ import { element } from './dom.js';
 
 const asColor = ([red, green, blue]) => `rgb(${red} ${green} ${blue})`;
 
-// A small floating label (cockpit-styled) anchored above a screen point. It owns
+// A small floating label anchored above a screen point. It owns
 // only its own DOM and does not intercept pointer events, so a click that lands
 // on it still reaches the canvas underneath. A single line names a station; a
 // vehicle passes several lines (category and route) and is repositioned each

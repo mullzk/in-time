@@ -1,16 +1,13 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
-  isPausePosition,
-  PAUSE_POSITION,
-  PAUSE_SHARE,
   sliderPositionForTempo,
   tempoForSliderPosition,
 } from './tempoSlider.js';
 import { MAX_TEMPO, MIN_TEMPO } from './timeModel.js';
 
-test('the running stretch spans the whole tempo range', () => {
-  assert.equal(tempoForSliderPosition(PAUSE_SHARE), MIN_TEMPO);
+test('the travel spans the whole tempo range', () => {
+  assert.equal(tempoForSliderPosition(0), MIN_TEMPO);
   assert.equal(tempoForSliderPosition(1), MAX_TEMPO);
 });
 
@@ -24,22 +21,21 @@ test('every tempo maps back to the position it came from', () => {
 });
 
 test('equal travel doubles the tempo wherever it is spent', () => {
-  const positionOf = (tempo) => sliderPositionForTempo(tempo);
-  const slowDoubling = positionOf(2 * MIN_TEMPO) - positionOf(MIN_TEMPO);
-  const fastDoubling = positionOf(MAX_TEMPO) - positionOf(MAX_TEMPO / 2);
+  const slowDoubling =
+    sliderPositionForTempo(2 * MIN_TEMPO) - sliderPositionForTempo(MIN_TEMPO);
+  const fastDoubling =
+    sliderPositionForTempo(MAX_TEMPO) - sliderPositionForTempo(MAX_TEMPO / 2);
 
   assert.ok(Math.abs(slowDoubling - fastDoubling) < 1e-9);
 });
 
-test('the left anchor pauses and the running stretch does not', () => {
-  assert.ok(isPausePosition(PAUSE_POSITION));
-  assert.ok(!isPausePosition(PAUSE_SHARE));
-  assert.ok(!isPausePosition(1));
+test('no position stands for a standstill: the slowest tempo still moves', () => {
+  assert.ok(tempoForSliderPosition(0) > 0);
 });
 
-test('a position outside the running stretch stays within the range', () => {
-  assert.equal(tempoForSliderPosition(0), MIN_TEMPO);
+test('a position outside the travel stays within the range', () => {
+  assert.equal(tempoForSliderPosition(-1), MIN_TEMPO);
   assert.equal(tempoForSliderPosition(2), MAX_TEMPO);
-  assert.equal(sliderPositionForTempo(MIN_TEMPO / 2), PAUSE_SHARE);
+  assert.equal(sliderPositionForTempo(MIN_TEMPO / 2), 0);
   assert.equal(sliderPositionForTempo(MAX_TEMPO * 2), 1);
 });

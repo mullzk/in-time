@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
-  activeShortcuts,
   isTypingElement,
   KeyboardControls,
   normalizedBindingKey,
@@ -33,7 +32,7 @@ test('normalizedBindingKey folds letters so Shift and Caps Lock still bind', () 
   assert.equal(normalizedBindingKey('ArrowUp'), 'ArrowUp');
 });
 
-const controlsWithModal = (isModalOpen) => {
+const controlsWith = (bindings) => {
   const fired = [];
   let listener = null;
   new KeyboardControls(
@@ -41,15 +40,7 @@ const controlsWithModal = (isModalOpen) => {
     {
       togglePlay: () => fired.push('play'),
       camera: { fit: () => fired.push('fit') },
-      bindings: { h: () => fired.push('stops') },
-      overlays: [
-        {
-          get isOpen() {
-            return isModalOpen();
-          },
-          bindings: { i: () => fired.push('info') },
-        },
-      ],
+      bindings,
     },
   );
   const press = (key) =>
@@ -57,56 +48,26 @@ const controlsWithModal = (isModalOpen) => {
   return { press, fired };
 };
 
-test('panel shortcuts work while no modal dialog is open', () => {
-  const { press, fired } = controlsWithModal(() => false);
-  ['h', ' ', 'f', 'i'].forEach(press);
-  assert.deepEqual(fired, ['stops', 'play', 'fit', 'info']);
+test('the supplied bindings and the built-in view controls both answer', () => {
+  const { press, fired } = controlsWith({ h: () => fired.push('stops') });
+
+  ['h', ' ', 'f'].forEach(press);
+
+  assert.deepEqual(fired, ['stops', 'play', 'fit']);
 });
 
-test('an open modal dialog silences the panel and playback shortcuts', () => {
-  const { press, fired } = controlsWithModal(() => true);
-  ['h', ' ', 'f', '+'].forEach(press);
+test('a supplied binding wins over a built-in one on the same key', () => {
+  const { press, fired } = controlsWith({ f: () => fired.push('mine') });
+
+  press('f');
+
+  assert.deepEqual(fired, ['mine'], 'and the camera is not fitted');
+});
+
+test('a key nobody bound is left to the browser', () => {
+  const { press, fired } = controlsWith({});
+
+  press('q');
+
   assert.deepEqual(fired, []);
-});
-
-test('an open modal dialog keeps its own shortcut working', () => {
-  const { press, fired } = controlsWithModal(() => true);
-  press('i');
-  assert.deepEqual(fired, ['info']);
-});
-
-const PANEL_BINDINGS = { h: 'stops', s: 'sidebar' };
-const overlay = (isOpen, bindings) => ({ isOpen, bindings });
-const info = (isOpen) => overlay(isOpen, { i: 'info' });
-const drawer = (isOpen) => overlay(isOpen, { s: 'drawer' });
-
-test('with every overlay closed the panel keeps its shortcuts', () => {
-  const active = activeShortcuts(PANEL_BINDINGS, [info(false)]);
-  assert.deepEqual(active.bindings, { h: 'stops', s: 'sidebar', i: 'info' });
-  assert.equal(active.viewControlsActive, true);
-});
-
-test('an open overlay leaves only the overlays own shortcuts', () => {
-  const active = activeShortcuts(PANEL_BINDINGS, [info(true)]);
-  assert.deepEqual(active.bindings, { i: 'info' });
-  assert.equal(active.viewControlsActive, false);
-});
-
-// Modal is a state, not a component: whichever overlay is open silences the
-// panel, and the small-viewport sidebar will be one of them.
-test('any open overlay silences the panel, not just the first', () => {
-  const active = activeShortcuts(PANEL_BINDINGS, [info(false), drawer(true)]);
-  assert.deepEqual(active.bindings, { i: 'info', s: 'drawer' });
-  assert.equal(active.viewControlsActive, false);
-});
-
-test('a closed overlay still owns its key against the panel', () => {
-  const active = activeShortcuts(PANEL_BINDINGS, [drawer(false)]);
-  assert.equal(active.bindings.s, 'drawer');
-});
-
-test('without overlays the panel bindings stand alone', () => {
-  const active = activeShortcuts(PANEL_BINDINGS, []);
-  assert.deepEqual(active.bindings, PANEL_BINDINGS);
-  assert.equal(active.viewControlsActive, true);
 });

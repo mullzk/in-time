@@ -189,18 +189,28 @@ export class AusbreitungPanel extends Panel {
     context.camera.fit();
   }
 
+  // Only the departure to set off from next: a spread already running keeps
+  // running, since recomputing it under the viewer would take away the picture
+  // being watched. It is the restart that sets off from the new time.
   setStartTime(seconds) {
     this.startTimeSeconds = seconds;
-    this.#rescan();
   }
 
-  #rescan() {
+  // Whatever is on screen is given up for a spread from the departure now
+  // chosen, played from its first minute -- even where that is the spread
+  // already shown, since asking for it again is asking to see it again.
+  restart() {
+    this.#rescan({ againFromTheBeginning: true });
+  }
+
+  #rescan({ againFromTheBeginning = false } = {}) {
     const start = this.connections.stationOf(this.startStation?.didok);
     if (start === undefined) {
       this.#showNothingYet();
       return;
     }
-    const carriesOnTheSpreadOnScreen = this.#carriesOnTheSpreadOnScreen();
+    const carriesOnTheSpreadOnScreen =
+      !againFromTheBeginning && this.#carriesOnTheSpreadOnScreen();
     this.tree = this.scan.from(start, this.startTimeSeconds);
     this.rides = this.#ridesOfTree();
     this.places = new ReachedPlaces(this.#placesOfTree());
@@ -432,7 +442,13 @@ export class AusbreitungPanel extends Panel {
     if (this.startStation === null) {
       return HEADLINE_WHILE_LOADING;
     }
-    return `Wenn ich um ${formatTimeOfDay(this.startTimeSeconds)} in ${this.startStation.name} losfahre, wo bin ich um ${formatTimeOfDay(this.currentTimeSeconds)}?`;
+    return `Wenn ich um ${formatTimeOfDay(this.#departureOnScreen())} in ${this.startStation.name} losfahre, wo bin ich um ${formatTimeOfDay(this.currentTimeSeconds)}?`;
+  }
+
+  // The question is about the spread on screen, not about the departure chosen
+  // for the next one, which the slider may have moved on already.
+  #departureOnScreen() {
+    return this.spreadOnScreen?.departureSeconds ?? this.startTimeSeconds;
   }
 
   // Only what is already lit can be picked: the picture answers for where one
@@ -510,7 +526,7 @@ export class AusbreitungPanel extends Panel {
     return buildInfoContent();
   }
 
-  sidebarSections() {
+  controlSections() {
     return [
       {
         id: 'departure',
@@ -522,24 +538,28 @@ export class AusbreitungPanel extends Panel {
   }
 
   #departureControl() {
-    const group = element('div', 'sidebar-options');
+    const group = element('div', 'control-options');
     const slider = this.#departureSlider();
-    const chosenTime = element('p', 'sidebar-hint is-visible');
+    const chosenTime = element('p', 'control-hint is-visible');
     chosenTime.textContent = formatTimeOfDay(this.startTimeSeconds);
-    // While the slider is moved only the reading follows; the spread is
-    // recomputed once the hand lets go of it.
     slider.addEventListener('input', () => {
       chosenTime.textContent = formatTimeOfDay(Number(slider.value));
-    });
-    slider.addEventListener('change', () => {
       this.setStartTime(Number(slider.value));
     });
-    group.append(slider, chosenTime);
+    group.append(slider, chosenTime, this.#restartButton());
     return group;
   }
 
+  #restartButton() {
+    const button = element('button', 'control-button');
+    button.type = 'button';
+    button.textContent = 'Neu starten';
+    button.addEventListener('click', () => this.restart());
+    return button;
+  }
+
   #departureSlider() {
-    const slider = element('input', 'sidebar-departure');
+    const slider = element('input', 'control-slider');
     slider.type = 'range';
     slider.min = '0';
     slider.max = String(SECONDS_PER_DAY - DEPARTURE_STEP_SECONDS);

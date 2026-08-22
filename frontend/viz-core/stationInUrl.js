@@ -52,6 +52,16 @@ export class StationInUrl {
     this.history.replaceState(null, '', this.linkTo(this.view.path));
   }
 
+  // The station is given up again: the view's own address, and no step in the
+  // history for it either.
+  forget() {
+    if (this.view === null) {
+      return;
+    }
+    this.slug = null;
+    this.history.replaceState(null, '', this.linkTo(this.view.path));
+  }
+
   linkTo(viewPath) {
     const station =
       this.slug === null ? '' : `/${encodeURIComponent(this.slug)}`;

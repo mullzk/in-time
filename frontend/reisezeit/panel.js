@@ -713,7 +713,7 @@ export class ReisezeitPanel extends Panel {
     );
   }
 
-  sidebarSections() {
+  controlSections() {
     return [];
   }
 

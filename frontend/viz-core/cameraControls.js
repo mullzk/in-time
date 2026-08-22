@@ -1,12 +1,12 @@
 const ZOOM_STEP = 1.1;
 
 // Translates canvas pointer and wheel gestures into camera pan/zoom. Bound to
-// the canvas element itself, so a gesture on a DOM cockpit control (scrubber,
-// tempo, play) never reaches the camera. Pointer events unify mouse, touch and
+// the canvas element itself, so a gesture on a DOM control (scrubber, tempo,
+// play) never reaches the camera. Pointer events unify mouse, touch and
 // pen; two active pointers pinch-zoom.
 export class CameraControls {
   // onZoomGesture fires on the center-shifting zooms (wheel, pinch), not on the
-  // centre-preserving ones the keyboard and sidebar drive.
+  // centre-preserving ones the keyboard and the zoom slider drive.
   constructor(canvasElement, camera, { onZoomGesture } = {}) {
     this.canvas = canvasElement;
     this.camera = camera;
