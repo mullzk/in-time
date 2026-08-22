@@ -8,6 +8,7 @@ import { TRANSPORT_GROUPS } from '../viz-core/sonification/scheduling.js';
 import { SonificationEngine } from '../viz-core/sonification/sonificationEngine.js';
 import { drawnStationThatTravels } from '../viz-core/startStation.js';
 import { StationCatalog } from '../viz-core/stationCatalog.js';
+import { drawStationClock, todayIso } from '../viz-core/stationClock.js';
 import {
   dominantStationMode,
   fallbackLayerForStops,
@@ -33,9 +34,6 @@ import {
 } from '../viz-core/transportCategories.js';
 import { VehiclePositionEngine } from '../viz-core/vehiclePositionEngine.js';
 import { buildInfoContent } from './infoContent.js';
-import { drawStationClock } from './stationClock.js';
-
-const todayIso = () => new Date().toISOString().slice(0, 10);
 
 // Stacking order where points overlap: buses at the bottom, trams above,
 // trains on top, so the far more numerous buses never hide the trains.

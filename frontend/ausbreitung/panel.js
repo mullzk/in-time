@@ -3,7 +3,6 @@ import { formatTimeOfDay } from '../viz-core/clock.js';
 import { buildConnectionList } from '../viz-core/connectionList.js';
 import { ConnectionScan } from '../viz-core/connectionScan.js';
 import { element } from '../viz-core/dom.js';
-import { HEADLINE_WHILE_LOADING } from '../viz-core/headline.js';
 import { Panel } from '../viz-core/panel.js';
 import { placesOfReachedStations } from '../viz-core/places.js';
 import {
@@ -11,6 +10,7 @@ import {
   stationToTravelFrom,
 } from '../viz-core/startStation.js';
 import { StationCatalog } from '../viz-core/stationCatalog.js';
+import { drawStationClock, todayIso } from '../viz-core/stationClock.js';
 import {
   dominantStationMode,
   nearestStation,
@@ -92,8 +92,10 @@ export class AusbreitungPanel extends Panel {
     railStations,
     startTimeSeconds,
     addressedStationSlug = null,
+    serviceDateIso = todayIso(),
   ) {
     super();
+    this.serviceDateIso = serviceDateIso;
     this.catalog = new StationCatalog([]);
     this.networks = [];
     this.startTimeSeconds = startTimeSeconds;
@@ -351,6 +353,12 @@ export class AusbreitungPanel extends Panel {
     this.#drawStart(p, context);
   }
 
+  // Where the spread has got to. Nothing else on the picture says which moment
+  // it stands at, and the spread is about time passing.
+  drawOverlay(p) {
+    drawStationClock(p, this.currentTimeSeconds, this.serviceDateIso);
+  }
+
   #drawReachedPlaces(p, context) {
     const runs = this.places.runsAt(this.currentTimeSeconds, FLASH_SECONDS);
     const diameterOf = this.#placeDiameter(context.camera);
@@ -434,21 +442,6 @@ export class AusbreitungPanel extends Panel {
     p.stroke(...START_COLOR);
     p.strokeWeight(START_RING_WIDTH_PIXELS * context.camera.worldPerPixel());
     p.circle(this.startStation.east, this.startStation.north, ringDiameter);
-  }
-
-  // The question the picture answers, and where the spread has got to: without
-  // the clock nothing would say which moment is on screen.
-  headline() {
-    if (this.startStation === null) {
-      return HEADLINE_WHILE_LOADING;
-    }
-    return `Wenn ich um ${formatTimeOfDay(this.#departureOnScreen())} in ${this.startStation.name} losfahre, wo bin ich um ${formatTimeOfDay(this.currentTimeSeconds)}?`;
-  }
-
-  // The question is about the spread on screen, not about the departure chosen
-  // for the next one, which the slider may have moved on already.
-  #departureOnScreen() {
-    return this.spreadOnScreen?.departureSeconds ?? this.startTimeSeconds;
   }
 
   // Only what is already lit can be picked: the picture answers for where one

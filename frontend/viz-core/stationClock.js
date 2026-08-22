@@ -1,4 +1,4 @@
-// The clock in the picture's top right corner, drawn after the Swiss railway
+// The clock in a picture's top right corner, drawn after the Swiss railway
 // station clock: a dial in a dark case, bar markers, tapered hands. It carries
 // no second hand -- the panel runs time at whatever tempo the user picks, where
 // a sweeping second hand would only smear. Around the sunset and the sunrise
@@ -74,6 +74,9 @@ const MINUTE_HAND = {
 };
 
 const FULL_TURN = Math.PI * 2;
+
+// The day a panel falls back on while nothing has named the one it shows.
+export const todayIso = () => new Date().toISOString().slice(0, 10);
 const MINUTES_PER_TURN = 60;
 const HOURS_PER_TURN = 12;
 
