@@ -4,12 +4,14 @@ import { test } from 'node:test';
 import { Instrumentation } from '../viz-core/sonification/instrumentation.js';
 import { INSTRUMENTATIONS } from '../viz-core/sonification/presets.js';
 import { BACKGROUNDS } from '../viz-core/tiles/tileSource.js';
+import { ZOOM_STEPS, zoomFractionForPosition } from '../viz-core/zoomSlider.js';
 import {
   CUSTOM_OPTION_VALUE,
   instrumentationForOptionValue,
   presetOptionValue,
   SILENT_OPTION_VALUE,
   TaktPanel,
+  trailShownOn,
 } from './panel.js';
 
 const fixture = (name) => {
@@ -122,6 +124,32 @@ test('a background without rails leaves the network overlay alone', () => {
 
   panel.onBackgroundChange(backgroundNamed('relief'));
   assert.equal(panel.layers.network, true);
+});
+
+// The thresholds are read at the slider's stops, since that is where a user
+// meets them: the last stop that still trails and the first one that does not.
+const trailsAtStep = (backgroundId, step) =>
+  trailShownOn(backgroundNamed(backgroundId), zoomFractionForPosition(step));
+
+test('the black ground trails at every zoom stop', () => {
+  const everyStep = [...Array(ZOOM_STEPS).keys()];
+
+  assert.ok(everyStep.every((step) => trailsAtStep('black', step)));
+});
+
+test('the relief trails over the overview stops and stops halfway in', () => {
+  assert.ok(trailsAtStep('relief', 2));
+  assert.ok(!trailsAtStep('relief', 3));
+});
+
+test('the aerial imagery trails much further in than the relief', () => {
+  assert.ok(trailsAtStep('swissview', 4));
+  assert.ok(!trailsAtStep('swissview', 5));
+});
+
+test('a drawn map never trails, not even fully zoomed out', () => {
+  assert.ok(!trailsAtStep('pixel-color', 0));
+  assert.ok(!trailsAtStep('pixel-grey', 0));
 });
 
 test('the network overlay stays off once the user switched it back on', () => {

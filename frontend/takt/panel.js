@@ -55,11 +55,22 @@ const diameterFactor = (category) =>
 // Whether a vehicle trails the stretch of schedule it has just covered follows
 // from the ground it draws on, so it needs no switch of its own: the busier the
 // texture underneath, the more the smear reads as mud rather than as movement.
-// Empty ground carries it best; the aerial imagery is dense but dark and low in
-// contrast enough that the trail still wins, which the drawn maps are not.
-const TRAIL_BACKGROUND_IDS = ['black', 'swissview'];
-const trailShownOn = (background) =>
-  TRAIL_BACKGROUND_IDS.includes(background.id);
+// So every ground names the zoom fraction it trails up to: empty ground all the
+// way, the textured ones as long as their own texture stays coarser than the
+// trail particles -- the aerial imagery far into the zoom, the relief only over
+// the overview, where its hillshade is still a broad wash -- and the drawn maps
+// not at all. The switch is abrupt on purpose: a half-faded trail behind a full
+// head reads as a tadpole, so a trail is either fully there with a small head or
+// gone with a full one.
+const TRAIL_UNTIL_ZOOM_FRACTION_BY_BACKGROUND = new Map([
+  ['black', Number.POSITIVE_INFINITY],
+  ['swissview', 0.75],
+  ['relief', 0.42],
+  ['pixel-color', 0],
+  ['pixel-grey', 0],
+]);
+export const trailShownOn = (background, zoomFraction) =>
+  zoomFraction < TRAIL_UNTIL_ZOOM_FRACTION_BY_BACKGROUND.get(background.id);
 
 // The trail samples the vehicle's own trip backwards in schedule time, so its
 // length on screen is the distance actually covered: a fast train smears long,
@@ -108,7 +119,8 @@ const trailAlpha = (sample, sampleCount) =>
 // -- and further still in the far view, where full-size heads would close into a
 // carpet of dots and swallow the trails they belong to. Tram and bus draw no
 // trail but shrink with the rest, so a background showing trails keeps one head
-// size and the untrailed vehicles do not tower over the trailed ones.
+// size and the untrailed vehicles do not tower over the trailed ones. Where no
+// trail is drawn the head carries the vehicle alone and keeps its full size.
 const TRAIL_HEAD_FACTOR_NEAR = 0.55;
 const TRAIL_HEAD_FACTOR_FAR = 0.28;
 const trailHeadFactor = (zoomFraction) =>
@@ -320,28 +332,32 @@ export class TaktPanel extends Panel {
         this.#categoryVisible(vehicle.category) &&
         withinWorldBounds(bounds, vehicle),
     );
-    this.#drawVehicleTrails(
-      p,
-      context,
-      visible.filter((vehicle) => this.#trailShown(vehicle.category)),
-    );
+    if (this.#trailShown(context.camera)) {
+      this.#drawVehicleTrails(
+        p,
+        context,
+        visible.filter((vehicle) => trailedLayer(vehicle.category)),
+      );
+    }
     this.#drawVehicleHeads(p, context, visible);
   }
 
-  #trailShown(category) {
-    return trailShownOn(this.background) && trailedLayer(category);
+  #trailShown(camera) {
+    return trailShownOn(this.background, camera.zoomFraction());
   }
 
   #drawVehicleHeads(p, context, vehicles) {
     const worldPerPixel = context.camera.worldPerPixel();
-    const headFactor = trailHeadFactor(context.camera.zoomFraction());
+    const headFactor = this.#trailShown(context.camera)
+      ? trailHeadFactor(context.camera.zoomFraction())
+      : 1;
     vehicles.forEach((vehicle) => {
       const [r, g, b] = categoryColor(vehicle.category);
       p.fill(r, g, b);
       const diameter =
         BASE_DIAMETER_PIXELS *
         diameterFactor(vehicle.category) *
-        (trailShownOn(this.background) ? headFactor : 1) *
+        headFactor *
         worldPerPixel;
       p.circle(vehicle.east, vehicle.north, diameter);
     });
