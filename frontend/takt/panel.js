@@ -167,7 +167,7 @@ const TRAFFIC_LAYERS = [
 ];
 
 const GROUND_LAYERS = [
-  ['network', 'Netz'],
+  ['network', 'Streckennetz'],
   ['stops', 'Haltestellen'],
 ];
 
