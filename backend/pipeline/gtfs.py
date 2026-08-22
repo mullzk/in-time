@@ -8,6 +8,8 @@ from pathlib import Path
 
 RAIL_ROUTE_TYPES = frozenset({100, 101, 102, 103, 105, 106, 107, 109, 116, 117})
 TRAM_ROUTE_TYPE = 900
+# The Lausanne metro runs on the BAV network and is drawn and sounded as a tram.
+METRO_ROUTE_TYPE = 401
 BUS_ROUTE_TYPES = frozenset({700, 702})
 
 CATEGORY_TRAM = 5
@@ -50,7 +52,7 @@ class StopCall:
 def category_of(route_type: int) -> int | None:
     if route_type in RAIL_ROUTE_TYPES:
         return _CATEGORY.get(route_type, 4)
-    if route_type == TRAM_ROUTE_TYPE:
+    if route_type in (TRAM_ROUTE_TYPE, METRO_ROUTE_TYPE):
         return CATEGORY_TRAM
     if route_type in BUS_ROUTE_TYPES:
         return CATEGORY_BUS

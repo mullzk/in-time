@@ -162,7 +162,7 @@ const TRAFFIC_LAYERS = [
   ['fernverkehr', 'Fernverkehr', CATEGORY_INTERCITY],
   ['interregio', 'InterRegio', CATEGORY_INTERREGIO],
   ['regionalverkehr', 'Regionalverkehr', CATEGORY_REGIO],
-  ['tram', 'Tram', CATEGORY_TRAM],
+  ['tram', 'Tram / Metro', CATEGORY_TRAM],
   ['bus', 'Bus', CATEGORY_BUS],
 ];
 
