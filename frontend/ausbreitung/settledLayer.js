@@ -19,8 +19,6 @@ const FROM_THE_BEGINNING = 0;
 export class SettledLayer {
   constructor(p, colorOf) {
     this.graphics = p.createGraphics(p.width, p.height);
-    this.points = p.POINTS;
-    this.roundCap = p.ROUND;
     this.colorOf = colorOf;
     this.painted = null;
     this.paintedUntil = new Map();
@@ -87,23 +85,34 @@ export class SettledLayer {
       return;
     }
     const graphics = this.graphics;
-    const [red, green, blue, alpha] = this.colorOf(run.category);
     graphics.push();
     graphics.resetMatrix();
     applyCameraTransform(graphics, camera);
-    graphics.noFill();
-    graphics.stroke(red, green, blue, alpha);
-    graphics.strokeWeight(diameter);
-    graphics.strokeCap(this.roundCap);
-    graphics.beginShape(this.points);
+    // Every place of a run goes into one path that is filled once, which is what
+    // keeps a full repaint affordable. Drawn through the raw canvas context
+    // rather than through p5: p5 renders a POINTS vertex as a line 1e-5 long
+    // and leans on a round cap to make it a dot, and at this camera scale that
+    // segment is a billionth of a pixel -- which WebKit drops and the other
+    // engines still paint.
+    const context = graphics.drawingContext;
+    const radius = diameter / 2;
+    context.fillStyle = rgba(this.colorOf(run.category));
+    context.beginPath();
     run.easts.subarray(from, run.settledUntil).forEach((east, offset) => {
-      graphics.vertex(east, run.norths[from + offset]);
+      const north = run.norths[from + offset];
+      context.moveTo(east + radius, north);
+      context.arc(east, north, radius, 0, FULL_TURN);
     });
-    graphics.endShape();
+    context.fill();
     graphics.pop();
     this.paintedUntil.set(run.category, run.settledUntil);
   }
 }
+
+const FULL_TURN = Math.PI * 2;
+
+const rgba = ([red, green, blue, alpha]) =>
+  `rgba(${red}, ${green}, ${blue}, ${alpha / 255})`;
 
 const viewSignature = (camera) =>
   [
