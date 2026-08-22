@@ -20,11 +20,11 @@ test('sections are grouped into the tiles that carry them', () => {
     section('views'),
     section('background'),
   ]);
-  assert.deepEqual(idsOf(tiles), ['views', 'map', 'sound']);
+  assert.deepEqual(idsOf(tiles), ['sound', 'map', 'views']);
   assert.deepEqual(sectionIdsOf(tiles), [
-    ['views'],
-    ['background', 'zoom'],
     ['sound'],
+    ['background', 'zoom'],
+    ['views'],
   ]);
 });
 

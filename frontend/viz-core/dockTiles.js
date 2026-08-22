@@ -4,12 +4,12 @@
 // view does not offer is not hung in the dock at all -- which is how a view
 // without a map keeps the display tile away without knowing the dock exists.
 const TILES = [
-  { id: 'views', label: 'Ansicht', sections: ['views'] },
   { id: 'play', label: 'Wiedergabe', sections: ['play'] },
-  { id: 'time', label: 'Zeit', sections: ['tempo', 'clock', 'departure'] },
+  { id: 'sound', label: 'Sound', sections: ['sound'] },
   { id: 'elements', label: 'Elemente', sections: ['layers'] },
   { id: 'map', label: 'Karte', sections: ['background', 'zoom'] },
-  { id: 'sound', label: 'Sound', sections: ['sound'] },
+  { id: 'time', label: 'Zeit', sections: ['tempo', 'clock', 'departure'] },
+  { id: 'views', label: 'Ansicht', sections: ['views'] },
   { id: 'info', label: 'Info', sections: ['info'], wideCard: true },
 ];
 
