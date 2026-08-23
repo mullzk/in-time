@@ -3,11 +3,13 @@ const DOUBLE_TAP_MS = 300;
 
 // Turns canvas taps into target selections: a tap (pointer down and up without a
 // drag) picks the target under it — a station or a vehicle — and a second tap on
-// the same target within DOUBLE_TAP_MS activates it. Panning drags never count as
-// taps, so this coexists with the camera controls on the same canvas. Time comes
-// from the caller so the module stays free of the clock. `sameTarget(a, b)`
-// decides double-tap identity (default reference equality) for callers whose
-// picks are fresh wrappers rather than stable objects.
+// the same target within DOUBLE_TAP_MS activates it. Panning drags and
+// multi-finger gestures never count as taps, so this coexists with the camera
+// controls on the same canvas: a pinch ends with a finger lifting off a place it
+// never meant to choose. Time comes from the caller so the module stays free of
+// the clock. `sameTarget(a, b)` decides double-tap identity (default reference
+// equality) for callers whose picks are fresh wrappers rather than stable
+// objects.
 export class TapInteraction {
   constructor(
     canvasElement,
@@ -20,6 +22,7 @@ export class TapInteraction {
     this.onMiss = onMiss;
     this.now = now ?? (() => performance.now());
     this.sameTarget = sameTarget ?? ((first, second) => first === second);
+    this.activePointers = new Set();
     this.downPoint = null;
     this.downPointerId = null;
     this.lastTap = null;
@@ -27,14 +30,26 @@ export class TapInteraction {
   }
 
   #bind() {
-    this.canvas.addEventListener('pointerdown', (event) => {
-      this.downPoint = this.#localPoint(event);
-      this.downPointerId = event.pointerId;
-      this.onMiss();
-    });
+    this.canvas.addEventListener('pointerdown', (event) =>
+      this.#onPointerDown(event),
+    );
     this.canvas.addEventListener('pointerup', (event) =>
       this.#onPointerUp(event),
     );
+    this.canvas.addEventListener('pointercancel', (event) =>
+      this.#onPointerCancel(event),
+    );
+  }
+
+  #onPointerDown(event) {
+    this.activePointers.add(event.pointerId);
+    if (this.activePointers.size > 1) {
+      this.downPoint = null;
+      return;
+    }
+    this.downPoint = this.#localPoint(event);
+    this.downPointerId = event.pointerId;
+    this.onMiss();
   }
 
   #localPoint(event) {
@@ -42,7 +57,15 @@ export class TapInteraction {
     return [event.clientX - rect.left, event.clientY - rect.top];
   }
 
+  #onPointerCancel(event) {
+    this.activePointers.delete(event.pointerId);
+    if (event.pointerId === this.downPointerId) {
+      this.downPoint = null;
+    }
+  }
+
   #onPointerUp(event) {
+    this.activePointers.delete(event.pointerId);
     if (this.downPoint === null || event.pointerId !== this.downPointerId) {
       return;
     }
