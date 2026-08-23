@@ -3,7 +3,8 @@ import { Popover } from './popover.js';
 import { TapInteraction } from './tapInteraction.js';
 import { TrackedPopover } from './trackedPopover.js';
 
-// Double-tap identity for a pick. Stations are stable objects, but vehicleAt
+// Whether two picks mean the same target -- what a double click and a finger's
+// second tap are recognised by. Stations are stable objects, but vehicleAt
 // rebuilds its picks every frame, so vehicles compare by their engine and trip
 // index instead of reference.
 export function sameSelectionTarget(first, second) {
@@ -21,10 +22,13 @@ export function sameSelectionTarget(first, second) {
 
 // Tap- and hover-to-select on the map, sharing one ranked picker so a hover
 // previews exactly what a click would take: a rail station wins, then a vehicle,
-// then a tram or bus stop. The committed selection and the hover each drive their
-// own tracked popover -- the hover's drawn weaker and beneath -- and both follow
-// the moving camera every frame. The panel supplies the pickers and, for
-// vehicles, describeVehicle and vehiclePosition.
+// then a tram or bus stop. The committed selection and the preview each drive
+// their own tracked popover -- the preview's drawn weaker and beneath -- and both
+// follow the moving camera every frame. A mouse previews by hovering and commits
+// by clicking; a finger, which cannot hover, previews with its first tap and
+// commits with a second one on the same target, so reading a station's name never
+// costs a choice. The panel supplies the pickers and, for vehicles,
+// describeVehicle and vehiclePosition.
 export class MapSelection {
   constructor(
     container,
@@ -49,6 +53,7 @@ export class MapSelection {
       this.time,
     );
     this.onStationChosen = onStationChosen;
+    this.previewed = null;
   }
 
   attachTo(canvasElement) {
@@ -56,9 +61,10 @@ export class MapSelection {
     new TapInteraction(canvasElement, {
       pick,
       sameTarget: sameSelectionTarget,
-      onSelect: (target) => this.#select(target),
+      onSelect: (target, pointerType) => this.#select(target, pointerType),
       onActivate: (target) => this.#activate(target),
-      onMiss: () => this.clear(),
+      onPointerDown: () => this.clear(),
+      onNothingTapped: () => this.#dropPreview(),
     });
     new HoverInteraction(canvasElement, {
       pick,
@@ -101,14 +107,42 @@ export class MapSelection {
   #hover(target) {
     if (target === null || this.#isSelected(target)) {
       this.hover.clear();
-    } else if (target.kind === 'station') {
+      return;
+    }
+    this.#preview(target);
+  }
+
+  #preview(target) {
+    if (target.kind === 'station') {
       this.hover.showStation(target.station);
     } else {
       this.hover.showVehicle(target.vehicle);
     }
+    this.previewed = target;
   }
 
-  #select(target) {
+  #dropPreview() {
+    this.previewed = null;
+    this.hover.clear();
+  }
+
+  // A finger has no hover to read a name with, so its first tap on a target only
+  // names it and its second one takes it. The mouse, which has hovered the target
+  // already, takes it on the first click.
+  #awaitsAnotherTap(target, pointerType) {
+    return (
+      pointerType !== 'mouse' &&
+      !this.#isSelected(target) &&
+      (this.previewed === null || !sameSelectionTarget(this.previewed, target))
+    );
+  }
+
+  #select(target, pointerType) {
+    if (this.#awaitsAnotherTap(target, pointerType)) {
+      this.#preview(target);
+      return;
+    }
+    this.previewed = null;
     if (target.kind === 'station') {
       this.revealStation(target.station);
     } else {
