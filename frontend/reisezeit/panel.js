@@ -1,31 +1,35 @@
-import { readStationPoints } from '../viz-core/blobStations.js';
-import { formatTimeOfDay } from '../viz-core/clock.js';
-import { buildConnectionList } from '../viz-core/connectionList.js';
-import { ConnectionScan } from '../viz-core/connectionScan.js';
-import { HEADLINE_WHILE_LOADING } from '../viz-core/headline.js';
-import { HoverInteraction } from '../viz-core/hoverInteraction.js';
-import { Panel } from '../viz-core/panel.js';
-import { placesOfReachedStations } from '../viz-core/places.js';
-import { RadialTravelTimeLayout } from '../viz-core/radialTravelTime.js';
-import { distanceToSegmentSquared } from '../viz-core/segmentDistance.js';
-import {
-  StartStationChoice,
-  stationToTravelFrom,
-} from '../viz-core/startStation.js';
-import { StationCatalog } from '../viz-core/stationCatalog.js';
-import { TapInteraction } from '../viz-core/tapInteraction.js';
+import { element } from '../viz-core/controls/dom.js';
+import { HEADLINE_WHILE_LOADING } from '../viz-core/controls/headline.js';
+import { readStationPoints } from '../viz-core/data/blobStations.js';
+import { placesOfReachedStations } from '../viz-core/data/places.js';
+import { StationCatalog } from '../viz-core/data/stationCatalog.js';
 import {
   CATEGORY_BUS,
   CATEGORY_INTERCITY,
   CATEGORY_INTERREGIO,
   CATEGORY_TRAM,
   categoryLabel,
-} from '../viz-core/transportCategories.js';
-import { VehiclePositionEngine } from '../viz-core/vehiclePositionEngine.js';
+} from '../viz-core/data/transportCategories.js';
+import { HoverInteraction } from '../viz-core/interaction/hoverInteraction.js';
+import { TapInteraction } from '../viz-core/interaction/tapInteraction.js';
+import { Panel } from '../viz-core/panel.js';
+import {
+  StartStationChoice,
+  stationToTravelFrom,
+} from '../viz-core/session/startStation.js';
+import { DEPARTURE_STEP_SECONDS } from '../viz-core/time/openingTime.js';
+import { SECONDS_PER_DAY } from '../viz-core/time/timeModel.js';
+import { formatTimeOfDay } from '../viz-core/time/timeOfDay.js';
+import { buildConnectionList } from '../viz-core/travel/connectionList.js';
+import { ConnectionScan } from '../viz-core/travel/connectionScan.js';
+import { RadialTravelTimeLayout } from '../viz-core/travel/radialTravelTime.js';
+import { distanceToSegmentSquared } from '../viz-core/travel/segmentDistance.js';
+import { VehiclePositionEngine } from '../viz-core/travel/vehiclePositionEngine.js';
 import { buildInfoContent } from './infoContent.js';
 import { formatDuration, formatThroughRide, formatWait } from './labels.js';
 
 const SECONDS_PER_HOUR = 3600;
+
 const GROUND_COLOR = [250, 250, 248];
 
 // Journeys are drawn in bands of half an hour, each band one shape rather than
@@ -154,6 +158,7 @@ export class ReisezeitPanel extends Panel {
     this.places = [];
     this.hourRings = 0;
     this.hovered = null;
+    this.previewed = null;
     this.pointer = null;
     this.chooseStation = null;
     this.context = null;
@@ -195,9 +200,10 @@ export class ReisezeitPanel extends Panel {
     new TapInteraction(canvasElement, {
       pick,
       sameTarget,
-      onSelect: (target) => this.#select(target),
-      onActivate: (target) => this.#select(target),
+      onSelect: (target, pointerType) => this.#select(target, pointerType),
+      onActivate: (target) => this.#select(target, 'mouse'),
       onPointerDown: () => {},
+      onNothingTapped: () => this.#dropPreview(),
     });
   }
 
@@ -257,14 +263,39 @@ export class ReisezeitPanel extends Panel {
 
   revealStation(station) {
     this.startStation = this.startStationChoice.choose(station);
-    this.hovered = null;
+    this.#dropPreview();
     this.#rescan({ openTheView: true });
   }
 
-  #select(target) {
+  #preview(target) {
+    this.previewed = target;
+    this.hovered = target;
+  }
+
+  #dropPreview() {
+    this.previewed = null;
+    this.hovered = null;
+  }
+
+  // A finger has no hover to read the label with, so its first tap on a target
+  // only names it and its second one travels from it. The mouse, which has
+  // hovered the target already, travels on the first click.
+  #awaitsAnotherTap(target, pointerType) {
+    return (
+      pointerType !== 'mouse' &&
+      (this.previewed === null || !sameTarget(this.previewed, target))
+    );
+  }
+
+  #select(target, pointerType) {
+    if (this.#awaitsAnotherTap(target, pointerType)) {
+      this.#preview(target);
+      return;
+    }
     if (target.kind !== 'place') {
       return;
     }
+    this.previewed = null;
     const entry = this.catalog.entryOf(
       this.connections.didokOf(this.places[target.index].station),
     );
@@ -713,8 +744,51 @@ export class ReisezeitPanel extends Panel {
     );
   }
 
+  // A tree is worked out for one departure, so choosing another one draws the
+  // picture again -- from the same station and, since only the reach changes,
+  // without taking the view back to where it started.
+  setStartTime(seconds) {
+    this.startTimeSeconds = seconds;
+    this.#dropPreview();
+    this.#rescan({ openTheView: false });
+  }
+
   controlSections() {
-    return [];
+    return [
+      {
+        id: 'departure',
+        title: 'Abfahrtszeit',
+        element: this.#departureControl(),
+        keepInExhibition: true,
+      },
+    ];
+  }
+
+  // The tree follows only once the slider is let go: every step of a drag would
+  // be a whole connection scan, and the picture would rearrange under the hand.
+  #departureControl() {
+    const group = element('div', 'control-options');
+    const slider = this.#departureSlider();
+    const chosenTime = element('p', 'control-hint is-visible');
+    chosenTime.textContent = formatTimeOfDay(this.startTimeSeconds);
+    slider.addEventListener('input', () => {
+      chosenTime.textContent = formatTimeOfDay(Number(slider.value));
+    });
+    slider.addEventListener('change', () => {
+      this.setStartTime(Number(slider.value));
+    });
+    group.append(slider, chosenTime);
+    return group;
+  }
+
+  #departureSlider() {
+    const slider = element('input', 'control-slider');
+    slider.type = 'range';
+    slider.min = '0';
+    slider.max = String(SECONDS_PER_DAY - DEPARTURE_STEP_SECONDS);
+    slider.step = String(DEPARTURE_STEP_SECONDS);
+    slider.value = String(this.startTimeSeconds);
+    return slider;
   }
 
   infoContent() {

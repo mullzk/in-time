@@ -1,32 +1,32 @@
-import { Attribution } from './attribution.js';
-import { localStorageOrForgetful } from './browserStorage.js';
-import { Camera } from './camera.js';
-import { ChoiceList } from './choiceList.js';
-import { Dock } from './dock.js';
-import { tilesToHang } from './dockTiles.js';
-import { element } from './dom.js';
-import { Headline } from './headline.js';
-import { InfoCard } from './infoCard.js';
-import { InstrumentationEditor } from './instrumentationEditor.js';
-import { KeyboardControls } from './keyboardControls.js';
-import { MapSelection } from './mapSelection.js';
-import { PanelContext } from './panelContext.js';
-import { wgs84ToLv95 } from './projection.js';
-import { AudioBridge } from './sonification/audioBridge.js';
-import { CustomInstrumentationStore } from './sonification/customInstrumentation.js';
-import { Sonifier } from './sonification/sonifier.js';
-import { StationInUrl, stationMatchingSlug } from './stationInUrl.js';
-import { StationSearch } from './stationSearch.js';
-import { TileLayer } from './tiles/tileLayer.js';
-import { BACKGROUNDS } from './tiles/tileSource.js';
-import { TransportControls } from './transportControls.js';
-import { ViewSwitcher } from './viewSwitcher.js';
-import { VizCore } from './vizCore.js';
+import { Attribution } from './controls/attribution.js';
+import { ChoiceList } from './controls/choiceList.js';
+import { Dock } from './controls/dock.js';
+import { tilesToHang } from './controls/dockTiles.js';
+import { element } from './controls/dom.js';
+import { Headline } from './controls/headline.js';
+import { InfoCard } from './controls/infoCard.js';
+import { InstrumentationEditor } from './controls/instrumentationEditor.js';
+import { StationSearch } from './controls/stationSearch.js';
+import { TransportControls } from './controls/transportControls.js';
+import { ViewSwitcher } from './controls/viewSwitcher.js';
 import {
   ZOOM_STEPS,
   zoomFractionForPosition,
   zoomSliderPosition,
-} from './zoomSlider.js';
+} from './controls/zoomSlider.js';
+import { wgs84ToLv95 } from './data/projection.js';
+import { KeyboardControls } from './interaction/keyboardControls.js';
+import { MapSelection } from './interaction/mapSelection.js';
+import { PanelContext } from './panelContext.js';
+import { Camera } from './render/camera.js';
+import { TileLayer } from './render/tiles/tileLayer.js';
+import { BACKGROUNDS } from './render/tiles/tileSource.js';
+import { VizCore } from './render/vizCore.js';
+import { localStorageOrForgetful } from './session/browserStorage.js';
+import { StationInUrl, stationMatchingSlug } from './session/stationInUrl.js';
+import { AudioBridge } from './sonification/audioBridge.js';
+import { CustomInstrumentationStore } from './sonification/customInstrumentation.js';
+import { Sonifier } from './sonification/sonifier.js';
 
 const isExhibition = () =>
   new URLSearchParams(window.location.search).get('mode') === 'exhibition';
@@ -84,7 +84,6 @@ export class PanelShell {
       this.customInstrumentationStore = new CustomInstrumentationStore(
         localStorageOrForgetful(),
       );
-      this.#offerStoredInstrumentation();
       this.#mountInstrumentationEditor();
     }
 
@@ -95,6 +94,11 @@ export class PanelShell {
       : new ViewSwitcher(this.stationInUrl);
     this.infoCard = new InfoCard(this.panel.infoContent());
     this.dock = new Dock(this.root, this.#tiles());
+    // After the dock: what is offered goes into the sound control the tiles
+    // have just built.
+    if (this.sonifier) {
+      this.#offerStoredInstrumentation();
+    }
     this.stationSearch = this.panel.capabilities.stationSearch
       ? new StationSearch(this.topBar, this.panel.stationCatalog(), {
           onSelect: (station) => this.#chooseStation(station),
@@ -114,7 +118,11 @@ export class PanelShell {
       : null;
     // A panel that has a question to put over its picture gets the writing; the
     // rest of the views carry none.
-    this.headline = this.panel.headline ? new Headline(this.root) : null;
+    this.headline = this.panel.headline
+      ? new Headline(this.root, {
+          besideAClock: this.panel.capabilities.stationClock,
+        })
+      : null;
 
     new KeyboardControls(window, {
       // Space plays; a view that does not play does not answer to it.

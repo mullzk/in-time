@@ -75,7 +75,7 @@ export class Dock {
     const pressed = sections.find((section) => section.onActivate) ?? null;
     const tile = { id, root, button, name, face: pressed?.face, wearing: id };
     if (pressed === null) {
-      root.appendChild(this.#card(sections, wideCard));
+      root.appendChild(this.#card(sections, { label, wideCard }));
       button.addEventListener('click', () => this.toggle(id));
     } else {
       button.addEventListener('click', () => {
@@ -86,23 +86,27 @@ export class Dock {
     return tile;
   }
 
-  #card(sections, wideCard) {
+  #card(sections, { label, wideCard }) {
     const card = element('div', 'dock-card');
     if (wideCard) {
       card.classList.add('dock-card-wide');
     }
+    const saysNoMoreThanTheTile = (section) =>
+      sections.length === 1 && section.title === label;
     sections.forEach((section) => {
-      card.appendChild(this.#section(section, sections.length === 1));
+      card.appendChild(this.#section(section, !saysNoMoreThanTheTile(section)));
     });
     return card;
   }
 
-  // A card with one section needs no heading over it: the tile's name already
-  // says what is being set. Several sections in one card do.
-  #section({ id, title, element: content }, alone) {
+  // A lone section the tile is named after needs no heading over it, since the
+  // name already stands in the dock. Every other section keeps its own: one of
+  // several, or one whose name says more precisely what is being set than the
+  // tile it hangs under can.
+  #section({ id, title, element: content }, headed) {
     const section = element('section', 'dock-card-section');
     section.dataset.section = id;
-    if (!alone) {
+    if (headed) {
       const heading = element('h2', 'dock-card-heading');
       heading.textContent = title;
       section.appendChild(heading);

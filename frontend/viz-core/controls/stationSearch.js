@@ -12,6 +12,12 @@ const INVITED_MARGIN_PIXELS = 24;
 // into a list nobody can see. It stays in the upper part instead.
 const INVITED_DROP_PIXELS = 200;
 
+// What the suggestions leave standing below themselves, and the least room they
+// take even when there is none: a list squeezed to a single line is worse to
+// answer than one that overlaps the very foot of the screen.
+const SUGGESTIONS_FOOT_PIXELS = 12;
+const SUGGESTIONS_LEAST_PIXELS = 120;
+
 // Floating search field in the middle of the top bar: the panel supplies the
 // StationCatalog, and a chosen station is handed back through onSelect so the
 // caller can move the camera. It owns only its DOM and selection state.
@@ -58,6 +64,14 @@ export class StationSearch {
       }
     });
     window.addEventListener('resize', () => this.#placeTheAsk());
+    // The keyboard opening does not resize the window on iOS, only the part of
+    // it left to see, and the list has to be held to that part.
+    window.visualViewport?.addEventListener('resize', () =>
+      this.#capTheSuggestions(),
+    );
+    window.visualViewport?.addEventListener('scroll', () =>
+      this.#capTheSuggestions(),
+    );
   }
 
   focus() {
@@ -107,6 +121,26 @@ export class StationSearch {
       '--invitation-shift-y',
       `${Math.min(toTheMiddle, INVITED_DROP_PIXELS)}px`,
     );
+    this.#capTheSuggestions();
+  }
+
+  // How much screen is left under the open list for it to fill. It is measured
+  // from where it actually hangs, transform and all, against the part of the
+  // window that is still to be seen: with a keyboard open that is the upper half
+  // of a phone, which the window's own height knows nothing about. A closed list
+  // has no box to measure and none to fill; it is capped as it opens.
+  #capTheSuggestions() {
+    if (!this.root.classList.contains('is-open')) {
+      return;
+    }
+    const seen = window.visualViewport;
+    const foot = seen ? seen.offsetTop + seen.height : window.innerHeight;
+    const room =
+      foot - this.list.getBoundingClientRect().top - SUGGESTIONS_FOOT_PIXELS;
+    this.root.style.setProperty(
+      '--suggestions-height',
+      `${Math.max(room, SUGGESTIONS_LEAST_PIXELS)}px`,
+    );
   }
 
   showSelection(station) {
@@ -136,6 +170,12 @@ export class StationSearch {
       }),
     );
     this.root.classList.toggle('is-open', this.suggestions.length > 0);
+    this.#capTheSuggestions();
+    // The list scrolls once it is longer than the room under the field, so the
+    // arrow keys have to carry the view along with the choice they move.
+    this.list
+      .querySelector('.station-search-suggestion.is-active')
+      ?.scrollIntoView({ block: 'nearest' });
   }
 
   #onKeyDown(event) {

@@ -1,4 +1,7 @@
-import { categoryColor, categoryTextColor } from './transportCategories.js';
+import {
+  categoryColor,
+  categoryTextColor,
+} from '../data/transportCategories.js';
 
 // A popover bound to one map target -- a station or a vehicle -- that it shows
 // and, each frame, re-anchors to the target's current screen position. A vehicle

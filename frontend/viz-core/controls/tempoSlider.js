@@ -1,4 +1,4 @@
-import { MAX_TEMPO, MIN_TEMPO } from './timeModel.js';
+import { MAX_TEMPO, MIN_TEMPO } from '../time/timeModel.js';
 
 // The tempo slider's travel: a geometric run from the slowest tempo to the
 // fastest. Linear travel would spend nearly all of it on the fast half -- the

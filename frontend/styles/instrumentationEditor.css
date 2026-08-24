@@ -6,7 +6,9 @@
    back as it was. */
 .instrumentation-editor {
   position: absolute;
-  z-index: 14;
+  /* Above the top bar: the bar spans the full width, so its transparent right
+     end would otherwise take the taps meant for the drawer's head. */
+  z-index: 15;
   top: 0;
   right: 0;
   bottom: 0;

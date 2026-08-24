@@ -30,7 +30,7 @@ const connectionsOf = (list) =>
   );
 
 const blobBuffer = (name) => {
-  const bytes = readFileSync(new URL(`./fixtures/${name}`, import.meta.url));
+  const bytes = readFileSync(new URL(`../fixtures/${name}`, import.meta.url));
   return bytes.buffer.slice(
     bytes.byteOffset,
     bytes.byteOffset + bytes.byteLength,

@@ -1,10 +1,13 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
+import {
+  ZOOM_STEPS,
+  zoomFractionForPosition,
+} from '../viz-core/controls/zoomSlider.js';
+import { BACKGROUNDS } from '../viz-core/render/tiles/tileSource.js';
 import { Instrumentation } from '../viz-core/sonification/instrumentation.js';
 import { INSTRUMENTATIONS } from '../viz-core/sonification/presets.js';
-import { BACKGROUNDS } from '../viz-core/tiles/tileSource.js';
-import { ZOOM_STEPS, zoomFractionForPosition } from '../viz-core/zoomSlider.js';
 import {
   CUSTOM_OPTION_VALUE,
   instrumentationForOptionValue,

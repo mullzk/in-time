@@ -1,4 +1,4 @@
-import { formatTimeOfDay } from './clock.js';
+import { formatTimeOfDay } from '../time/timeOfDay.js';
 import { element } from './dom.js';
 import {
   sliderPositionForTempo,

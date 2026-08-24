@@ -1,23 +1,8 @@
-import { readStationPoints } from '../viz-core/blobStations.js';
-import { formatTimeOfDay } from '../viz-core/clock.js';
-import { buildConnectionList } from '../viz-core/connectionList.js';
-import { ConnectionScan } from '../viz-core/connectionScan.js';
-import { element } from '../viz-core/dom.js';
-import { Panel } from '../viz-core/panel.js';
-import { placesOfReachedStations } from '../viz-core/places.js';
-import {
-  StartStationChoice,
-  stationToTravelFrom,
-} from '../viz-core/startStation.js';
-import { StationCatalog } from '../viz-core/stationCatalog.js';
-import { drawStationClock, todayIso } from '../viz-core/stationClock.js';
-import {
-  dominantStationMode,
-  nearestStation,
-  nodeDiameterPixels,
-  stationPickRadiusPixels,
-} from '../viz-core/stationNodes.js';
-import { SECONDS_PER_DAY } from '../viz-core/timeModel.js';
+import { element } from '../viz-core/controls/dom.js';
+import { HEADLINE_WHILE_LOADING } from '../viz-core/controls/headline.js';
+import { readStationPoints } from '../viz-core/data/blobStations.js';
+import { placesOfReachedStations } from '../viz-core/data/places.js';
+import { StationCatalog } from '../viz-core/data/stationCatalog.js';
 import {
   byRisingRank,
   CATEGORY_BUS,
@@ -26,8 +11,28 @@ import {
   CATEGORY_TRAM,
   categoryColor,
   categoryLabel,
-} from '../viz-core/transportCategories.js';
-import { VehiclePositionEngine } from '../viz-core/vehiclePositionEngine.js';
+} from '../viz-core/data/transportCategories.js';
+import { Panel } from '../viz-core/panel.js';
+import { drawStationClock } from '../viz-core/render/stationClock.js';
+import {
+  dominantStationMode,
+  nearestStation,
+  nodeDiameterPixels,
+  stationPickRadiusPixels,
+} from '../viz-core/render/stationNodes.js';
+import {
+  StartStationChoice,
+  stationToTravelFrom,
+} from '../viz-core/session/startStation.js';
+import {
+  DEPARTURE_STEP_SECONDS,
+  todayIso,
+} from '../viz-core/time/openingTime.js';
+import { SECONDS_PER_DAY } from '../viz-core/time/timeModel.js';
+import { formatTimeOfDay } from '../viz-core/time/timeOfDay.js';
+import { buildConnectionList } from '../viz-core/travel/connectionList.js';
+import { ConnectionScan } from '../viz-core/travel/connectionScan.js';
+import { VehiclePositionEngine } from '../viz-core/travel/vehiclePositionEngine.js';
 import { buildInfoContent } from './infoContent.js';
 import { ReachedPlaces } from './reachedPlaces.js';
 import { SettledLayer } from './settledLayer.js';
@@ -59,10 +64,6 @@ const START_RING_WIDTH_PIXELS = 1.5;
 // tighter than a station's.
 const VEHICLE_HIT_RADIUS_PIXELS = 10;
 
-// The departure can be moved to any moment of the day, in five-minute steps --
-// finer would be a false promise, since the picture changes by the timetable.
-const DEPARTURE_STEP_SECONDS = 300;
-
 // The place one sets off from is reached by nothing, so it wears no traffic.
 const NO_CATEGORY = -1;
 
@@ -85,6 +86,7 @@ export class AusbreitungPanel extends Panel {
     mapBackground: true,
     zoomSlider: true,
     needsAStation: true,
+    stationClock: true,
   };
 
   constructor(
@@ -169,6 +171,17 @@ export class AusbreitungPanel extends Panel {
 
   startsFrom() {
     return this.startStation;
+  }
+
+  // Of the spread on screen, not of the departure just chosen: until it is
+  // restarted, one is watching the journey one set off on. The hour it left at
+  // stands here, the hour it has got to is on the clock in the picture.
+  headline() {
+    if (this.spreadOnScreen === null) {
+      return HEADLINE_WHILE_LOADING;
+    }
+    const { station, departureSeconds } = this.spreadOnScreen;
+    return `Wenn ich um ${formatTimeOfDay(departureSeconds)} in ${station.name} losfahre, welche Orte erreiche ich um welche Zeit?`;
   }
 
   drawStation() {
@@ -523,7 +536,7 @@ export class AusbreitungPanel extends Panel {
     return [
       {
         id: 'departure',
-        title: 'Abfahrt',
+        title: 'Abfahrtszeit',
         element: this.#departureControl(),
         keepInExhibition: true,
       },

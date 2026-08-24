@@ -1,5 +1,5 @@
+import { VIEWS } from '../session/views.js';
 import { element } from './dom.js';
-import { VIEWS } from './views.js';
 
 // The gallery in the app tile's card: every view under the other, the one on
 // screen filled in. It wears the choice list's face but is built of links,

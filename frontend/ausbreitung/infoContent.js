@@ -8,33 +8,32 @@ export function buildInfoContent() {
     title: 'All in Time',
     intro: [
       [
-        'Die Ausbreitung zeigt, wie sich eine Reise über das Land legt: Ab ' +
-          'dem gewählten Ort und der gewählten Abfahrtszeit fahren genau ' +
-          'jene Fahrzeuge, die man tatsächlich nähme. Jeder erreichte Ort ' +
-          'leuchtet im Moment der Ankunft auf und bleibt als Punkt zurück.',
-      ],
-      [
-        'Gerechnet wird mit dem Fahrplan des heutigen Tages gemäss ',
+        'All in Time macht den Schweizer Taktfahrplan sicht- und hörbar. ' +
+          'Entstanden im Rahmen des stets inspirierenden ',
+        link(
+          'CAS Generative Data Design',
+          'https://www.hkb.bfh.ch/de/weiterbildung/cas/generative-data-design/',
+        ),
+        ' der ',
+        link('HKB', 'https://www.hkb.bfh.ch/de/'),
+        ', wird der Fahrplan des heutigen Tages gemäss ',
         link('opentransportdata.swiss', 'https://opentransportdata.swiss'),
-        '. Umgestiegen wird nur innerhalb eines Umsteigeknotens, mit zwei ' +
-          'Minuten Mindest-Umsteigezeit; auf eine Verbindung wird höchstens ' +
-          'zwei Stunden gewartet. Quellcode: ',
+        ' angezeigt. Weitere Quellen: ',
+        link('Bundesamt für Verkehr', 'https://www.bav.admin.ch/de/eisenbahn'),
+        ' und ',
+        link('swisstopo', 'https://www.swisstopo.admin.ch/de'),
+        '. Quellcode: ',
         link(
           'github.com/mullzk/in-time/',
           'https://github.com/mullzk/in-time/',
         ),
         '.',
       ],
+      [
+        'Die Ausbreitungs-Ansicht zeigt auf, wie sich von einem beliebigen ' +
+          'Startpunkt aus die ganze Schweiz erreichen lässt.',
+      ],
     ],
-    controlHelp:
-      'Der Standort wird über das Suchfeld oben oder mit einem Klick auf ' +
-      'einen erreichten Ort gewählt; ein Klick auf ein Fahrzeug zeigt, ' +
-      'woher es kommt und wohin es fährt. Die Bedienung liegt im Dock am ' +
-      'linken Rand: die Kachel Zeit trägt Tempo, Uhrzeit und Abfahrtszeit, ' +
-      'die Kachel Karte den Hintergrund und den Zoom. Eine neue ' +
-      'Abfahrtszeit unterbricht die laufende Ausbreitung nicht — sie gilt, ' +
-      'sobald Neu starten gedrückt wird. Die Wiedergabe-Kachel hält die ' +
-      'Ausbreitung an und lässt sie weiterlaufen.',
     shortcuts: [
       { keys: 'Leertaste', description: 'Wiedergabe anhalten und fortsetzen' },
       { keys: '+', description: 'Hineinzoomen' },

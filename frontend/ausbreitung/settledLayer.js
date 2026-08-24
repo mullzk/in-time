@@ -1,4 +1,4 @@
-import { applyCameraTransform } from '../viz-core/cameraTransform.js';
+import { applyCameraTransform } from '../viz-core/render/cameraTransform.js';
 
 const NO_RUN = -1;
 const FROM_THE_BEGINNING = 0;
