@@ -1,9 +1,14 @@
 const ZOOM_STEP = 1.1;
 
+// Two fingers that travel together are panning, not pinching, so the zoom holds
+// back until their spacing has really changed. Without it every two-finger pan
+// zooms a little on the way.
+const PINCH_ZOOM_DEADZONE_PIXELS = 8;
+
 // Translates canvas pointer and wheel gestures into camera pan/zoom. Bound to
 // the canvas element itself, so a gesture on a DOM control (scrubber, tempo,
 // play) never reaches the camera. Pointer events unify mouse, touch and
-// pen; two active pointers pinch-zoom.
+// pen; two active pointers pinch-zoom and pan together.
 export class CameraControls {
   // onZoomGesture fires on the center-shifting zooms (wheel, pinch), not on the
   // centre-preserving ones the keyboard and the zoom slider drive.
@@ -12,7 +17,7 @@ export class CameraControls {
     this.camera = camera;
     this.onZoomGesture = onZoomGesture ?? (() => {});
     this.activePointers = new Map();
-    this.pinchDistance = null;
+    this.pinch = null;
     this.#bind();
   }
 
@@ -63,7 +68,7 @@ export class CameraControls {
   #onPointerUp(event) {
     this.activePointers.delete(event.pointerId);
     if (this.activePointers.size < 2) {
-      this.pinchDistance = null;
+      this.pinch = null;
     }
   }
 
@@ -72,7 +77,7 @@ export class CameraControls {
     if (points.length === 1) {
       this.#pan(previous, current);
     } else if (points.length === 2) {
-      this.#pinchZoom(points);
+      this.#pinch(points);
     }
   }
 
@@ -80,16 +85,42 @@ export class CameraControls {
     this.camera.panBy(current[0] - previous[0], current[1] - previous[1]);
   }
 
-  #pinchZoom([first, second]) {
-    const distance = Math.hypot(first[0] - second[0], first[1] - second[1]);
-    if (this.pinchDistance !== null) {
-      this.camera.zoomAt(
-        (first[0] + second[0]) / 2,
-        (first[1] + second[1]) / 2,
-        distance / this.pinchDistance,
-      );
+  // Two fingers carry the picture with them as well as scale it: the midpoint
+  // between them pans, their spacing zooms about that same midpoint. Panning
+  // first puts the grasped place back under the fingers, so zooming about the
+  // new midpoint leaves it there.
+  #pinch(points) {
+    const centre = midpointOf(points);
+    const distance = spreadOf(points);
+    if (this.pinch === null) {
+      this.pinch = { centre, distance, startDistance: distance, zooms: false };
+      return;
+    }
+    this.camera.panBy(
+      centre[0] - this.pinch.centre[0],
+      centre[1] - this.pinch.centre[1],
+    );
+    const zooms =
+      this.pinch.zooms ||
+      Math.abs(distance - this.pinch.startDistance) >
+        PINCH_ZOOM_DEADZONE_PIXELS;
+    if (zooms) {
+      this.camera.zoomAt(centre[0], centre[1], distance / this.pinch.distance);
       this.onZoomGesture();
     }
-    this.pinchDistance = distance;
+    this.pinch = {
+      centre,
+      distance,
+      startDistance: this.pinch.startDistance,
+      zooms,
+    };
   }
 }
+
+const midpointOf = ([first, second]) => [
+  (first[0] + second[0]) / 2,
+  (first[1] + second[1]) / 2,
+];
+
+const spreadOf = ([first, second]) =>
+  Math.hypot(first[0] - second[0], first[1] - second[1]);

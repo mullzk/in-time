@@ -78,8 +78,11 @@
   cursor: pointer;
 }
 
-.station-search-lucky:hover {
-  filter: brightness(1.1);
+/* Guarded: a tap leaves :hover standing on a touch screen. */
+@media (hover: hover) {
+  .station-search-lucky:hover {
+    filter: brightness(1.1);
+  }
 }
 
 .station-search.is-inviting .station-search-prompt,
@@ -153,7 +156,13 @@
   cursor: pointer;
 }
 
-.station-search-suggestion.is-active,
-.station-search-suggestion:hover {
+.station-search-suggestion.is-active {
   background: var(--color-control);
+}
+
+/* Guarded: a tap leaves :hover standing on a touch screen. */
+@media (hover: hover) {
+  .station-search-suggestion:hover {
+    background: var(--color-control);
+  }
 }

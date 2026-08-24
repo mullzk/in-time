@@ -221,10 +221,13 @@ test('touch input never triggers a hover popover', () => {
   assert.equal(hoverPopover.calls.length, 0);
 });
 
-const tap = (canvas, clientX, clientY) => {
-  canvas.handlers.pointerdown({ pointerId: 1, clientX, clientY });
-  canvas.handlers.pointerup({ pointerId: 1, clientX, clientY });
+const clickWith = (pointerType) => (canvas, clientX, clientY) => {
+  canvas.handlers.pointerdown({ pointerId: 1, pointerType, clientX, clientY });
+  canvas.handlers.pointerup({ pointerId: 1, pointerType, clientX, clientY });
 };
+
+const click = clickWith('mouse');
+const tap = clickWith('touch');
 
 test('clicking a rail station reveals its layer, zooms and selects it', () => {
   const popover = makeFakePopover();
@@ -240,7 +243,7 @@ test('clicking a rail station reveals its layer, zooms and selects it', () => {
   const canvas = makeFakeCanvas();
   selection.attachTo(canvas);
 
-  tap(canvas, 5, 5);
+  click(canvas, 5, 5);
   assert.deepEqual(revealed, [bern]);
   assert.deepEqual(focused, [[100, 200]]);
   assert.deepEqual(popover.calls.at(-1), ['showAt', 100, 200]);
@@ -265,7 +268,7 @@ test('a rail station wins over a vehicle on top of it', () => {
   const canvas = makeFakeCanvas();
   selection.attachTo(canvas);
 
-  tap(canvas, 5, 5);
+  click(canvas, 5, 5);
   assert.deepEqual(revealed, [bern]);
 });
 
@@ -288,7 +291,7 @@ test('a vehicle wins over a nearby tram or bus stop', () => {
   const canvas = makeFakeCanvas();
   selection.attachTo(canvas);
 
-  tap(canvas, 5, 5);
+  click(canvas, 5, 5);
   assert.deepEqual(popover.calls.at(-1), ['showLines', 5, 6]);
   assert.deepEqual(revealed, []);
 });
@@ -310,8 +313,133 @@ test('a panel that frames a chosen station itself is left to do it', () => {
   const canvas = makeFakeCanvas();
   selection.attachTo(canvas);
 
-  tap(canvas, 5, 5);
+  click(canvas, 5, 5);
 
   assert.deepEqual(framed, [bern]);
   assert.deepEqual(focused, [], 'the shared move-in is not used as well');
+});
+
+const bern = { east: 100, north: 200, name: 'Bern' };
+const thun = { east: 300, north: 400, name: 'Thun' };
+
+// A panel whose rail stations lie apart on the screen, so a tap can be aimed at
+// one or the other -- or, past them both, at nothing.
+function twoStationPanel(revealed) {
+  return {
+    railStationNear: (screenX) => {
+      if (screenX < 50) {
+        return bern;
+      }
+      return screenX < 150 ? thun : null;
+    },
+    vehicleAt: () => null,
+    minorStationNear: () => null,
+    revealStation: (station) => revealed.push(station),
+  };
+}
+
+test('a first tap on a station only names it', () => {
+  const hoverPopover = makeFakePopover();
+  const revealed = [];
+  const { selection, focused } = makeSelection({
+    hoverPopover,
+    panel: twoStationPanel(revealed),
+  });
+  const canvas = makeFakeCanvas();
+  selection.attachTo(canvas);
+
+  tap(canvas, 5, 5);
+
+  assert.deepEqual(hoverPopover.calls.at(-1), ['showAt', 100, 200]);
+  assert.deepEqual(revealed, [], 'nothing is chosen yet');
+  assert.deepEqual(focused, [], 'and the camera stays where it was');
+});
+
+test('a second tap on the named station chooses it', () => {
+  const revealed = [];
+  const { selection, focused } = makeSelection({
+    panel: twoStationPanel(revealed),
+  });
+  const canvas = makeFakeCanvas();
+  selection.attachTo(canvas);
+
+  tap(canvas, 5, 5);
+  tap(canvas, 5, 5);
+
+  assert.deepEqual(revealed, [bern]);
+  assert.deepEqual(focused, [[100, 200]]);
+});
+
+test('a tap on another station names that one instead of choosing the first', () => {
+  const hoverPopover = makeFakePopover();
+  const revealed = [];
+  const { selection } = makeSelection({
+    hoverPopover,
+    panel: twoStationPanel(revealed),
+  });
+  const canvas = makeFakeCanvas();
+  selection.attachTo(canvas);
+
+  tap(canvas, 5, 5);
+  tap(canvas, 100, 5);
+
+  assert.deepEqual(hoverPopover.calls.at(-1), ['showAt', 300, 400]);
+  assert.deepEqual(revealed, []);
+});
+
+test('a tap on nothing takes the name away again', () => {
+  const hoverPopover = makeFakePopover();
+  const revealed = [];
+  const { selection } = makeSelection({
+    hoverPopover,
+    panel: twoStationPanel(revealed),
+  });
+  const canvas = makeFakeCanvas();
+  selection.attachTo(canvas);
+
+  tap(canvas, 5, 5);
+  tap(canvas, 200, 5);
+  assert.deepEqual(hoverPopover.calls.at(-1), ['hide']);
+
+  tap(canvas, 5, 5);
+  assert.deepEqual(revealed, [], 'and the station has to be named anew');
+});
+
+test('a pinch that ends over a station chooses nothing', () => {
+  const revealed = [];
+  const hoverPopover = makeFakePopover();
+  const { selection } = makeSelection({
+    hoverPopover,
+    panel: twoStationPanel(revealed),
+  });
+  const canvas = makeFakeCanvas();
+  selection.attachTo(canvas);
+
+  canvas.handlers.pointerdown({
+    pointerId: 1,
+    pointerType: 'touch',
+    clientX: 5,
+    clientY: 5,
+  });
+  canvas.handlers.pointerdown({
+    pointerId: 2,
+    pointerType: 'touch',
+    clientX: 40,
+    clientY: 5,
+  });
+  canvas.handlers.pointerup({
+    pointerId: 2,
+    pointerType: 'touch',
+    clientX: 40,
+    clientY: 5,
+  });
+  canvas.handlers.pointerup({
+    pointerId: 1,
+    pointerType: 'touch',
+    clientX: 5,
+    clientY: 5,
+  });
+
+  assert.deepEqual(revealed, []);
+  assert.ok(!hoverPopover.calls.some((call) => call[0] === 'showAt'));
 });

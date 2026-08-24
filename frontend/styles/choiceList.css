@@ -27,8 +27,11 @@
   cursor: pointer;
 }
 
-.choice-list-option:hover {
-  background: var(--color-control-hover);
+/* Guarded: a tap leaves :hover standing on a touch screen. */
+@media (hover: hover) {
+  .choice-list-option:hover {
+    background: var(--color-control-hover);
+  }
 }
 
 .choice-list-option.is-current {

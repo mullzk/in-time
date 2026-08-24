@@ -6,7 +6,7 @@
 .dock {
   position: absolute;
   z-index: 13;
-  left: var(--dock-inset);
+  left: calc(var(--dock-inset) + env(safe-area-inset-left));
   top: 50%;
   transform: translateY(-50%);
   display: flex;
@@ -50,14 +50,19 @@
   height: 55%;
 }
 
-.dock-tile:hover .dock-tile-button,
-.dock-tile.is-open .dock-tile-button {
-  background: var(--color-control-hover);
-  transform: scale(1.15);
+/* Guarded, because a tap leaves :hover standing on a touch screen: the tile
+   would keep the lifted look of a pointer that is no longer there. Standing
+   before the open tile's own colour, so an open tile keeps it while hovered. */
+@media (hover: hover) {
+  .dock-tile:hover .dock-tile-button {
+    background: var(--color-control-hover);
+    transform: scale(1.15);
+  }
 }
 
 .dock-tile.is-open .dock-tile-button {
   background: var(--color-surface);
+  transform: scale(1.15);
 }
 
 /* The name stands where the card will stand, so hovering already points at
@@ -79,8 +84,10 @@
   transition: opacity var(--transition-panel);
 }
 
-.dock-tile:hover .dock-tile-name {
-  opacity: 1;
+@media (hover: hover) {
+  .dock-tile:hover .dock-tile-name {
+    opacity: 1;
+  }
 }
 
 .dock-tile.is-open .dock-tile-name {
@@ -206,8 +213,10 @@
   cursor: pointer;
 }
 
-.control-button:hover {
-  background: var(--color-control-hover);
+@media (hover: hover) {
+  .control-button:hover {
+    background: var(--color-control-hover);
+  }
 }
 
 /* On a narrow screen the dock lies along the foot of the picture, where a thumb
@@ -216,10 +225,10 @@
    screen, so it spans the width and only its tile says which one it is. */
 @media (max-width: 640px) {
   .dock {
-    left: var(--space-m);
-    right: var(--space-m);
+    left: calc(var(--space-m) + env(safe-area-inset-left));
+    right: calc(var(--space-m) + env(safe-area-inset-right));
     top: auto;
-    bottom: var(--dock-inset);
+    bottom: calc(var(--dock-inset) + env(safe-area-inset-bottom));
     /* No transform: the cards inside are laid out against the screen, which a
        transformed ancestor would make impossible. */
     transform: none;
@@ -251,10 +260,10 @@
 
   .dock-card {
     position: fixed;
-    left: var(--space-m);
-    right: var(--space-m);
+    left: calc(var(--space-m) + env(safe-area-inset-left));
+    right: calc(var(--space-m) + env(safe-area-inset-right));
     top: auto;
-    bottom: var(--dock-outset);
+    bottom: calc(var(--dock-outset) + env(safe-area-inset-bottom));
     width: auto;
     max-height: 60vh;
     transform: translateY(6px);
