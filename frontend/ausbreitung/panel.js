@@ -3,6 +3,7 @@ import { formatTimeOfDay } from '../viz-core/clock.js';
 import { buildConnectionList } from '../viz-core/connectionList.js';
 import { ConnectionScan } from '../viz-core/connectionScan.js';
 import { element } from '../viz-core/dom.js';
+import { DEPARTURE_STEP_SECONDS } from '../viz-core/openingTime.js';
 import { Panel } from '../viz-core/panel.js';
 import { placesOfReachedStations } from '../viz-core/places.js';
 import {
@@ -58,10 +59,6 @@ const START_RING_WIDTH_PIXELS = 1.5;
 // Vehicles are smaller and denser than the places, so their tap target stays
 // tighter than a station's.
 const VEHICLE_HIT_RADIUS_PIXELS = 10;
-
-// The departure can be moved to any moment of the day, in five-minute steps --
-// finer would be a false promise, since the picture changes by the timetable.
-const DEPARTURE_STEP_SECONDS = 300;
 
 // The place one sets off from is reached by nothing, so it wears no traffic.
 const NO_CATEGORY = -1;

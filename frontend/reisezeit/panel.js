@@ -5,6 +5,7 @@ import { ConnectionScan } from '../viz-core/connectionScan.js';
 import { element } from '../viz-core/dom.js';
 import { HEADLINE_WHILE_LOADING } from '../viz-core/headline.js';
 import { HoverInteraction } from '../viz-core/hoverInteraction.js';
+import { DEPARTURE_STEP_SECONDS } from '../viz-core/openingTime.js';
 import { Panel } from '../viz-core/panel.js';
 import { placesOfReachedStations } from '../viz-core/places.js';
 import { RadialTravelTimeLayout } from '../viz-core/radialTravelTime.js';
@@ -28,7 +29,7 @@ import { buildInfoContent } from './infoContent.js';
 import { formatDuration, formatThroughRide, formatWait } from './labels.js';
 
 const SECONDS_PER_HOUR = 3600;
-const DEPARTURE_STEP_SECONDS = 300;
+
 const GROUND_COLOR = [250, 250, 248];
 
 // Journeys are drawn in bands of half an hour, each band one shape rather than

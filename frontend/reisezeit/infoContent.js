@@ -15,8 +15,9 @@ export function buildInfoContent() {
           'Fahrplan schnell; wo es sich dehnt, dauert es.',
       ],
       [
-        'Gerechnet wird ab der gewählten Abfahrtszeit — anfangs 07:00 Uhr ' +
-          '— mit dem Fahrplan des heutigen Tages gemäss ',
+        'Gerechnet wird ab der gewählten Abfahrtszeit — anfangs der ' +
+          'aktuellen Uhrzeit, am späten Abend ab 07:00 Uhr — mit dem ' +
+          'Fahrplan des heutigen Tages gemäss ',
         link('opentransportdata.swiss', 'https://opentransportdata.swiss'),
         '. Umgestiegen wird nur innerhalb eines Umsteigeknotens, mit zwei ' +
           'Minuten Mindest-Umsteigezeit. Quellcode: ',
