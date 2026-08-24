@@ -1,15 +1,14 @@
 import { loadSchedule } from '../viz-core/loader.js';
+import {
+  departureToOpenOn,
+  secondsOfDayInZurich,
+} from '../viz-core/openingTime.js';
 import { PanelShell } from '../viz-core/panelShell.js';
 import { StationInUrl } from '../viz-core/stationInUrl.js';
 import { StoppedClock } from '../viz-core/stoppedClock.js';
 import { ReisezeitPanel } from './panel.js';
 
 const root = document.getElementById('viz-root');
-
-// The picture is of the morning, when the country is fully served: the tree is
-// what one reaches setting off at seven. Nothing moves in it, so the clock
-// stands, and stands at that time.
-const DEPARTURE_SECONDS = 7 * 3600;
 
 async function bootstrap() {
   const result = await loadSchedule(root.dataset.configUrl);
@@ -18,6 +17,10 @@ async function bootstrap() {
     return;
   }
 
+  // The tree is of the journey one could set off on now; the dock offers every
+  // other departure. Nothing moves in the picture, so the clock stands.
+  const departure = departureToOpenOn(secondsOfDayInZurich());
+
   // The address is read before the first tree is worked out, so the picture is
   // drawn from the station it names rather than from one of the panel's own,
   // which would have to be taken back once the canvas stands.
@@ -25,13 +28,13 @@ async function bootstrap() {
   const panel = new ReisezeitPanel(
     result.railBuffer,
     result.railStations,
-    DEPARTURE_SECONDS,
+    departure,
     stationInUrl.slug,
   );
   const shell = new PanelShell(
     root,
     panel,
-    new StoppedClock(DEPARTURE_SECONDS),
+    new StoppedClock(departure),
     stationInUrl,
   );
   shell.start();

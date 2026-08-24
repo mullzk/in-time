@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { Camera } from '../viz-core/camera.js';
+import { HEADLINE_WHILE_LOADING } from '../viz-core/headline.js';
 import { TimeModel } from '../viz-core/timeModel.js';
 import { AusbreitungPanel } from './panel.js';
 
@@ -256,4 +257,32 @@ test('a spread that gains vehicles carries on where it stood', () => {
   panel.adoptSchedule(railBuffer(), STATIONS);
 
   assert.equal(time.current, 10 * 3600 + 5 * 60);
+});
+
+test('the headline says where and when the spread on screen set off', () => {
+  const panel = panelFrom(10 * 3600);
+
+  assert.equal(
+    panel.headline(),
+    'Wenn ich um 10:00 in Anfang losfahre, welche Orte erreiche ich um welche Zeit?',
+  );
+});
+
+test('the headline keeps the departure until the spread is restarted', () => {
+  const panel = panelFrom(10 * 3600);
+  withTime(panel);
+
+  panel.setStartTime(9 * 3600);
+
+  assert.match(panel.headline(), /um 10:00/, 'the spread on screen still runs');
+
+  panel.restart();
+
+  assert.match(panel.headline(), /um 09:00/);
+});
+
+test('a panel with no spread yet asks no question', () => {
+  const panel = new AusbreitungPanel(railBuffer(), STATIONS, 10 * 3600);
+
+  assert.equal(panel.headline(), HEADLINE_WHILE_LOADING);
 });

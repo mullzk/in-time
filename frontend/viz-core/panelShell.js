@@ -84,7 +84,6 @@ export class PanelShell {
       this.customInstrumentationStore = new CustomInstrumentationStore(
         localStorageOrForgetful(),
       );
-      this.#offerStoredInstrumentation();
       this.#mountInstrumentationEditor();
     }
 
@@ -95,6 +94,11 @@ export class PanelShell {
       : new ViewSwitcher(this.stationInUrl);
     this.infoCard = new InfoCard(this.panel.infoContent());
     this.dock = new Dock(this.root, this.#tiles());
+    // After the dock: what is offered goes into the sound control the tiles
+    // have just built.
+    if (this.sonifier) {
+      this.#offerStoredInstrumentation();
+    }
     this.stationSearch = this.panel.capabilities.stationSearch
       ? new StationSearch(this.topBar, this.panel.stationCatalog(), {
           onSelect: (station) => this.#chooseStation(station),
@@ -114,7 +118,11 @@ export class PanelShell {
       : null;
     // A panel that has a question to put over its picture gets the writing; the
     // rest of the views carry none.
-    this.headline = this.panel.headline ? new Headline(this.root) : null;
+    this.headline = this.panel.headline
+      ? new Headline(this.root, {
+          besideAClock: this.panel.capabilities.stationClock,
+        })
+      : null;
 
     new KeyboardControls(window, {
       // Space plays; a view that does not play does not answer to it.

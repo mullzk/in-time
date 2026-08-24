@@ -3,6 +3,8 @@ import { formatTimeOfDay } from '../viz-core/clock.js';
 import { buildConnectionList } from '../viz-core/connectionList.js';
 import { ConnectionScan } from '../viz-core/connectionScan.js';
 import { element } from '../viz-core/dom.js';
+import { HEADLINE_WHILE_LOADING } from '../viz-core/headline.js';
+import { DEPARTURE_STEP_SECONDS } from '../viz-core/openingTime.js';
 import { Panel } from '../viz-core/panel.js';
 import { placesOfReachedStations } from '../viz-core/places.js';
 import {
@@ -59,10 +61,6 @@ const START_RING_WIDTH_PIXELS = 1.5;
 // tighter than a station's.
 const VEHICLE_HIT_RADIUS_PIXELS = 10;
 
-// The departure can be moved to any moment of the day, in five-minute steps --
-// finer would be a false promise, since the picture changes by the timetable.
-const DEPARTURE_STEP_SECONDS = 300;
-
 // The place one sets off from is reached by nothing, so it wears no traffic.
 const NO_CATEGORY = -1;
 
@@ -85,6 +83,7 @@ export class AusbreitungPanel extends Panel {
     mapBackground: true,
     zoomSlider: true,
     needsAStation: true,
+    stationClock: true,
   };
 
   constructor(
@@ -169,6 +168,17 @@ export class AusbreitungPanel extends Panel {
 
   startsFrom() {
     return this.startStation;
+  }
+
+  // Of the spread on screen, not of the departure just chosen: until it is
+  // restarted, one is watching the journey one set off on. The hour it left at
+  // stands here, the hour it has got to is on the clock in the picture.
+  headline() {
+    if (this.spreadOnScreen === null) {
+      return HEADLINE_WHILE_LOADING;
+    }
+    const { station, departureSeconds } = this.spreadOnScreen;
+    return `Wenn ich um ${formatTimeOfDay(departureSeconds)} in ${station.name} losfahre, welche Orte erreiche ich um welche Zeit?`;
   }
 
   drawStation() {
@@ -523,7 +533,7 @@ export class AusbreitungPanel extends Panel {
     return [
       {
         id: 'departure',
-        title: 'Abfahrt',
+        title: 'Abfahrtszeit',
         element: this.#departureControl(),
         keepInExhibition: true,
       },

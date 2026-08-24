@@ -8,29 +8,34 @@ export function buildInfoContent() {
     title: 'All in Time',
     intro: [
       [
-        'Die Reisezeit-Ansicht zeigt, wie weit man von einem Ort aus kommt. ' +
-          'Jede Station liegt in der Richtung, in der sie wirklich liegt — ' +
-          'aber so weit draussen, wie die Fahrt dorthin dauert. Ein Ring ist ' +
-          'eine Stunde Reisezeit. Wo das Land zusammenschrumpft, ist der ' +
-          'Fahrplan schnell; wo es sich dehnt, dauert es.',
-      ],
-      [
-        'Gerechnet wird ab 07:00 Uhr, mit dem Fahrplan des heutigen Tages ' +
-          'gemäss ',
+        'All in Time macht den Schweizer Taktfahrplan sicht- und hörbar. ' +
+          'Entstanden im Rahmen des stets inspirierenden ',
+        link(
+          'CAS Generative Data Design',
+          'https://www.hkb.bfh.ch/de/weiterbildung/cas/generative-data-design/',
+        ),
+        ' der ',
+        link('HKB', 'https://www.hkb.bfh.ch/de/'),
+        ', wird der Fahrplan des heutigen Tages gemäss ',
         link('opentransportdata.swiss', 'https://opentransportdata.swiss'),
-        '. Umgestiegen wird nur innerhalb eines Umsteigeknotens, mit zwei ' +
-          'Minuten Mindest-Umsteigezeit. Quellcode: ',
+        ' angezeigt. Weitere Quellen: ',
+        link('Bundesamt für Verkehr', 'https://www.bav.admin.ch/de/eisenbahn'),
+        ' und ',
+        link('swisstopo', 'https://www.swisstopo.admin.ch/de'),
+        '. Quellcode: ',
         link(
           'github.com/mullzk/in-time/',
           'https://github.com/mullzk/in-time/',
         ),
         '.',
       ],
+      [
+        'Die Reisezeit-Karte zeichnet die Schweiz nicht nach Kilometer, ' +
+          'sondern nach Fahrtzeit: Vom Ausgangsort gesehen liegt jede Station ' +
+          'in der Richtung, in der sie wirklich liegt — aber so weit ' +
+          'entfernt, wie die Fahrt dorthin dauert.',
+      ],
     ],
-    controlHelp:
-      'Der Standort wird über das Suchfeld oben gewählt, gezoomt wird mit ' +
-      'dem Mausrad oder mit + und −. Die Ansicht wird über das Dock am ' +
-      'linken Rand gewechselt.',
     shortcuts: [
       { keys: '+', description: 'Hineinzoomen' },
       { keys: '−', description: 'Herauszoomen' },

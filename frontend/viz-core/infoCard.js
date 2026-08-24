@@ -1,11 +1,10 @@
 import { element } from './dom.js';
 
-// What the info tile's card holds: the project described, its controls
-// explained, its keyboard shortcuts listed. The content (title, intro, control
-// help, shortcuts) is supplied by the caller so the shell stays panel-agnostic.
-// An intro paragraph is a list of parts: a string is plain text, an object of
-// label and href becomes a link. It owns only its DOM; where it hangs is the
-// dock's business.
+// What the info tile's card holds: the project described, its keyboard
+// shortcuts listed. The content (title, intro, shortcuts) is supplied by the
+// caller so the shell stays panel-agnostic. An intro paragraph is a list of
+// parts: a string is plain text, an object of label and href becomes a link. It
+// owns only its DOM; where it hangs is the dock's business.
 export class InfoCard {
   constructor(content) {
     this.root = element('div', 'info-card');
@@ -17,7 +16,7 @@ export class InfoCard {
     content.intro.forEach((paragraph) => {
       this.root.appendChild(this.#paragraph(paragraph));
     });
-    this.root.appendChild(this.#controls(content));
+    this.root.appendChild(this.#shortcutSection(content.shortcuts));
   }
 
   #paragraph(parts) {
@@ -43,24 +42,11 @@ export class InfoCard {
     return anchor;
   }
 
-  #controls(content) {
+  #shortcutSection(shortcuts) {
     const section = element('section', 'info-card-section');
-
     const heading = element('h4', 'info-card-heading');
-    heading.textContent = 'Hilfe zur Steuerung';
-
-    const help = element('p', 'info-card-intro');
-    help.textContent = content.controlHelp;
-
-    const shortcutsHeading = element('h4', 'info-card-heading');
-    shortcutsHeading.textContent = 'Tastatur-Shortcuts';
-
-    section.append(
-      heading,
-      help,
-      shortcutsHeading,
-      this.#shortcuts(content.shortcuts),
-    );
+    heading.textContent = 'Tastatur-Shortcuts';
+    section.append(heading, this.#shortcuts(shortcuts));
     return section;
   }
 
