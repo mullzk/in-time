@@ -22,7 +22,11 @@ import { BACKGROUNDS } from './tiles/tileSource.js';
 import { TransportControls } from './transportControls.js';
 import { ViewSwitcher } from './viewSwitcher.js';
 import { VizCore } from './vizCore.js';
-import { ZoomControl } from './zoomSlider.js';
+import {
+  ZOOM_STEPS,
+  zoomFractionForPosition,
+  zoomSliderPosition,
+} from './zoomSlider.js';
 
 const isExhibition = () =>
   new URLSearchParams(window.location.search).get('mode') === 'exhibition';
@@ -294,7 +298,7 @@ export class PanelShell {
     this.dock.showFaces();
     this.selection?.onFrameRendered();
     this.sonifier?.onFrameRendered();
-    this.zoomControl?.sync();
+    this.#syncZoomSlider();
     this.#syncStationInvitation();
   }
 
@@ -399,7 +403,35 @@ export class PanelShell {
   }
 
   #zoomControl() {
-    this.zoomControl = new ZoomControl(this.camera);
-    return this.zoomControl.root;
+    const group = element('div', 'control-options');
+    const slider = element('input', 'control-slider');
+    slider.type = 'range';
+    slider.min = '0';
+    slider.max = String(ZOOM_STEPS - 1);
+    slider.step = '1';
+    slider.value = String(zoomSliderPosition(this.camera.zoomFraction()));
+    slider.addEventListener('input', () => {
+      this.zoomScrubbing = true;
+      this.camera.setZoomFraction(
+        zoomFractionForPosition(Number(slider.value)),
+      );
+    });
+    slider.addEventListener('change', () => {
+      this.zoomScrubbing = false;
+    });
+    this.zoomSlider = slider;
+    group.appendChild(slider);
+    return group;
+  }
+
+  // The camera also moves by wheel, pinch and keyboard, so the slider follows
+  // the camera rather than the other way round -- except while it is being
+  // dragged, when it would fight the hand holding it.
+  #syncZoomSlider() {
+    if (this.zoomSlider && !this.zoomScrubbing) {
+      this.zoomSlider.value = String(
+        zoomSliderPosition(this.camera.zoomFraction()),
+      );
+    }
   }
 }
