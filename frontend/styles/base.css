@@ -27,6 +27,10 @@
     var(--space-s) +
     var(--space-m)
   );
+  /* The station clock is painted into the top right corner of the picture by
+     the canvas, where nothing in the DOM holds room for it; this is how far it
+     reaches in -- the margin and the dial that stationClock.js gives it. */
+  --station-clock-outset: calc(var(--space-m) + clamp(56px, 11vmin, 104px));
   --transition-panel: 0.25s ease;
 }
 

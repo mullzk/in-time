@@ -3,6 +3,7 @@ import { formatTimeOfDay } from '../viz-core/clock.js';
 import { buildConnectionList } from '../viz-core/connectionList.js';
 import { ConnectionScan } from '../viz-core/connectionScan.js';
 import { element } from '../viz-core/dom.js';
+import { HEADLINE_WHILE_LOADING } from '../viz-core/headline.js';
 import { DEPARTURE_STEP_SECONDS } from '../viz-core/openingTime.js';
 import { Panel } from '../viz-core/panel.js';
 import { placesOfReachedStations } from '../viz-core/places.js';
@@ -82,6 +83,7 @@ export class AusbreitungPanel extends Panel {
     mapBackground: true,
     zoomSlider: true,
     needsAStation: true,
+    stationClock: true,
   };
 
   constructor(
@@ -166,6 +168,17 @@ export class AusbreitungPanel extends Panel {
 
   startsFrom() {
     return this.startStation;
+  }
+
+  // Of the spread on screen, not of the departure just chosen: until it is
+  // restarted, one is watching the journey one set off on. The hour it left at
+  // stands here, the hour it has got to is on the clock in the picture.
+  headline() {
+    if (this.spreadOnScreen === null) {
+      return HEADLINE_WHILE_LOADING;
+    }
+    const { station, departureSeconds } = this.spreadOnScreen;
+    return `Wenn ich um ${formatTimeOfDay(departureSeconds)} in ${station.name} losfahre, welche Orte erreiche ich um welche Zeit?`;
   }
 
   drawStation() {

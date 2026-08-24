@@ -114,7 +114,11 @@ export class PanelShell {
       : null;
     // A panel that has a question to put over its picture gets the writing; the
     // rest of the views carry none.
-    this.headline = this.panel.headline ? new Headline(this.root) : null;
+    this.headline = this.panel.headline
+      ? new Headline(this.root, {
+          besideAClock: this.panel.capabilities.stationClock,
+        })
+      : null;
 
     new KeyboardControls(window, {
       // Space plays; a view that does not play does not answer to it.
