@@ -45,12 +45,13 @@ export function buildInfoContent({ stationSearch }) {
         ),
         '.',
       ],
+      [
+        'Wenn ein Sound ausgewählt ist, wird jedes Ereignis an der',
+        ' Haltestelle durch einen Ton repräsentiert - abgestuft nach',
+        ' Verkehrsträger, Ankunft, Abfahrt und Aufenthalt. So lässt sich der',
+        ' Takt des Taktfahrplans auch als Rhythmus erfahren.',
+      ],
     ],
-    controlHelp:
-      'Die Bedienung liegt im Dock am linken Rand: jede Kachel öffnet eine ' +
-      'Karte mit ihren Einstellungen — Ansicht, Zeit, Elemente (die ' +
-      'Inhalts-Ebenen), Karte (Hintergrund und Zoom) und Sound. Die ' +
-      'Wiedergabe-Kachel hält die Simulation an und lässt sie weiterlaufen.',
     shortcuts,
   };
 }
