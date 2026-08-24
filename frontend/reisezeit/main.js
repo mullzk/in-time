@@ -5,7 +5,7 @@ import {
   departureToOpenOn,
   secondsOfDayInZurich,
 } from '../viz-core/time/openingTime.js';
-import { StoppedClock } from '../viz-core/time/stoppedClock.js';
+import { StoppedTimeModel } from '../viz-core/time/stoppedTimeModel.js';
 import { ReisezeitPanel } from './panel.js';
 
 const root = document.getElementById('viz-root');
@@ -34,7 +34,7 @@ async function bootstrap() {
   const shell = new PanelShell(
     root,
     panel,
-    new StoppedClock(departure),
+    new StoppedTimeModel(departure),
     stationInUrl,
   );
   shell.start();

@@ -17,9 +17,9 @@ import {
   StartStationChoice,
   stationToTravelFrom,
 } from '../viz-core/session/startStation.js';
-import { formatTimeOfDay } from '../viz-core/time/clock.js';
 import { DEPARTURE_STEP_SECONDS } from '../viz-core/time/openingTime.js';
 import { SECONDS_PER_DAY } from '../viz-core/time/timeModel.js';
+import { formatTimeOfDay } from '../viz-core/time/timeOfDay.js';
 import { buildConnectionList } from '../viz-core/travel/connectionList.js';
 import { ConnectionScan } from '../viz-core/travel/connectionScan.js';
 import { RadialTravelTimeLayout } from '../viz-core/travel/radialTravelTime.js';
