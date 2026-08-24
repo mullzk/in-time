@@ -1,6 +1,6 @@
+import { seedTextFrom } from '../sonification/customInstrumentation.js';
+import { allSounds } from '../sonification/sounds/registry.js';
 import { element } from './dom.js';
-import { seedTextFrom } from './sonification/customInstrumentation.js';
-import { allSounds } from './sonification/sounds/registry.js';
 
 const FALLBACK_FILE_STEM = 'eigene-vertonung';
 

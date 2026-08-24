@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { formatTimeOfDay } from './clock.js';
+import { formatTimeOfDay } from './timeOfDay.js';
 
 test('a time of day is told on the clock', () => {
   assert.equal(formatTimeOfDay(8 * 3_600), '08:00');

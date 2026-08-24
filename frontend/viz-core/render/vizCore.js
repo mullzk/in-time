@@ -1,4 +1,4 @@
-import p5 from '../vendor/p5.esm.min.js';
+import p5 from '../../vendor/p5.esm.min.js';
 import { CameraControls } from './cameraControls.js';
 import { applyCameraTransform } from './cameraTransform.js';
 

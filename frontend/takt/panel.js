@@ -1,27 +1,8 @@
-import { readStationPoints } from '../viz-core/blobStations.js';
-import { ChoiceList } from '../viz-core/choiceList.js';
-import { pencilIcon } from '../viz-core/dockIcons.js';
-import { element } from '../viz-core/dom.js';
-import { Panel } from '../viz-core/panel.js';
-import { INSTRUMENTATIONS } from '../viz-core/sonification/presets.js';
-import { TRANSPORT_GROUPS } from '../viz-core/sonification/scheduling.js';
-import { SonificationEngine } from '../viz-core/sonification/sonificationEngine.js';
-import { drawnStationThatTravels } from '../viz-core/startStation.js';
-import { StationCatalog } from '../viz-core/stationCatalog.js';
-import { drawStationClock, todayIso } from '../viz-core/stationClock.js';
-import {
-  dominantStationMode,
-  fallbackLayerForStops,
-  layersDownTo,
-  layerToRevealStation,
-  nearestStation,
-  nodeDiameterPixels,
-  STATION_HIT_RADIUS_PIXELS,
-  stationIsShown,
-  stationPickRadiusPixels,
-  stopsToggleOnZoomCross,
-} from '../viz-core/stationNodes.js';
-import { BACKGROUNDS } from '../viz-core/tiles/tileSource.js';
+import { ChoiceList } from '../viz-core/controls/choiceList.js';
+import { pencilIcon } from '../viz-core/controls/dockIcons.js';
+import { element } from '../viz-core/controls/dom.js';
+import { readStationPoints } from '../viz-core/data/blobStations.js';
+import { StationCatalog } from '../viz-core/data/stationCatalog.js';
 import {
   CATEGORY_BUS,
   CATEGORY_INTERCITY,
@@ -31,8 +12,30 @@ import {
   categoryColor,
   categoryLabel,
   layerOfCategory,
-} from '../viz-core/transportCategories.js';
-import { VehiclePositionEngine } from '../viz-core/vehiclePositionEngine.js';
+} from '../viz-core/data/transportCategories.js';
+import { Panel } from '../viz-core/panel.js';
+import { drawStationClock } from '../viz-core/render/stationClock.js';
+import {
+  dominantStationMode,
+  nearestStation,
+  nodeDiameterPixels,
+  STATION_HIT_RADIUS_PIXELS,
+  stationPickRadiusPixels,
+} from '../viz-core/render/stationNodes.js';
+import { BACKGROUNDS } from '../viz-core/render/tiles/tileSource.js';
+import {
+  fallbackLayerForStops,
+  layersDownTo,
+  layerToRevealStation,
+  stationIsShown,
+  stopsToggleOnZoomCross,
+} from '../viz-core/render/vehicleLayers.js';
+import { drawnStationThatTravels } from '../viz-core/session/startStation.js';
+import { INSTRUMENTATIONS } from '../viz-core/sonification/presets.js';
+import { TRANSPORT_GROUPS } from '../viz-core/sonification/scheduling.js';
+import { SonificationEngine } from '../viz-core/sonification/sonificationEngine.js';
+import { todayIso } from '../viz-core/time/openingTime.js';
+import { VehiclePositionEngine } from '../viz-core/travel/vehiclePositionEngine.js';
 import { buildInfoContent } from './infoContent.js';
 
 // Stacking order where points overlap: buses at the bottom, trams above,

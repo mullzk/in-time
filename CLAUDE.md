@@ -16,6 +16,14 @@ governs how we build it.
   bundler**, **p5 instance mode**. Node/npm is a dev-time tool only; the runtime
   stays bundler-free. `frontend/vendor/` holds vendored runtime dependencies
   (see _Vendoring_).
+- `frontend/viz-core/` is ordered by what a module is, not by who uses it:
+  `data/` (loading and the station model), `travel/` (connection scan, vehicle
+  positions), `time/`, `session/` (view, address, stored state), `render/` (p5
+  and world coordinates, with `tiles/`), `interaction/` (pointer and keyboard on
+  the canvas), `controls/` (the DOM chrome around it) and `sonification/`. A new
+  module joins the folder its kind names. The panel contract and the shell that
+  composes them (`panel.js`, `panelContext.js`, `panelShell.js`) stay at the
+  root, since they wire the folders together.
 - `tooling/` — the dev-time scripts: `check.sh` (format + lint), `test.sh` (both
   test suites), the vendoring scripts.
 - `docs/` — documentation that ships with the repo, e.g. `performance.md`.

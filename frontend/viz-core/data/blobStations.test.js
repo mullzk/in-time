@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
+import { VehiclePositionEngine } from '../travel/vehiclePositionEngine.js';
 import { readStationPoints } from './blobStations.js';
-import { VehiclePositionEngine } from './vehiclePositionEngine.js';
 
 const bytes = readFileSync(
-  new URL('./fixtures/golden-rail-day.itsb', import.meta.url),
+  new URL('../fixtures/golden-rail-day.itsb', import.meta.url),
 );
 const buffer = bytes.buffer.slice(
   bytes.byteOffset,

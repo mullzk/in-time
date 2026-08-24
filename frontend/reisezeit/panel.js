@@ -1,30 +1,30 @@
-import { readStationPoints } from '../viz-core/blobStations.js';
-import { formatTimeOfDay } from '../viz-core/clock.js';
-import { buildConnectionList } from '../viz-core/connectionList.js';
-import { ConnectionScan } from '../viz-core/connectionScan.js';
-import { element } from '../viz-core/dom.js';
-import { HEADLINE_WHILE_LOADING } from '../viz-core/headline.js';
-import { HoverInteraction } from '../viz-core/hoverInteraction.js';
-import { DEPARTURE_STEP_SECONDS } from '../viz-core/openingTime.js';
-import { Panel } from '../viz-core/panel.js';
-import { placesOfReachedStations } from '../viz-core/places.js';
-import { RadialTravelTimeLayout } from '../viz-core/radialTravelTime.js';
-import { distanceToSegmentSquared } from '../viz-core/segmentDistance.js';
-import {
-  StartStationChoice,
-  stationToTravelFrom,
-} from '../viz-core/startStation.js';
-import { StationCatalog } from '../viz-core/stationCatalog.js';
-import { TapInteraction } from '../viz-core/tapInteraction.js';
-import { SECONDS_PER_DAY } from '../viz-core/timeModel.js';
+import { element } from '../viz-core/controls/dom.js';
+import { HEADLINE_WHILE_LOADING } from '../viz-core/controls/headline.js';
+import { readStationPoints } from '../viz-core/data/blobStations.js';
+import { placesOfReachedStations } from '../viz-core/data/places.js';
+import { StationCatalog } from '../viz-core/data/stationCatalog.js';
 import {
   CATEGORY_BUS,
   CATEGORY_INTERCITY,
   CATEGORY_INTERREGIO,
   CATEGORY_TRAM,
   categoryLabel,
-} from '../viz-core/transportCategories.js';
-import { VehiclePositionEngine } from '../viz-core/vehiclePositionEngine.js';
+} from '../viz-core/data/transportCategories.js';
+import { HoverInteraction } from '../viz-core/interaction/hoverInteraction.js';
+import { TapInteraction } from '../viz-core/interaction/tapInteraction.js';
+import { Panel } from '../viz-core/panel.js';
+import {
+  StartStationChoice,
+  stationToTravelFrom,
+} from '../viz-core/session/startStation.js';
+import { DEPARTURE_STEP_SECONDS } from '../viz-core/time/openingTime.js';
+import { SECONDS_PER_DAY } from '../viz-core/time/timeModel.js';
+import { formatTimeOfDay } from '../viz-core/time/timeOfDay.js';
+import { buildConnectionList } from '../viz-core/travel/connectionList.js';
+import { ConnectionScan } from '../viz-core/travel/connectionScan.js';
+import { RadialTravelTimeLayout } from '../viz-core/travel/radialTravelTime.js';
+import { distanceToSegmentSquared } from '../viz-core/travel/segmentDistance.js';
+import { VehiclePositionEngine } from '../viz-core/travel/vehiclePositionEngine.js';
 import { buildInfoContent } from './infoContent.js';
 import { formatDuration, formatThroughRide, formatWait } from './labels.js';
 

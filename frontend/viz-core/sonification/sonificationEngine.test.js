@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
-import { VehiclePositionEngine } from '../vehiclePositionEngine.js';
+import { VehiclePositionEngine } from '../travel/vehiclePositionEngine.js';
 import { SonificationEngine } from './sonificationEngine.js';
 
 const bytes = readFileSync(

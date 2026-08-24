@@ -3,7 +3,7 @@
 // layout of the Python writer (backend/pipeline/schedule_blob.py); the shared
 // golden fixture is the cross-language proof that both agree on the format.
 
-import { readStationPoints } from './blobStations.js';
+import { readStationPoints } from '../data/blobStations.js';
 
 const MAGIC = 'ITSB';
 const VERSION = 2;

@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
-import { Camera } from '../viz-core/camera.js';
-import { HEADLINE_WHILE_LOADING } from '../viz-core/headline.js';
-import { TimeModel } from '../viz-core/timeModel.js';
+import { HEADLINE_WHILE_LOADING } from '../viz-core/controls/headline.js';
+import { Camera } from '../viz-core/render/camera.js';
+import { TimeModel } from '../viz-core/time/timeModel.js';
 import { AusbreitungPanel } from './panel.js';
 
 // The golden rail fixture: three stations, a trip calling at all three (10:00 →
