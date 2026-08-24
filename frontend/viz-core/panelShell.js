@@ -84,7 +84,6 @@ export class PanelShell {
       this.customInstrumentationStore = new CustomInstrumentationStore(
         localStorageOrForgetful(),
       );
-      this.#offerStoredInstrumentation();
       this.#mountInstrumentationEditor();
     }
 
@@ -95,6 +94,11 @@ export class PanelShell {
       : new ViewSwitcher(this.stationInUrl);
     this.infoCard = new InfoCard(this.panel.infoContent());
     this.dock = new Dock(this.root, this.#tiles());
+    // After the dock: what is offered goes into the sound control the tiles
+    // have just built.
+    if (this.sonifier) {
+      this.#offerStoredInstrumentation();
+    }
     this.stationSearch = this.panel.capabilities.stationSearch
       ? new StationSearch(this.topBar, this.panel.stationCatalog(), {
           onSelect: (station) => this.#chooseStation(station),
