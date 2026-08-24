@@ -143,7 +143,12 @@
   border-radius: var(--radius-m);
   background: var(--color-surface);
   backdrop-filter: blur(6px);
-  overflow: hidden;
+  /* Long enough a list runs off the screen, through the dock and behind an
+     on-screen keyboard, so it is held to the room actually left under the field
+     and scrolls inside it. How much room that is only the script can tell; the
+     fallback carries a list that opens before it has been measured. */
+  max-height: var(--suggestions-height, 40vh);
+  overflow-y: auto;
   display: none;
 }
 
