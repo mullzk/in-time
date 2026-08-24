@@ -6,10 +6,10 @@ import { ReisezeitPanel } from './panel.js';
 
 const root = document.getElementById('viz-root');
 
-// The picture is of the morning, when the country is fully served: the tree is
-// what one reaches setting off at seven. Nothing moves in it, so the clock
-// stands, and stands at that time.
-const DEPARTURE_SECONDS = 7 * 3600;
+// The picture opens on the morning, when the country is fully served: the first
+// tree is what one reaches setting off at seven, and the dock offers every other
+// departure. Nothing moves in the picture, so the clock stands.
+const FIRST_DEPARTURE_SECONDS = 7 * 3600;
 
 async function bootstrap() {
   const result = await loadSchedule(root.dataset.configUrl);
@@ -25,13 +25,13 @@ async function bootstrap() {
   const panel = new ReisezeitPanel(
     result.railBuffer,
     result.railStations,
-    DEPARTURE_SECONDS,
+    FIRST_DEPARTURE_SECONDS,
     stationInUrl.slug,
   );
   const shell = new PanelShell(
     root,
     panel,
-    new StoppedClock(DEPARTURE_SECONDS),
+    new StoppedClock(FIRST_DEPARTURE_SECONDS),
     stationInUrl,
   );
   shell.start();

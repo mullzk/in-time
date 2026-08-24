@@ -2,6 +2,7 @@ import { readStationPoints } from '../viz-core/blobStations.js';
 import { formatTimeOfDay } from '../viz-core/clock.js';
 import { buildConnectionList } from '../viz-core/connectionList.js';
 import { ConnectionScan } from '../viz-core/connectionScan.js';
+import { element } from '../viz-core/dom.js';
 import { HEADLINE_WHILE_LOADING } from '../viz-core/headline.js';
 import { HoverInteraction } from '../viz-core/hoverInteraction.js';
 import { Panel } from '../viz-core/panel.js';
@@ -14,6 +15,7 @@ import {
 } from '../viz-core/startStation.js';
 import { StationCatalog } from '../viz-core/stationCatalog.js';
 import { TapInteraction } from '../viz-core/tapInteraction.js';
+import { SECONDS_PER_DAY } from '../viz-core/timeModel.js';
 import {
   CATEGORY_BUS,
   CATEGORY_INTERCITY,
@@ -26,6 +28,7 @@ import { buildInfoContent } from './infoContent.js';
 import { formatDuration, formatThroughRide, formatWait } from './labels.js';
 
 const SECONDS_PER_HOUR = 3600;
+const DEPARTURE_STEP_SECONDS = 300;
 const GROUND_COLOR = [250, 250, 248];
 
 // Journeys are drawn in bands of half an hour, each band one shape rather than
@@ -740,8 +743,51 @@ export class ReisezeitPanel extends Panel {
     );
   }
 
+  // A tree is worked out for one departure, so choosing another one draws the
+  // picture again -- from the same station and, since only the reach changes,
+  // without taking the view back to where it started.
+  setStartTime(seconds) {
+    this.startTimeSeconds = seconds;
+    this.#dropPreview();
+    this.#rescan({ openTheView: false });
+  }
+
   controlSections() {
-    return [];
+    return [
+      {
+        id: 'departure',
+        title: 'Abfahrtszeit',
+        element: this.#departureControl(),
+        keepInExhibition: true,
+      },
+    ];
+  }
+
+  // The tree follows only once the slider is let go: every step of a drag would
+  // be a whole connection scan, and the picture would rearrange under the hand.
+  #departureControl() {
+    const group = element('div', 'control-options');
+    const slider = this.#departureSlider();
+    const chosenTime = element('p', 'control-hint is-visible');
+    chosenTime.textContent = formatTimeOfDay(this.startTimeSeconds);
+    slider.addEventListener('input', () => {
+      chosenTime.textContent = formatTimeOfDay(Number(slider.value));
+    });
+    slider.addEventListener('change', () => {
+      this.setStartTime(Number(slider.value));
+    });
+    group.append(slider, chosenTime);
+    return group;
+  }
+
+  #departureSlider() {
+    const slider = element('input', 'control-slider');
+    slider.type = 'range';
+    slider.min = '0';
+    slider.max = String(SECONDS_PER_DAY - DEPARTURE_STEP_SECONDS);
+    slider.step = String(DEPARTURE_STEP_SECONDS);
+    slider.value = String(this.startTimeSeconds);
+    return slider;
   }
 
   infoContent() {

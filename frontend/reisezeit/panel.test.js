@@ -246,3 +246,21 @@ test('a tap on nothing takes the name away again', () => {
 
   assert.equal(panel.hovered, null);
 });
+
+test('a new departure redraws the tree from that time', () => {
+  const panel = panelFrom(10 * 3600);
+  const reachedAtTen = panel.places.length;
+
+  panel.setStartTime(10 * 3600 + 30 * 60);
+
+  assert.ok(reachedAtTen > 1, 'the ten o clock trip carries one somewhere');
+  assert.equal(panel.places.length, 1, 'half an hour later nothing leaves');
+});
+
+test('the headline names the departure one chose', () => {
+  const panel = panelFrom(10 * 3600);
+
+  panel.setStartTime(11 * 3600);
+
+  assert.match(panel.headline(), /um 11:00/);
+});

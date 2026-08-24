@@ -523,7 +523,7 @@ export class AusbreitungPanel extends Panel {
     return [
       {
         id: 'departure',
-        title: 'Abfahrt',
+        title: 'Abfahrtszeit',
         element: this.#departureControl(),
         keepInExhibition: true,
       },

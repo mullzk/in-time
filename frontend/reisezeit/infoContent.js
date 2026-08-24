@@ -15,8 +15,8 @@ export function buildInfoContent() {
           'Fahrplan schnell; wo es sich dehnt, dauert es.',
       ],
       [
-        'Gerechnet wird ab 07:00 Uhr, mit dem Fahrplan des heutigen Tages ' +
-          'gemäss ',
+        'Gerechnet wird ab der gewählten Abfahrtszeit — anfangs 07:00 Uhr ' +
+          '— mit dem Fahrplan des heutigen Tages gemäss ',
         link('opentransportdata.swiss', 'https://opentransportdata.swiss'),
         '. Umgestiegen wird nur innerhalb eines Umsteigeknotens, mit zwei ' +
           'Minuten Mindest-Umsteigezeit. Quellcode: ',
@@ -29,8 +29,9 @@ export function buildInfoContent() {
     ],
     controlHelp:
       'Der Standort wird über das Suchfeld oben gewählt, gezoomt wird mit ' +
-      'dem Mausrad oder mit + und −. Die Ansicht wird über das Dock am ' +
-      'linken Rand gewechselt.',
+      'dem Mausrad oder mit + und −. Im Dock am linken Rand trägt die ' +
+      'Kachel Zeit die Abfahrtszeit, nach der das Bild neu gerechnet wird; ' +
+      'über die Kachel Ansicht wird die Ansicht gewechselt.',
     shortcuts: [
       { keys: '+', description: 'Hineinzoomen' },
       { keys: '−', description: 'Herauszoomen' },
