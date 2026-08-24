@@ -1,11 +1,11 @@
-import { loadSchedule } from '../viz-core/loader.js';
+import { loadSchedule } from '../viz-core/data/loader.js';
+import { PanelShell } from '../viz-core/panelShell.js';
+import { StationInUrl } from '../viz-core/session/stationInUrl.js';
 import {
   departureToOpenOn,
   secondsOfDayInZurich,
-} from '../viz-core/openingTime.js';
-import { PanelShell } from '../viz-core/panelShell.js';
-import { StationInUrl } from '../viz-core/stationInUrl.js';
-import { MAX_TEMPO, TimeModel } from '../viz-core/timeModel.js';
+} from '../viz-core/time/openingTime.js';
+import { MAX_TEMPO, TimeModel } from '../viz-core/time/timeModel.js';
 import { AusbreitungPanel } from './panel.js';
 
 const root = document.getElementById('viz-root');

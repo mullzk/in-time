@@ -1,25 +1,8 @@
-import { readStationPoints } from '../viz-core/blobStations.js';
-import { formatTimeOfDay } from '../viz-core/clock.js';
-import { buildConnectionList } from '../viz-core/connectionList.js';
-import { ConnectionScan } from '../viz-core/connectionScan.js';
-import { element } from '../viz-core/dom.js';
-import { HEADLINE_WHILE_LOADING } from '../viz-core/headline.js';
-import { DEPARTURE_STEP_SECONDS } from '../viz-core/openingTime.js';
-import { Panel } from '../viz-core/panel.js';
-import { placesOfReachedStations } from '../viz-core/places.js';
-import {
-  StartStationChoice,
-  stationToTravelFrom,
-} from '../viz-core/startStation.js';
-import { StationCatalog } from '../viz-core/stationCatalog.js';
-import { drawStationClock, todayIso } from '../viz-core/stationClock.js';
-import {
-  dominantStationMode,
-  nearestStation,
-  nodeDiameterPixels,
-  stationPickRadiusPixels,
-} from '../viz-core/stationNodes.js';
-import { SECONDS_PER_DAY } from '../viz-core/timeModel.js';
+import { element } from '../viz-core/controls/dom.js';
+import { HEADLINE_WHILE_LOADING } from '../viz-core/controls/headline.js';
+import { readStationPoints } from '../viz-core/data/blobStations.js';
+import { placesOfReachedStations } from '../viz-core/data/places.js';
+import { StationCatalog } from '../viz-core/data/stationCatalog.js';
 import {
   byRisingRank,
   CATEGORY_BUS,
@@ -28,8 +11,28 @@ import {
   CATEGORY_TRAM,
   categoryColor,
   categoryLabel,
-} from '../viz-core/transportCategories.js';
-import { VehiclePositionEngine } from '../viz-core/vehiclePositionEngine.js';
+} from '../viz-core/data/transportCategories.js';
+import { Panel } from '../viz-core/panel.js';
+import { drawStationClock } from '../viz-core/render/stationClock.js';
+import {
+  dominantStationMode,
+  nearestStation,
+  nodeDiameterPixels,
+  stationPickRadiusPixels,
+} from '../viz-core/render/stationNodes.js';
+import {
+  StartStationChoice,
+  stationToTravelFrom,
+} from '../viz-core/session/startStation.js';
+import { formatTimeOfDay } from '../viz-core/time/clock.js';
+import {
+  DEPARTURE_STEP_SECONDS,
+  todayIso,
+} from '../viz-core/time/openingTime.js';
+import { SECONDS_PER_DAY } from '../viz-core/time/timeModel.js';
+import { buildConnectionList } from '../viz-core/travel/connectionList.js';
+import { ConnectionScan } from '../viz-core/travel/connectionScan.js';
+import { VehiclePositionEngine } from '../viz-core/travel/vehiclePositionEngine.js';
 import { buildInfoContent } from './infoContent.js';
 import { ReachedPlaces } from './reachedPlaces.js';
 import { SettledLayer } from './settledLayer.js';

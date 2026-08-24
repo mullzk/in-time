@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { MAX_TEMPO, MIN_TEMPO } from '../time/timeModel.js';
 import {
   sliderPositionForTempo,
   tempoForSliderPosition,
 } from './tempoSlider.js';
-import { MAX_TEMPO, MIN_TEMPO } from './timeModel.js';
 
 test('the travel spans the whole tempo range', () => {
   assert.equal(tempoForSliderPosition(0), MIN_TEMPO);

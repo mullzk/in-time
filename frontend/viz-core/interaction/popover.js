@@ -1,4 +1,4 @@
-import { element } from './dom.js';
+import { element } from '../controls/dom.js';
 
 const asColor = ([red, green, blue]) => `rgb(${red} ${green} ${blue})`;
 

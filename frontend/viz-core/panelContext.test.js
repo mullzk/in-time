@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { Camera } from './camera.js';
 import { MEDIUM_ZOOM_FRACTION, PanelContext } from './panelContext.js';
+import { Camera } from './render/camera.js';
 
 const closeTo = (actual, expected, tolerance) =>
   Math.abs(actual - expected) <= tolerance;

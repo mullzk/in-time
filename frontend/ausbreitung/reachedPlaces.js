@@ -1,4 +1,4 @@
-import { byRisingRank } from '../viz-core/transportCategories.js';
+import { byRisingRank } from '../viz-core/data/transportCategories.js';
 
 // The places a spread reaches, kept the way a frame needs them: grouped by the
 // traffic that gets there -- which decides colour, size and what is drawn over

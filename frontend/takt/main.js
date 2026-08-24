@@ -1,10 +1,10 @@
-import { loadSchedule } from '../viz-core/loader.js';
+import { loadSchedule } from '../viz-core/data/loader.js';
+import { PanelShell } from '../viz-core/panelShell.js';
 import {
   playbackToOpenOn,
   secondsOfDayInZurich,
-} from '../viz-core/openingTime.js';
-import { PanelShell } from '../viz-core/panelShell.js';
-import { SECONDS_PER_DAY, TimeModel } from '../viz-core/timeModel.js';
+} from '../viz-core/time/openingTime.js';
+import { SECONDS_PER_DAY, TimeModel } from '../viz-core/time/timeModel.js';
 import { TaktPanel } from './panel.js';
 
 // A service day's trips span more than 24 h (trains running past midnight). We

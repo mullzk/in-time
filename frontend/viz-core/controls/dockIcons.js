@@ -5,7 +5,7 @@ import {
   CATEGORY_REGIO,
   CATEGORY_TRAM,
   categoryColor,
-} from './transportCategories.js';
+} from '../data/transportCategories.js';
 
 const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
 const ICON_SIZE = 24;

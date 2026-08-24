@@ -75,8 +75,6 @@ const MINUTE_HAND = {
 
 const FULL_TURN = Math.PI * 2;
 
-// The day a panel falls back on while nothing has named the one it shows.
-export const todayIso = () => new Date().toISOString().slice(0, 10);
 const MINUTES_PER_TURN = 60;
 const HOURS_PER_TURN = 12;
 
