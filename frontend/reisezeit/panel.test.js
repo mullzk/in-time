@@ -131,3 +131,118 @@ test('the rings reach past the furthest place', () => {
 
   assert.equal(panel.hourRings, 1, '21 minutes of travel still draw one ring');
 });
+
+// The canvas the panel binds its interactions to, keeping the handlers within
+// reach so a test can send pointer events through them.
+const fakeCanvas = () => {
+  const handlers = {};
+  return {
+    handlers,
+    addEventListener(type, handler) {
+      handlers[type] = handler;
+    },
+    getBoundingClientRect() {
+      return { left: 0, top: 0 };
+    },
+  };
+};
+
+// A screen whose x names the place standing there, so a tap at x hits place x
+// and a tap beyond the last place hits nothing.
+const attachedPanel = (startTimeSeconds) => {
+  const panel = panelFrom(startTimeSeconds);
+  const chosen = [];
+  panel.init({
+    camera: {
+      screenToWorld: (x) =>
+        x < panel.places.length
+          ? [panel.positions[x * 2], panel.positions[x * 2 + 1]]
+          : [Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER],
+      worldPerPixel: () => 1,
+      setWorldBounds: () => {},
+      fit: () => {},
+      setZoomFraction: () => {},
+    },
+  });
+  const canvas = fakeCanvas();
+  panel.attachToCanvas(canvas, {
+    chooseStation: (entry) => chosen.push(entry),
+  });
+  return { panel, canvas, chosen };
+};
+
+const pointWith = (pointerType) => (canvas, x) => {
+  canvas.handlers.pointerdown({
+    pointerId: 1,
+    pointerType,
+    clientX: x,
+    clientY: 0,
+  });
+  canvas.handlers.pointerup({
+    pointerId: 1,
+    pointerType,
+    clientX: x,
+    clientY: 0,
+  });
+};
+
+const click = pointWith('mouse');
+const tap = pointWith('touch');
+
+const NOWHERE = 99;
+
+test('a click travels from the place under it', () => {
+  const { panel, canvas, chosen } = attachedPanel(10 * 3600);
+  const place = placeIndex(panel, 8_500_002);
+
+  click(canvas, place);
+
+  assert.deepEqual(
+    chosen.map((entry) => entry.didok),
+    [8_500_002],
+  );
+});
+
+test('a first tap on a place only names it', () => {
+  const { panel, canvas, chosen } = attachedPanel(10 * 3600);
+  const place = placeIndex(panel, 8_500_002);
+
+  tap(canvas, place);
+
+  assert.deepEqual(chosen, [], 'nobody travels yet');
+  assert.deepEqual(panel.hovered, { kind: 'place', index: place });
+});
+
+test('a second tap on the named place travels from it', () => {
+  const { panel, canvas, chosen } = attachedPanel(10 * 3600);
+  const place = placeIndex(panel, 8_500_002);
+
+  tap(canvas, place);
+  tap(canvas, place);
+
+  assert.deepEqual(
+    chosen.map((entry) => entry.didok),
+    [8_500_002],
+  );
+});
+
+test('a tap on another place names that one instead of travelling', () => {
+  const { panel, canvas, chosen } = attachedPanel(10 * 3600);
+  const first = placeIndex(panel, 8_500_002);
+  const second = placeIndex(panel, 8_500_003);
+
+  tap(canvas, first);
+  tap(canvas, second);
+
+  assert.deepEqual(chosen, []);
+  assert.deepEqual(panel.hovered, { kind: 'place', index: second });
+});
+
+test('a tap on nothing takes the name away again', () => {
+  const { panel, canvas } = attachedPanel(10 * 3600);
+
+  tap(canvas, placeIndex(panel, 8_500_002));
+  tap(canvas, NOWHERE);
+
+  assert.equal(panel.hovered, null);
+});

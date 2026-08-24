@@ -154,6 +154,7 @@ export class ReisezeitPanel extends Panel {
     this.places = [];
     this.hourRings = 0;
     this.hovered = null;
+    this.previewed = null;
     this.pointer = null;
     this.chooseStation = null;
     this.context = null;
@@ -195,9 +196,10 @@ export class ReisezeitPanel extends Panel {
     new TapInteraction(canvasElement, {
       pick,
       sameTarget,
-      onSelect: (target) => this.#select(target),
-      onActivate: (target) => this.#select(target),
+      onSelect: (target, pointerType) => this.#select(target, pointerType),
+      onActivate: (target) => this.#select(target, 'mouse'),
       onPointerDown: () => {},
+      onNothingTapped: () => this.#dropPreview(),
     });
   }
 
@@ -257,14 +259,39 @@ export class ReisezeitPanel extends Panel {
 
   revealStation(station) {
     this.startStation = this.startStationChoice.choose(station);
-    this.hovered = null;
+    this.#dropPreview();
     this.#rescan({ openTheView: true });
   }
 
-  #select(target) {
+  #preview(target) {
+    this.previewed = target;
+    this.hovered = target;
+  }
+
+  #dropPreview() {
+    this.previewed = null;
+    this.hovered = null;
+  }
+
+  // A finger has no hover to read the label with, so its first tap on a target
+  // only names it and its second one travels from it. The mouse, which has
+  // hovered the target already, travels on the first click.
+  #awaitsAnotherTap(target, pointerType) {
+    return (
+      pointerType !== 'mouse' &&
+      (this.previewed === null || !sameTarget(this.previewed, target))
+    );
+  }
+
+  #select(target, pointerType) {
+    if (this.#awaitsAnotherTap(target, pointerType)) {
+      this.#preview(target);
+      return;
+    }
     if (target.kind !== 'place') {
       return;
     }
+    this.previewed = null;
     const entry = this.catalog.entryOf(
       this.connections.didokOf(this.places[target.index].station),
     );
