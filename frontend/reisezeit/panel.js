@@ -197,7 +197,7 @@ export class ReisezeitPanel extends Panel {
       sameTarget,
       onSelect: (target) => this.#select(target),
       onActivate: (target) => this.#select(target),
-      onMiss: () => {},
+      onPointerDown: () => {},
     });
   }
 

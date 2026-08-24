@@ -23,8 +23,11 @@
   text-decoration: underline;
 }
 
-.info-card-link:hover {
-  color: var(--color-control-text);
+/* Guarded: a tap leaves :hover standing on a touch screen. */
+@media (hover: hover) {
+  .info-card-link:hover {
+    color: var(--color-control-text);
+  }
 }
 
 .info-card-section {

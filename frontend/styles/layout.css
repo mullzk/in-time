@@ -4,7 +4,9 @@
 .l-viz-root {
   position: relative;
   width: 100vw;
-  height: 100vh;
+  /* The dynamic unit: the picture is not to be cut off by the bars a phone
+     browser lays over the foot of the screen. */
+  height: 100dvh;
 }
 
 .l-viz-root canvas {
@@ -20,9 +22,9 @@
 .l-topbar {
   position: absolute;
   z-index: 13;
-  top: var(--space-m);
-  left: var(--space-m);
-  right: var(--space-m);
+  top: calc(var(--space-m) + env(safe-area-inset-top));
+  left: calc(var(--space-m) + env(safe-area-inset-left));
+  right: calc(var(--space-m) + env(safe-area-inset-right));
   display: flex;
   justify-content: center;
   align-items: center;

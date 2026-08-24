@@ -57,12 +57,15 @@
   cursor: pointer;
 }
 
-.instrumentation-editor-action:hover:enabled {
-  background: var(--color-control-hover);
-}
+/* Guarded: a tap leaves :hover standing on a touch screen. */
+@media (hover: hover) {
+  .instrumentation-editor-action:hover:enabled {
+    background: var(--color-control-hover);
+  }
 
-.instrumentation-editor-discard:hover {
-  color: var(--color-warning);
+  .instrumentation-editor-discard:hover {
+    color: var(--color-warning);
+  }
 }
 
 .instrumentation-editor-action:disabled {
@@ -148,8 +151,11 @@
   height: 20px;
 }
 
-.instrumentation-editor-open:hover {
-  background: var(--color-control-hover);
+/* Guarded: a tap leaves :hover standing on a touch screen. */
+@media (hover: hover) {
+  .instrumentation-editor-open:hover {
+    background: var(--color-control-hover);
+  }
 }
 
 @media (max-width: 720px) {
