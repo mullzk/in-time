@@ -18,7 +18,6 @@ import {
   dominantStationMode,
   nearestStation,
   nodeDiameterPixels,
-  STATION_HIT_RADIUS_PIXELS,
   stationPickRadiusPixels,
 } from '../viz-core/render/stationNodes.js';
 import { BACKGROUNDS } from '../viz-core/render/tiles/tileSource.js';
@@ -630,22 +629,6 @@ export class TaktPanel extends Panel {
     });
   }
 
-  stationAt(screenX, screenY) {
-    if (this.camera === null) {
-      return null;
-    }
-    const shown = this.catalog.entries.filter((station) =>
-      this.#stationShown(station),
-    );
-    return nearestStation(
-      shown,
-      this.camera,
-      screenX,
-      screenY,
-      STATION_HIT_RADIUS_PIXELS,
-    );
-  }
-
   stationNear(screenX, screenY) {
     return this.#nearestCatalogStation(screenX, screenY, null);
   }
@@ -666,14 +649,18 @@ export class TaktPanel extends Panel {
     );
   }
 
+  // Only a station that is drawn can be picked: hovering a node that is not
+  // there would name a place the picture does not show, and zoomed out, where
+  // the stops are hidden, it would swallow the vehicles one can still aim at.
   #nearestCatalogStation(screenX, screenY, accept) {
     if (this.camera === null) {
       return null;
     }
     const radius = stationPickRadiusPixels(this.camera.zoomFraction());
-    const candidates = accept
-      ? this.catalog.entries.filter(accept)
-      : this.catalog.entries;
+    const candidates = this.catalog.entries.filter(
+      (station) =>
+        this.#stationShown(station) && (accept === null || accept(station)),
+    );
     return nearestStation(candidates, this.camera, screenX, screenY, radius);
   }
 

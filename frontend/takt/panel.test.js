@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
+import { Camera } from '../viz-core/render/camera.js';
 import { BACKGROUNDS } from '../viz-core/render/tiles/tileSource.js';
 import { Instrumentation } from '../viz-core/sonification/instrumentation.js';
 import { INSTRUMENTATIONS } from '../viz-core/sonification/presets.js';
@@ -177,6 +178,40 @@ test('an adopted interchange sounds its rail and bus stops as one place', () => 
     merged.map((event) => event.time),
     [...merged.map((event) => event.time)].sort((a, b) => a - b),
   );
+});
+
+test('a station is picked only while the stops are shown', () => {
+  const panel = new TaktPanel(RAIL_BUFFER, RAIL_STATIONS);
+  const camera = new Camera(800, 600);
+  panel.init({ camera });
+  const target = panel.stationCatalog().entryOf(1);
+  camera.centerOn(target.east, target.north);
+
+  assert.equal(
+    panel.railStationNear(400, 300),
+    null,
+    'the stops are hidden, so there is nothing to hover',
+  );
+
+  panel.layers.stops = true;
+
+  assert.equal(panel.railStationNear(400, 300), target);
+});
+
+test('a stop whose own layer is switched off is not picked', () => {
+  const panel = new TaktPanel(RAIL_BUFFER, RAIL_STATIONS);
+  panel.adoptSchedule(ROAD_BUFFER, ROAD_STATIONS);
+  const camera = new Camera(800, 600);
+  panel.init({ camera });
+  panel.layers.stops = true;
+  const busStop = panel.stationCatalog().entryOf(11);
+  camera.centerOn(busStop.east, busStop.north);
+
+  assert.equal(panel.minorStationNear(400, 300), busStop);
+
+  panel.layers.bus = false;
+
+  assert.equal(panel.minorStationNear(400, 300), null);
 });
 
 test('the sound options are told apart by value, not by name', () => {
