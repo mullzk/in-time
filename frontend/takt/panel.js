@@ -629,10 +629,6 @@ export class TaktPanel extends Panel {
     });
   }
 
-  stationNear(screenX, screenY) {
-    return this.#nearestCatalogStation(screenX, screenY, null);
-  }
-
   railStationNear(screenX, screenY) {
     return this.#nearestCatalogStation(
       screenX,
@@ -658,8 +654,7 @@ export class TaktPanel extends Panel {
     }
     const radius = stationPickRadiusPixels(this.camera.zoomFraction());
     const candidates = this.catalog.entries.filter(
-      (station) =>
-        this.#stationShown(station) && (accept === null || accept(station)),
+      (station) => this.#stationShown(station) && accept(station),
     );
     return nearestStation(candidates, this.camera, screenX, screenY, radius);
   }

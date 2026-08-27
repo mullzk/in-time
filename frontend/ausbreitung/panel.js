@@ -444,12 +444,6 @@ export class AusbreitungPanel extends Panel {
     p.circle(this.startStation.east, this.startStation.north, ringDiameter);
   }
 
-  // Only what is already lit can be picked: the picture answers for where one
-  // has got to, not for where one will be later.
-  stationNear(screenX, screenY) {
-    return this.#nearestReachedPlace(screenX, screenY, null);
-  }
-
   railStationNear(screenX, screenY) {
     return this.#nearestReachedPlace(
       screenX,
@@ -466,13 +460,15 @@ export class AusbreitungPanel extends Panel {
     );
   }
 
+  // Only what is already lit can be picked: the picture answers for where one
+  // has got to, not for where one will be later.
   #nearestReachedPlace(screenX, screenY, accept) {
     if (this.camera === null) {
       return null;
     }
     const entries = this.placesReachedAt(this.currentTimeSeconds)
       .map((place) => place.entry)
-      .filter((entry) => accept === null || accept(entry));
+      .filter(accept);
     return nearestStation(
       entries,
       this.camera,
