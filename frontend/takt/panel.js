@@ -200,7 +200,6 @@ export class TaktPanel extends Panel {
     stationSearch: true,
     stationPicking: true,
     mapBackground: true,
-    zoomSlider: true,
     clock: true,
     sonification: true,
   };

@@ -10,11 +10,6 @@ import { InstrumentationEditor } from './controls/instrumentationEditor.js';
 import { StationSearch } from './controls/stationSearch.js';
 import { TransportControls } from './controls/transportControls.js';
 import { ViewSwitcher } from './controls/viewSwitcher.js';
-import {
-  ZOOM_STEPS,
-  zoomFractionForPosition,
-  zoomSliderPosition,
-} from './controls/zoomSlider.js';
 import { KeyboardControls } from './interaction/keyboardControls.js';
 import { MapSelection } from './interaction/mapSelection.js';
 import { PanelContext } from './panelContext.js';
@@ -297,7 +292,6 @@ export class PanelShell {
     this.dock.showFaces();
     this.selection?.onFrameRendered();
     this.sonifier?.onFrameRendered();
-    this.#syncZoomSlider();
     this.#syncStationInvitation();
   }
 
@@ -366,12 +360,6 @@ export class PanelShell {
         element: this.#backgroundControl(),
         keepInExhibition: true,
       }),
-      ...sectionWhen(this.panel.capabilities.zoomSlider, {
-        id: 'zoom',
-        title: 'Zoom',
-        element: this.#zoomControl(),
-        keepInExhibition: true,
-      }),
       {
         id: 'info',
         title: 'Info',
@@ -399,38 +387,5 @@ export class PanelShell {
     this.context.setBackground(background.source);
     this.attribution.set(background.attribution);
     this.panel.onBackgroundChange?.(background);
-  }
-
-  #zoomControl() {
-    const group = element('div', 'control-options');
-    const slider = element('input', 'control-slider');
-    slider.type = 'range';
-    slider.min = '0';
-    slider.max = String(ZOOM_STEPS - 1);
-    slider.step = '1';
-    slider.value = String(zoomSliderPosition(this.camera.zoomFraction()));
-    slider.addEventListener('input', () => {
-      this.zoomScrubbing = true;
-      this.camera.setZoomFraction(
-        zoomFractionForPosition(Number(slider.value)),
-      );
-    });
-    slider.addEventListener('change', () => {
-      this.zoomScrubbing = false;
-    });
-    this.zoomSlider = slider;
-    group.appendChild(slider);
-    return group;
-  }
-
-  // The camera also moves by wheel, pinch and keyboard, so the slider follows
-  // the camera rather than the other way round -- except while it is being
-  // dragged, when it would fight the hand holding it.
-  #syncZoomSlider() {
-    if (this.zoomSlider && !this.zoomScrubbing) {
-      this.zoomSlider.value = String(
-        zoomSliderPosition(this.camera.zoomFraction()),
-      );
-    }
   }
 }

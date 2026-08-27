@@ -1,10 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
-import {
-  ZOOM_STEPS,
-  zoomFractionForPosition,
-} from '../viz-core/controls/zoomSlider.js';
 import { BACKGROUNDS } from '../viz-core/render/tiles/tileSource.js';
 import { Instrumentation } from '../viz-core/sonification/instrumentation.js';
 import { INSTRUMENTATIONS } from '../viz-core/sonification/presets.js';
@@ -129,30 +125,30 @@ test('a background without rails leaves the network overlay alone', () => {
   assert.equal(panel.layers.network, true);
 });
 
-// The thresholds are read at the slider's stops, since that is where a user
-// meets them: the last stop that still trails and the first one that does not.
-const trailsAtStep = (backgroundId, step) =>
-  trailShownOn(backgroundNamed(backgroundId), zoomFractionForPosition(step));
+// The zoom is continuous, so each threshold is read just short of it and just
+// past it: the last fraction that still trails and the first one that does not.
+const trailsAt = (backgroundId, zoomFraction) =>
+  trailShownOn(backgroundNamed(backgroundId), zoomFraction);
 
-test('the black ground trails at every zoom stop', () => {
-  const everyStep = [...Array(ZOOM_STEPS).keys()];
-
-  assert.ok(everyStep.every((step) => trailsAtStep('black', step)));
+test('the black ground trails at every zoom', () => {
+  assert.ok(trailsAt('black', 0));
+  assert.ok(trailsAt('black', 0.5));
+  assert.ok(trailsAt('black', 1));
 });
 
-test('the relief trails over the overview stops and stops halfway in', () => {
-  assert.ok(trailsAtStep('relief', 2));
-  assert.ok(!trailsAtStep('relief', 3));
+test('the relief trails over the overview and stops partway in', () => {
+  assert.ok(trailsAt('relief', 0.41));
+  assert.ok(!trailsAt('relief', 0.43));
 });
 
 test('the aerial imagery trails much further in than the relief', () => {
-  assert.ok(trailsAtStep('swissview', 4));
-  assert.ok(!trailsAtStep('swissview', 5));
+  assert.ok(trailsAt('swissview', 0.74));
+  assert.ok(!trailsAt('swissview', 0.76));
 });
 
 test('a drawn map never trails, not even fully zoomed out', () => {
-  assert.ok(!trailsAtStep('pixel-color', 0));
-  assert.ok(!trailsAtStep('pixel-grey', 0));
+  assert.ok(!trailsAt('pixel-color', 0));
+  assert.ok(!trailsAt('pixel-grey', 0));
 });
 
 test('the network overlay stays off once the user switched it back on', () => {

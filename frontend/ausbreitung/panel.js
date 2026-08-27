@@ -80,7 +80,6 @@ export class AusbreitungPanel extends Panel {
     stationSearch: true,
     stationPicking: true,
     mapBackground: true,
-    zoomSlider: true,
     needsAStation: true,
     clock: true,
   };
