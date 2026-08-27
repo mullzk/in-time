@@ -66,7 +66,7 @@ function makeFakeCanvas() {
 
 // A camera whose horizontal pan the test can shift to mimic any view change,
 // so worldToScreen returns a different screen point after a camera move.
-function makeSelection({ popover, hoverPopover, panel } = {}) {
+function makeSelection({ popover, hoverPopover, panel, onNothingTapped } = {}) {
   const camera = {
     pan: 0,
     worldToScreen(east, north) {
@@ -82,6 +82,7 @@ function makeSelection({ popover, hoverPopover, panel } = {}) {
   const selection = new MapSelection(null, panel ?? {}, context, {
     popover: popover ?? makeFakePopover(),
     hoverPopover: hoverPopover ?? makeFakePopover(),
+    onNothingTapped,
   });
   return { selection, camera, focused };
 }
@@ -403,6 +404,41 @@ test('a tap on nothing takes the name away again', () => {
 
   tap(canvas, 5, 5);
   assert.deepEqual(revealed, [], 'and the station has to be named anew');
+});
+
+// The ask a chosen sound puts stands over the picture, and tapping the map past
+// it is one of the two ways to turn it down again.
+test('a tap that hits nothing is reported to the caller', () => {
+  const taps = [];
+  const bern = { east: 100, north: 200, name: 'Bern' };
+  const { selection } = makeSelection({
+    panel: { ...railPanel(bern), revealStation: () => {} },
+    onNothingTapped: () => taps.push('nothing'),
+  });
+  const canvas = makeFakeCanvas();
+  selection.attachTo(canvas);
+
+  click(canvas, 100, 200);
+
+  assert.deepEqual(taps, [], 'a station was tapped, not the map');
+});
+
+test('a tap on the bare map is reported to the caller', () => {
+  const taps = [];
+  const { selection } = makeSelection({
+    panel: {
+      railStationNear: () => null,
+      vehicleAt: () => null,
+      minorStationNear: () => null,
+    },
+    onNothingTapped: () => taps.push('nothing'),
+  });
+  const canvas = makeFakeCanvas();
+  selection.attachTo(canvas);
+
+  click(canvas, 5, 5);
+
+  assert.deepEqual(taps, ['nothing']);
 });
 
 test('a pinch that ends over a station chooses nothing', () => {

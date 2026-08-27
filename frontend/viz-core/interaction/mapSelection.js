@@ -34,7 +34,7 @@ export class MapSelection {
     container,
     panel,
     context,
-    { onStationChosen, popover, hoverPopover } = {},
+    { onStationChosen, onNothingTapped, popover, hoverPopover } = {},
   ) {
     this.panel = panel;
     this.context = context;
@@ -53,6 +53,7 @@ export class MapSelection {
       this.time,
     );
     this.onStationChosen = onStationChosen;
+    this.onNothingTapped = onNothingTapped;
     this.previewed = null;
   }
 
@@ -64,7 +65,10 @@ export class MapSelection {
       onSelect: (target, pointerType) => this.#select(target, pointerType),
       onActivate: (target) => this.#activate(target),
       onPointerDown: () => this.clear(),
-      onNothingTapped: () => this.#dropPreview(),
+      onNothingTapped: () => {
+        this.#dropPreview();
+        this.onNothingTapped?.();
+      },
     });
     new HoverInteraction(canvasElement, {
       pick,

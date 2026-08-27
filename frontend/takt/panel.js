@@ -516,6 +516,13 @@ export class TaktPanel extends Panel {
     return this.#selectedInstrumentation();
   }
 
+  // The ask that a chosen sound puts was turned down, so the list falls back to
+  // silence and says what plays now -- nothing.
+  silenceTheSound() {
+    this.soundChoices.show(SILENT_OPTION_VALUE);
+    return this.#selectedInstrumentation();
+  }
+
   // A stop nothing calls at would stay as silent as no stop at all, so the drawn
   // one has to have something to sound. Only railway stations are drawn: a
   // station voices its whole interchange, so a drawn one carries the tram and bus

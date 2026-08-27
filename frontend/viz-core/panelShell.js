@@ -101,6 +101,7 @@ export class PanelShell {
           onClear: this.panel.capabilities.needsAStation
             ? () => {}
             : () => this.#forgetStation(),
+          onDismiss: () => this.#turnDownTheAsk(),
         })
       : null;
     // Picking on the canvas needs a map to pick on: only a panel drawing one
@@ -108,6 +109,7 @@ export class PanelShell {
     this.selection = this.panel.capabilities.stationPicking
       ? new MapSelection(this.root, this.panel, this.context, {
           onStationChosen: (station) => this.#adoptStation(station),
+          onNothingTapped: () => this.#turnDownTheAsk(),
         })
       : null;
     // A panel that has a question to put over its picture gets the writing; the
@@ -329,6 +331,17 @@ export class PanelShell {
       return false;
     }
     return this.panel.capabilities.needsAStation || this.soundIsWaitedOn;
+  }
+
+  // The ask a chosen sound puts can be turned down -- by tapping the map past it
+  // or by Escape -- and then nothing is being listened to any more. An ask a view
+  // cannot draw without stands whatever is done to it: there is nothing to fall
+  // back to.
+  #turnDownTheAsk() {
+    if (!this.invitationShown || this.panel.capabilities.needsAStation) {
+      return;
+    }
+    this.#setInstrumentation(this.panel.silenceTheSound?.() ?? null);
   }
 
   #chooseDrawnStation() {
