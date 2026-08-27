@@ -8,7 +8,7 @@ import {
 
 const at = (hours, minutes = 0) => hours * 3600 + minutes * 60;
 
-const TAKT_WINDOW = { leadSeconds: at(0, 10), dayCutSeconds: at(3) };
+const TAKT_WINDOW = { leadSeconds: at(0, 10) };
 
 test('the wall clock is read in Zurich, not where the browser stands', () => {
   assert.equal(
@@ -33,20 +33,28 @@ test('the evening is shown the morning instead', () => {
   assert.equal(departureToOpenOn(at(23, 30)), at(7));
 });
 
+test('so are the small hours, up to the hour the country starts', () => {
+  assert.equal(departureToOpenOn(at(0, 5)), at(7));
+  assert.equal(departureToOpenOn(at(5, 59)), at(7));
+  assert.equal(departureToOpenOn(at(6)), at(6));
+});
+
 test('playback opens a little before the hour one is looking', () => {
   assert.equal(playbackToOpenOn(at(10, 50), TAKT_WINDOW), at(10, 40));
 });
 
-test('the minutes before the cut belong to the end of the service day', () => {
-  assert.equal(
-    playbackToOpenOn(at(3, 5), TAKT_WINDOW),
-    at(2, 55) + 24 * 3600,
-    'ten minutes before three is the small hours of the day that ends there',
-  );
+test('playback is shown the morning by the same hours', () => {
+  assert.equal(playbackToOpenOn(at(20), TAKT_WINDOW), at(6, 50));
+  assert.equal(playbackToOpenOn(at(23, 30), TAKT_WINDOW), at(6, 50));
+  assert.equal(playbackToOpenOn(at(3, 5), TAKT_WINDOW), at(6, 50));
 });
 
-test('the first minutes of a calendar day are the day before', () => {
-  assert.equal(playbackToOpenOn(at(0, 5), TAKT_WINDOW), at(23, 55));
+test('playback never opens before the service day is cut', () => {
+  assert.equal(
+    playbackToOpenOn(at(6), TAKT_WINDOW),
+    at(5, 50),
+    'the earliest opening there is still lies well after the pre-dawn cut',
+  );
 });
 
 test('a departure stands where its slider can stand', () => {

@@ -1,10 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
-import {
-  ZOOM_STEPS,
-  zoomFractionForPosition,
-} from '../viz-core/controls/zoomSlider.js';
+import { Camera } from '../viz-core/render/camera.js';
 import { BACKGROUNDS } from '../viz-core/render/tiles/tileSource.js';
 import { Instrumentation } from '../viz-core/sonification/instrumentation.js';
 import { INSTRUMENTATIONS } from '../viz-core/sonification/presets.js';
@@ -83,8 +80,8 @@ test('adopting the road schedule after init matches adopting it before', () => {
 test('a searched bus stop brings the tram along with the buses', () => {
   const panel = new TaktPanel(RAIL_BUFFER, RAIL_STATIONS);
   panel.adoptSchedule(ROAD_BUFFER, ROAD_STATIONS);
-  assert.equal(panel.layers.bus, false);
-  assert.equal(panel.layers.tram, false);
+  panel.layers.tram = false;
+  panel.layers.bus = false;
 
   panel.revealStation(panel.stationCatalog().matching('dorfplatz')[0]);
 
@@ -129,30 +126,30 @@ test('a background without rails leaves the network overlay alone', () => {
   assert.equal(panel.layers.network, true);
 });
 
-// The thresholds are read at the slider's stops, since that is where a user
-// meets them: the last stop that still trails and the first one that does not.
-const trailsAtStep = (backgroundId, step) =>
-  trailShownOn(backgroundNamed(backgroundId), zoomFractionForPosition(step));
+// The zoom is continuous, so each threshold is read just short of it and just
+// past it: the last fraction that still trails and the first one that does not.
+const trailsAt = (backgroundId, zoomFraction) =>
+  trailShownOn(backgroundNamed(backgroundId), zoomFraction);
 
-test('the black ground trails at every zoom stop', () => {
-  const everyStep = [...Array(ZOOM_STEPS).keys()];
-
-  assert.ok(everyStep.every((step) => trailsAtStep('black', step)));
+test('the black ground trails at every zoom', () => {
+  assert.ok(trailsAt('black', 0));
+  assert.ok(trailsAt('black', 0.5));
+  assert.ok(trailsAt('black', 1));
 });
 
-test('the relief trails over the overview stops and stops halfway in', () => {
-  assert.ok(trailsAtStep('relief', 2));
-  assert.ok(!trailsAtStep('relief', 3));
+test('the relief trails over the overview and stops partway in', () => {
+  assert.ok(trailsAt('relief', 0.41));
+  assert.ok(!trailsAt('relief', 0.43));
 });
 
 test('the aerial imagery trails much further in than the relief', () => {
-  assert.ok(trailsAtStep('swissview', 4));
-  assert.ok(!trailsAtStep('swissview', 5));
+  assert.ok(trailsAt('swissview', 0.74));
+  assert.ok(!trailsAt('swissview', 0.76));
 });
 
 test('a drawn map never trails, not even fully zoomed out', () => {
-  assert.ok(!trailsAtStep('pixel-color', 0));
-  assert.ok(!trailsAtStep('pixel-grey', 0));
+  assert.ok(!trailsAt('pixel-color', 0));
+  assert.ok(!trailsAt('pixel-grey', 0));
 });
 
 test('the network overlay stays off once the user switched it back on', () => {
@@ -181,6 +178,40 @@ test('an adopted interchange sounds its rail and bus stops as one place', () => 
     merged.map((event) => event.time),
     [...merged.map((event) => event.time)].sort((a, b) => a - b),
   );
+});
+
+test('a station is picked only while the stops are shown', () => {
+  const panel = new TaktPanel(RAIL_BUFFER, RAIL_STATIONS);
+  const camera = new Camera(800, 600);
+  panel.init({ camera });
+  const target = panel.stationCatalog().entryOf(1);
+  camera.centerOn(target.east, target.north);
+
+  assert.equal(
+    panel.railStationNear(400, 300),
+    null,
+    'the stops are hidden, so there is nothing to hover',
+  );
+
+  panel.layers.stops = true;
+
+  assert.equal(panel.railStationNear(400, 300), target);
+});
+
+test('a stop whose own layer is switched off is not picked', () => {
+  const panel = new TaktPanel(RAIL_BUFFER, RAIL_STATIONS);
+  panel.adoptSchedule(ROAD_BUFFER, ROAD_STATIONS);
+  const camera = new Camera(800, 600);
+  panel.init({ camera });
+  panel.layers.stops = true;
+  const busStop = panel.stationCatalog().entryOf(11);
+  camera.centerOn(busStop.east, busStop.north);
+
+  assert.equal(panel.minorStationNear(400, 300), busStop);
+
+  panel.layers.bus = false;
+
+  assert.equal(panel.minorStationNear(400, 300), null);
 });
 
 test('the sound options are told apart by value, not by name', () => {

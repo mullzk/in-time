@@ -24,11 +24,17 @@ const SUGGESTIONS_LEAST_PIXELS = 120;
 export class StationSearch {
   // `onClear` answers an empty field committed with Enter -- the way to say that
   // no station is chosen any more. A view that cannot do without one passes a
-  // handler that does nothing.
-  constructor(container, catalog, { onSelect, onClear = () => {} }) {
+  // handler that does nothing. `onDismiss` answers Escape while the ask stands
+  // open: not a station given up, but the ask itself turned down.
+  constructor(
+    container,
+    catalog,
+    { onSelect, onClear = () => {}, onDismiss = () => {} },
+  ) {
     this.catalog = catalog;
     this.onSelect = onSelect;
     this.onClear = onClear;
+    this.onDismiss = onDismiss;
     this.suggestions = [];
     this.activeIndex = -1;
 
@@ -87,6 +93,9 @@ export class StationSearch {
     this.lucky.onclick = drawAStation;
     this.#placeTheAsk();
     this.root.classList.add('is-inviting');
+    // The ask is the only thing on the stage and there is one way to answer it,
+    // so the field takes the caret rather than waiting to be clicked.
+    this.input.focus();
   }
 
   endInvitation() {
@@ -200,6 +209,9 @@ export class StationSearch {
       event.stopPropagation();
       this.#close();
       this.input.blur();
+      if (this.root.classList.contains('is-inviting')) {
+        this.onDismiss();
+      }
     }
   }
 

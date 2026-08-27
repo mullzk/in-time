@@ -152,7 +152,7 @@ const boundsOf = (ring) => ({
   northMax: Math.max(...ring.map(([, north]) => north)),
 });
 
-const outlinePath = (ring, padding = 1.5) => {
+const outlinePath = (ring, padding) => {
   const { eastMin, eastMax, northMin, northMax } = boundsOf(ring);
   const box = ICON_SIZE - 2 * padding;
   const scale = Math.min(
@@ -170,15 +170,15 @@ const outlinePath = (ring, padding = 1.5) => {
     .join(' ')} Z`;
 };
 
-// Filled rather than drawn: at the size a tile leaves it, a stroked border
-// closes its own notches and the country turns into a blob. The silhouette keeps
-// the marks that name it -- the wedge down to Chiasso, the tip at Geneva.
+// Drawn a touch smaller than the other icons: at a tile's size the stroke needs
+// the room, or the notches that name the border -- the wedge down to Chiasso,
+// the tip at Geneva -- close over each other.
+const MAP_PADDING = 2;
+
 const mapIcon = () =>
   icon(
     svgElement('path', {
-      d: outlinePath(BORDER_LV95_KILOMETRES),
-      fill: 'currentColor',
-      stroke: 'none',
+      d: outlinePath(BORDER_LV95_KILOMETRES, MAP_PADDING),
     }),
   );
 
@@ -192,13 +192,7 @@ const soundIcon = () =>
 
 // The two faces of the play tile: what pressing it will do next.
 const playIcon = () =>
-  icon(
-    svgElement('path', {
-      d: 'M8.5 5.6 18 12l-9.5 6.4V5.6Z',
-      fill: 'currentColor',
-      'stroke-linejoin': 'round',
-    }),
-  );
+  icon(svgElement('path', { d: 'M8.5 5.6 18 12l-9.5 6.4V5.6Z' }));
 
 const pauseIcon = () =>
   icon(

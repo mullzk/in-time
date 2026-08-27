@@ -1,0 +1,20 @@
+/* SMACSS Module: the clock at the right end of the top bar — the moment the
+   picture stands at. It takes the face and the size of the chrome around it,
+   the search field beside it included; only the figures are set on one width,
+   so they do not shift under one another as the minutes run. */
+.panel-clock {
+  grid-column: 3;
+  justify-self: end;
+  padding: 0 var(--space-m);
+  height: var(--control-height);
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-m);
+  background: var(--color-surface);
+  backdrop-filter: blur(6px);
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  pointer-events: none;
+}

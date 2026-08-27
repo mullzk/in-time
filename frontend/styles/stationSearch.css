@@ -5,8 +5,12 @@
   /* Room the ask opens above and below the field, for the sentence and the
      button. Symmetric, so the card it opens stays centred on the field. */
   --ask-inset: calc(var(--control-height) + var(--space-m));
+  grid-column: 2;
   position: relative;
-  width: min(360px, 100%);
+  width: 360px;
+  /* The bar's middle column gives way to the clock on a narrow screen; the field
+     goes with it rather than out over the edge. */
+  max-width: 100%;
   min-width: 0;
   transition:
     transform var(--transition-panel),
@@ -28,6 +32,9 @@
    so the script measures it. */
 .station-search.is-inviting {
   width: var(--invitation-width);
+  /* The ask leaves the bar for the middle of the stage, so the column it came
+     from no longer bounds it. */
+  max-width: none;
   padding: var(--ask-inset) var(--space-m);
   margin-block: calc(-1 * var(--ask-inset));
   border-radius: var(--radius-m);

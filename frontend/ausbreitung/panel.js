@@ -13,7 +13,6 @@ import {
   categoryLabel,
 } from '../viz-core/data/transportCategories.js';
 import { Panel } from '../viz-core/panel.js';
-import { drawStationClock } from '../viz-core/render/stationClock.js';
 import {
   dominantStationMode,
   nearestStation,
@@ -24,10 +23,7 @@ import {
   StartStationChoice,
   stationToTravelFrom,
 } from '../viz-core/session/startStation.js';
-import {
-  DEPARTURE_STEP_SECONDS,
-  todayIso,
-} from '../viz-core/time/openingTime.js';
+import { DEPARTURE_STEP_SECONDS } from '../viz-core/time/openingTime.js';
 import { SECONDS_PER_DAY } from '../viz-core/time/timeModel.js';
 import { formatTimeOfDay } from '../viz-core/time/timeOfDay.js';
 import { buildConnectionList } from '../viz-core/travel/connectionList.js';
@@ -84,9 +80,8 @@ export class AusbreitungPanel extends Panel {
     stationSearch: true,
     stationPicking: true,
     mapBackground: true,
-    zoomSlider: true,
     needsAStation: true,
-    stationClock: true,
+    clock: true,
   };
 
   constructor(
@@ -94,10 +89,8 @@ export class AusbreitungPanel extends Panel {
     railStations,
     startTimeSeconds,
     addressedStationSlug = null,
-    serviceDateIso = todayIso(),
   ) {
     super();
-    this.serviceDateIso = serviceDateIso;
     this.catalog = new StationCatalog([]);
     this.networks = [];
     this.startTimeSeconds = startTimeSeconds;
@@ -366,12 +359,6 @@ export class AusbreitungPanel extends Panel {
     this.#drawStart(p, context);
   }
 
-  // Where the spread has got to. Nothing else on the picture says which moment
-  // it stands at, and the spread is about time passing.
-  drawOverlay(p) {
-    drawStationClock(p, this.currentTimeSeconds, this.serviceDateIso);
-  }
-
   #drawReachedPlaces(p, context) {
     const runs = this.places.runsAt(this.currentTimeSeconds, FLASH_SECONDS);
     const diameterOf = this.#placeDiameter(context.camera);
@@ -457,12 +444,6 @@ export class AusbreitungPanel extends Panel {
     p.circle(this.startStation.east, this.startStation.north, ringDiameter);
   }
 
-  // Only what is already lit can be picked: the picture answers for where one
-  // has got to, not for where one will be later.
-  stationNear(screenX, screenY) {
-    return this.#nearestReachedPlace(screenX, screenY, null);
-  }
-
   railStationNear(screenX, screenY) {
     return this.#nearestReachedPlace(
       screenX,
@@ -479,13 +460,15 @@ export class AusbreitungPanel extends Panel {
     );
   }
 
+  // Only what is already lit can be picked: the picture answers for where one
+  // has got to, not for where one will be later.
   #nearestReachedPlace(screenX, screenY, accept) {
     if (this.camera === null) {
       return null;
     }
     const entries = this.placesReachedAt(this.currentTimeSeconds)
       .map((place) => place.entry)
-      .filter((entry) => accept === null || accept(entry));
+      .filter(accept);
     return nearestStation(
       entries,
       this.camera,

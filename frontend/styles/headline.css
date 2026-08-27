@@ -16,12 +16,3 @@
   backdrop-filter: blur(6px);
   pointer-events: none;
 }
-
-/* SMACSS State: a picture that carries the station clock in its corner. On a
-   narrow screen the question would otherwise be written under the dial. */
-.panel-headline.is-beside-a-clock {
-  max-width: min(
-    46rem,
-    calc(100vw - var(--space-m) - var(--space-l) - var(--station-clock-outset))
-  );
-}

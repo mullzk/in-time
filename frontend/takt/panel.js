@@ -14,12 +14,10 @@ import {
   layerOfCategory,
 } from '../viz-core/data/transportCategories.js';
 import { Panel } from '../viz-core/panel.js';
-import { drawStationClock } from '../viz-core/render/stationClock.js';
 import {
   dominantStationMode,
   nearestStation,
   nodeDiameterPixels,
-  STATION_HIT_RADIUS_PIXELS,
   stationPickRadiusPixels,
 } from '../viz-core/render/stationNodes.js';
 import { BACKGROUNDS } from '../viz-core/render/tiles/tileSource.js';
@@ -34,7 +32,6 @@ import { drawnStationThatTravels } from '../viz-core/session/startStation.js';
 import { INSTRUMENTATIONS } from '../viz-core/sonification/presets.js';
 import { TRANSPORT_GROUPS } from '../viz-core/sonification/scheduling.js';
 import { SonificationEngine } from '../viz-core/sonification/sonificationEngine.js';
-import { todayIso } from '../viz-core/time/openingTime.js';
 import { VehiclePositionEngine } from '../viz-core/travel/vehiclePositionEngine.js';
 import { buildInfoContent } from './infoContent.js';
 
@@ -202,16 +199,12 @@ export class TaktPanel extends Panel {
     stationSearch: true,
     stationPicking: true,
     mapBackground: true,
-    zoomSlider: true,
+    clock: true,
     sonification: true,
   };
 
-  // The service day is the day the artifacts were built for; it decides where
-  // the clock puts sunrise and sunset. Today stands in for it while nothing has
-  // said otherwise.
-  constructor(railBuffer, railStations, serviceDateIso = todayIso()) {
+  constructor(railBuffer, railStations) {
     super();
-    this.serviceDateIso = serviceDateIso;
     this.catalog = new StationCatalog([]);
     this.positionEngines = [];
     this.soundEngines = [];
@@ -223,8 +216,8 @@ export class TaktPanel extends Panel {
       fernverkehr: true,
       interregio: true,
       regionalverkehr: true,
-      tram: false,
-      bus: false,
+      tram: true,
+      bus: true,
     };
     this.currentTimeSeconds = 0;
     this.customInstrumentation = null;
@@ -332,10 +325,6 @@ export class TaktPanel extends Panel {
     this.#drawVehicles(p, context);
   }
 
-  drawOverlay(p) {
-    drawStationClock(p, this.currentTimeSeconds, this.serviceDateIso);
-  }
-
   #drawVehicles(p, context) {
     p.noStroke();
     const bounds = context.camera.visibleWorldBounds();
@@ -403,7 +392,7 @@ export class TaktPanel extends Panel {
     const sections = [
       {
         id: 'layers',
-        title: 'Elemente',
+        title: 'Kategorien',
         element: this.#layerControl(),
         keepInExhibition: true,
       },
@@ -411,7 +400,7 @@ export class TaktPanel extends Panel {
     if (this.capabilities.sonification) {
       sections.push({
         id: 'sound',
-        title: 'Sound',
+        title: 'Vertonung',
         element: this.#soundControl(
           setInstrumentation,
           toggleInstrumentationEditor,
@@ -452,7 +441,7 @@ export class TaktPanel extends Panel {
     const group = element('div', 'control-options');
     this.soundChoices = new ChoiceList(
       [
-        { value: SILENT_OPTION_VALUE, label: 'Kein Sound' },
+        { value: SILENT_OPTION_VALUE, label: 'Kein Ton' },
         ...INSTRUMENTATIONS.map((instrumentation, index) => ({
           value: presetOptionValue(index),
           label: instrumentation.name,
@@ -524,6 +513,13 @@ export class TaktPanel extends Panel {
     }
     this.customInstrumentation = null;
     this.soundChoices.withdraw(CUSTOM_OPTION_VALUE);
+    return this.#selectedInstrumentation();
+  }
+
+  // The ask that a chosen sound puts was turned down, so the list falls back to
+  // silence and says what plays now -- nothing.
+  silenceTheSound() {
+    this.soundChoices.show(SILENT_OPTION_VALUE);
     return this.#selectedInstrumentation();
   }
 
@@ -640,26 +636,6 @@ export class TaktPanel extends Panel {
     });
   }
 
-  stationAt(screenX, screenY) {
-    if (this.camera === null) {
-      return null;
-    }
-    const shown = this.catalog.entries.filter((station) =>
-      this.#stationShown(station),
-    );
-    return nearestStation(
-      shown,
-      this.camera,
-      screenX,
-      screenY,
-      STATION_HIT_RADIUS_PIXELS,
-    );
-  }
-
-  stationNear(screenX, screenY) {
-    return this.#nearestCatalogStation(screenX, screenY, null);
-  }
-
   railStationNear(screenX, screenY) {
     return this.#nearestCatalogStation(
       screenX,
@@ -676,14 +652,17 @@ export class TaktPanel extends Panel {
     );
   }
 
+  // Only a station that is drawn can be picked: hovering a node that is not
+  // there would name a place the picture does not show, and zoomed out, where
+  // the stops are hidden, it would swallow the vehicles one can still aim at.
   #nearestCatalogStation(screenX, screenY, accept) {
     if (this.camera === null) {
       return null;
     }
     const radius = stationPickRadiusPixels(this.camera.zoomFraction());
-    const candidates = accept
-      ? this.catalog.entries.filter(accept)
-      : this.catalog.entries;
+    const candidates = this.catalog.entries.filter(
+      (station) => this.#stationShown(station) && accept(station),
+    );
     return nearestStation(candidates, this.camera, screenX, screenY, radius);
   }
 

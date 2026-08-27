@@ -11,7 +11,8 @@ import { TaktPanel } from './panel.js';
 // loop a fixed 24-hour window whose seam sits in the pre-dawn lull (~03:00,
 // almost no service), so wall-clock time stays continuous across the wrap.
 // Playback opens on the country as it runs while one is watching, a few minutes
-// back so that the first thing seen is a journey already under way.
+// back so that the first thing seen is a journey already under way -- except
+// late in the evening, when it would be a picture of what no longer runs.
 const DAY_CUT_SECONDS = 3 * 3600;
 const PLAYBACK_LEAD_SECONDS = 10 * 60;
 
@@ -31,15 +32,10 @@ async function bootstrap() {
   time.seekToTime(
     playbackToOpenOn(secondsOfDayInZurich(), {
       leadSeconds: PLAYBACK_LEAD_SECONDS,
-      dayCutSeconds: DAY_CUT_SECONDS,
     }),
   );
 
-  const panel = new TaktPanel(
-    result.railBuffer,
-    result.railStations,
-    result.config.serviceDate,
-  );
+  const panel = new TaktPanel(result.railBuffer, result.railStations);
   const shell = new PanelShell(root, panel, time);
   shell.start();
   time.play();

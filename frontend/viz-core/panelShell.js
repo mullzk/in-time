@@ -1,5 +1,6 @@
 import { Attribution } from './controls/attribution.js';
 import { ChoiceList } from './controls/choiceList.js';
+import { Clock } from './controls/clock.js';
 import { Dock } from './controls/dock.js';
 import { tilesToHang } from './controls/dockTiles.js';
 import { element } from './controls/dom.js';
@@ -9,11 +10,6 @@ import { InstrumentationEditor } from './controls/instrumentationEditor.js';
 import { StationSearch } from './controls/stationSearch.js';
 import { TransportControls } from './controls/transportControls.js';
 import { ViewSwitcher } from './controls/viewSwitcher.js';
-import {
-  ZOOM_STEPS,
-  zoomFractionForPosition,
-  zoomSliderPosition,
-} from './controls/zoomSlider.js';
 import { KeyboardControls } from './interaction/keyboardControls.js';
 import { MapSelection } from './interaction/mapSelection.js';
 import { PanelContext } from './panelContext.js';
@@ -105,6 +101,7 @@ export class PanelShell {
           onClear: this.panel.capabilities.needsAStation
             ? () => {}
             : () => this.#forgetStation(),
+          onDismiss: () => this.#turnDownTheAsk(),
         })
       : null;
     // Picking on the canvas needs a map to pick on: only a panel drawing one
@@ -112,15 +109,15 @@ export class PanelShell {
     this.selection = this.panel.capabilities.stationPicking
       ? new MapSelection(this.root, this.panel, this.context, {
           onStationChosen: (station) => this.#adoptStation(station),
+          onNothingTapped: () => this.#turnDownTheAsk(),
         })
       : null;
     // A panel that has a question to put over its picture gets the writing; the
     // rest of the views carry none.
-    this.headline = this.panel.headline
-      ? new Headline(this.root, {
-          besideAClock: this.panel.capabilities.stationClock,
-        })
-      : null;
+    this.headline = this.panel.headline ? new Headline(this.root) : null;
+    // A picture whose moment matters says which one it stands at; a view whose
+    // time does not run has nothing to show.
+    this.clock = this.panel.capabilities.clock ? new Clock(this.topBar) : null;
 
     new KeyboardControls(window, {
       // Space plays; a view that does not play does not answer to it.
@@ -292,11 +289,11 @@ export class PanelShell {
 
   #onFrameRendered() {
     this.headline?.show(this.panel.headline());
+    this.clock?.show(this.time.current);
     this.transport.sync();
     this.dock.showFaces();
     this.selection?.onFrameRendered();
     this.sonifier?.onFrameRendered();
-    this.#syncZoomSlider();
     this.#syncStationInvitation();
   }
 
@@ -336,6 +333,17 @@ export class PanelShell {
     return this.panel.capabilities.needsAStation || this.soundIsWaitedOn;
   }
 
+  // The ask a chosen sound puts can be turned down -- by tapping the map past it
+  // or by Escape -- and then nothing is being listened to any more. An ask a view
+  // cannot draw without stands whatever is done to it: there is nothing to fall
+  // back to.
+  #turnDownTheAsk() {
+    if (!this.invitationShown || this.panel.capabilities.needsAStation) {
+      return;
+    }
+    this.#setInstrumentation(this.panel.silenceTheSound?.() ?? null);
+  }
+
   #chooseDrawnStation() {
     const drawn = this.panel.drawStation?.() ?? null;
     if (drawn !== null) {
@@ -354,7 +362,7 @@ export class PanelShell {
     const globalSections = [
       ...sectionWhen(this.viewSwitcher !== null, {
         id: 'views',
-        title: 'Ansicht',
+        title: 'Ansichten',
         element: this.viewSwitcher?.root,
         keepInExhibition: false,
       }),
@@ -363,12 +371,6 @@ export class PanelShell {
         id: 'background',
         title: 'Hintergrund',
         element: this.#backgroundControl(),
-        keepInExhibition: true,
-      }),
-      ...sectionWhen(this.panel.capabilities.zoomSlider, {
-        id: 'zoom',
-        title: 'Zoom',
-        element: this.#zoomControl(),
         keepInExhibition: true,
       }),
       {
@@ -398,38 +400,5 @@ export class PanelShell {
     this.context.setBackground(background.source);
     this.attribution.set(background.attribution);
     this.panel.onBackgroundChange?.(background);
-  }
-
-  #zoomControl() {
-    const group = element('div', 'control-options');
-    const slider = element('input', 'control-slider');
-    slider.type = 'range';
-    slider.min = '0';
-    slider.max = String(ZOOM_STEPS - 1);
-    slider.step = '1';
-    slider.value = String(zoomSliderPosition(this.camera.zoomFraction()));
-    slider.addEventListener('input', () => {
-      this.zoomScrubbing = true;
-      this.camera.setZoomFraction(
-        zoomFractionForPosition(Number(slider.value)),
-      );
-    });
-    slider.addEventListener('change', () => {
-      this.zoomScrubbing = false;
-    });
-    this.zoomSlider = slider;
-    group.appendChild(slider);
-    return group;
-  }
-
-  // The camera also moves by wheel, pinch and keyboard, so the slider follows
-  // the camera rather than the other way round -- except while it is being
-  // dragged, when it would fight the hand holding it.
-  #syncZoomSlider() {
-    if (this.zoomSlider && !this.zoomScrubbing) {
-      this.zoomSlider.value = String(
-        zoomSliderPosition(this.camera.zoomFraction()),
-      );
-    }
   }
 }

@@ -17,17 +17,24 @@
   touch-action: none;
 }
 
-/* The bar across the top carries the station search alone, in the middle of the
-   screen. It stands above the dock, because the ask a view without a station
-   puts and the suggestions under it open over the picture and have to be
-   readable there; the instrumentation editor stands above both. */
+/* The bar across the top carries the station search in the middle of the screen
+   and the clock at its right end. The two outer columns are of one width, so the
+   search stays centred on the screen while the clock takes room of its own
+   rather than lying over it; where the screen is too narrow for both, the middle
+   column gives way rather than the bar overflowing. The bar stands above the
+   dock, because the ask a
+   view without a station puts and the suggestions under it open over the picture
+   and have to be readable there; the instrumentation editor stands above both. */
 .l-topbar {
   position: absolute;
   z-index: 14;
   top: calc(var(--space-m) + env(safe-area-inset-top));
   left: calc(var(--space-m) + env(safe-area-inset-left));
   right: calc(var(--space-m) + env(safe-area-inset-right));
-  display: flex;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: 1fr minmax(0, max-content) 1fr;
+  /* What the bar keeps off the edge of the screen it also keeps between its own
+     two boxes, which on a narrow screen stand right beside each other. */
+  gap: var(--space-m);
   align-items: center;
 }

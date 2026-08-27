@@ -195,11 +195,6 @@
   display: block;
 }
 
-.control-slider {
-  width: 100%;
-  min-width: 0;
-}
-
 .control-button {
   align-self: flex-start;
   height: var(--control-height);
