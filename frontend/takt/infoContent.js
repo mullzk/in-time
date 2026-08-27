@@ -46,7 +46,7 @@ export function buildInfoContent({ stationSearch }) {
         '.',
       ],
       [
-        'Wenn ein Sound ausgewählt ist, wird jedes Ereignis an der',
+        'Wenn eine Vertonung ausgewählt ist, wird jedes Ereignis an der',
         ' Haltestelle durch einen Ton repräsentiert - abgestuft nach',
         ' Verkehrsträger, Ankunft, Abfahrt und Aufenthalt. So lässt sich der',
         ' Takt des Taktfahrplans auch als Rhythmus erfahren.',

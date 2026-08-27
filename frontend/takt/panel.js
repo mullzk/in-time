@@ -400,7 +400,7 @@ export class TaktPanel extends Panel {
     if (this.capabilities.sonification) {
       sections.push({
         id: 'sound',
-        title: 'Sound',
+        title: 'Vertonung',
         element: this.#soundControl(
           setInstrumentation,
           toggleInstrumentationEditor,
@@ -441,7 +441,7 @@ export class TaktPanel extends Panel {
     const group = element('div', 'control-options');
     this.soundChoices = new ChoiceList(
       [
-        { value: SILENT_OPTION_VALUE, label: 'Kein Sound' },
+        { value: SILENT_OPTION_VALUE, label: 'Kein Ton' },
         ...INSTRUMENTATIONS.map((instrumentation, index) => ({
           value: presetOptionValue(index),
           label: instrumentation.name,

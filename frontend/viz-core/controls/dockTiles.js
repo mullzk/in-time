@@ -5,7 +5,7 @@
 // without a map keeps the display tile away without knowing the dock exists.
 const TILES = [
   { id: 'play', label: 'Wiedergabe', sections: ['play'] },
-  { id: 'sound', label: 'Sound', sections: ['sound'] },
+  { id: 'sound', label: 'Vertonung', sections: ['sound'] },
   { id: 'elements', label: 'Elemente', sections: ['layers'] },
   { id: 'map', label: 'Hintergrund', sections: ['background'] },
   { id: 'time', label: 'Zeit', sections: ['tempo', 'clock', 'departure'] },
