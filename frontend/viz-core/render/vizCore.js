@@ -58,6 +58,7 @@ export class VizCore {
       this.container.clientHeight,
     );
     p.frameRate(FRAMES_PER_SECOND);
+    p.textFont(getComputedStyle(document.body).fontFamily);
     this.context.camera.setViewport(p.width, p.height);
     this.controls = new CameraControls(canvas.elt, this.context.camera, {
       onZoomGesture: this.onZoomGesture,

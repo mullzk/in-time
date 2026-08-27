@@ -1,5 +1,29 @@
 /* SMACSS Base: element defaults, reset and design tokens. Tokens are the single
    source of colour and spacing; modules reference them, never raw values. */
+@font-face {
+  font-family: "Arimo";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../vendor/fonts/arimo-latin-400-normal.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Arimo";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("../vendor/fonts/arimo-latin-500-normal.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Arimo";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("../vendor/fonts/arimo-latin-600-normal.woff2") format("woff2");
+}
+
 :root {
   --color-background: #10121a;
   --color-surface: rgba(20, 24, 33, 0.82);
@@ -28,6 +52,7 @@
     var(--space-m)
   );
   --transition-panel: 0.25s ease;
+  --font-ui: "Arimo", "Helvetica Neue", system-ui, sans-serif;
 }
 
 /* On a narrow screen the controls lose a little height to keep the picture the
@@ -56,8 +81,6 @@ body {
 body {
   background: var(--color-background);
   color: var(--color-text);
-  font:
-    14px system-ui,
-    sans-serif;
+  font: 14px var(--font-ui);
   overflow: hidden;
 }
