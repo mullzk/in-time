@@ -18,6 +18,12 @@ const DEFAULT_GROUND_COLOR = [16, 18, 22];
 // for no more than an ordinary frame.
 const LONGEST_FRAME_SECONDS = 0.1;
 
+// Every frame reads the position of every vehicle running at that moment, so a
+// country with its buses on costs about as much again as one without them.
+// Halving the rate buys that back; the clock runs off the elapsed time either
+// way, so only the smoothness of the motion is spent, not the schedule.
+const FRAMES_PER_SECOND = 30;
+
 // Owns the single p5 instance-mode loop and drives the active panel. Panels draw
 // in world coordinates (LV95); VizCore pushes the camera transform so geometry
 // and, later, tiles stay coincident in one render loop.
@@ -51,6 +57,7 @@ export class VizCore {
       this.container.clientWidth,
       this.container.clientHeight,
     );
+    p.frameRate(FRAMES_PER_SECOND);
     this.context.camera.setViewport(p.width, p.height);
     this.controls = new CameraControls(canvas.elt, this.context.camera, {
       onZoomGesture: this.onZoomGesture,
