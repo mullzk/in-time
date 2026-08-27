@@ -362,7 +362,7 @@ export class PanelShell {
     const globalSections = [
       ...sectionWhen(this.viewSwitcher !== null, {
         id: 'views',
-        title: 'Ansicht',
+        title: 'Ansichten',
         element: this.viewSwitcher?.root,
         keepInExhibition: false,
       }),

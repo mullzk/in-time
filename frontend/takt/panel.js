@@ -392,7 +392,7 @@ export class TaktPanel extends Panel {
     const sections = [
       {
         id: 'layers',
-        title: 'Elemente',
+        title: 'Kategorien',
         element: this.#layerControl(),
         keepInExhibition: true,
       },

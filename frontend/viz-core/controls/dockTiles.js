@@ -6,10 +6,10 @@
 const TILES = [
   { id: 'play', label: 'Wiedergabe', sections: ['play'] },
   { id: 'sound', label: 'Vertonung', sections: ['sound'] },
-  { id: 'elements', label: 'Elemente', sections: ['layers'] },
+  { id: 'elements', label: 'Kategorien', sections: ['layers'] },
   { id: 'map', label: 'Hintergrund', sections: ['background'] },
   { id: 'time', label: 'Zeit', sections: ['tempo', 'clock', 'departure'] },
-  { id: 'views', label: 'Ansicht', sections: ['views'] },
+  { id: 'views', label: 'Ansichten', sections: ['views'] },
   { id: 'info', label: 'Info', sections: ['info'], wideCard: true },
 ];
 
