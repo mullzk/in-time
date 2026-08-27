@@ -14,7 +14,6 @@ import {
   zoomFractionForPosition,
   zoomSliderPosition,
 } from './controls/zoomSlider.js';
-import { wgs84ToLv95 } from './data/projection.js';
 import { KeyboardControls } from './interaction/keyboardControls.js';
 import { MapSelection } from './interaction/mapSelection.js';
 import { PanelContext } from './panelContext.js';
@@ -66,7 +65,6 @@ export class PanelShell {
     this.camera = new Camera(root.clientWidth, root.clientHeight);
     this.context = new PanelContext({
       camera: this.camera,
-      projection: wgs84ToLv95,
       time,
       tileLayer: new TileLayer(this.background.source),
     });

@@ -12,7 +12,6 @@ const contextWithCamera = () => {
   const camera = new Camera(1300, 800);
   const context = new PanelContext({
     camera,
-    projection: null,
     time: null,
     tileLayer: { source: null },
   });
