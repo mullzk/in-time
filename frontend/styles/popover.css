@@ -30,10 +30,19 @@
 }
 
 /* The hover preview reads quieter than a committed selection and sits beneath it,
-   so the two never compete when both point at the same place. */
+   so the two never compete when both point at the same place. It is held back by
+   its ground alone: element opacity is inherited and would take the text with it,
+   which a name has to be read at any weight. */
 .popover-hover {
   z-index: 9;
-  opacity: 0.6;
+}
+
+.popover-hover:not(.is-accented) {
+  background: var(--color-surface-translucent);
+}
+
+.popover-hover.is-accented {
+  background: color-mix(in srgb, var(--popover-accent) 40%, transparent);
 }
 
 /* A vehicle popover stacks several lines; its leading line (category) reads as a
