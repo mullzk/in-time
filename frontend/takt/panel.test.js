@@ -111,7 +111,7 @@ test('a raster drawing the rails itself switches the network overlay off', () =>
   const panel = new TaktPanel(RAIL_BUFFER, RAIL_STATIONS);
   panel.layers.network = true;
 
-  panel.onBackgroundChange(backgroundNamed('pixel-color'));
+  panel.onBackgroundChange(backgroundNamed('pixel'));
   assert.equal(panel.layers.network, false);
 });
 
@@ -148,16 +148,15 @@ test('the aerial imagery trails much further in than the relief', () => {
 });
 
 test('a drawn map never trails, not even fully zoomed out', () => {
-  assert.ok(!trailsAt('pixel-color', 0));
-  assert.ok(!trailsAt('pixel-grey', 0));
+  assert.ok(!trailsAt('pixel', 0));
 });
 
 test('the network overlay stays off once the user switched it back on', () => {
   const panel = new TaktPanel(RAIL_BUFFER, RAIL_STATIONS);
-  panel.onBackgroundChange(backgroundNamed('pixel-color'));
+  panel.onBackgroundChange(backgroundNamed('pixel'));
   panel.layers.network = true;
 
-  panel.onBackgroundChange(backgroundNamed('pixel-grey'));
+  panel.onBackgroundChange(backgroundNamed('swissview'));
   assert.equal(panel.layers.network, false);
 });
 
