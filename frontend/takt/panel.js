@@ -14,7 +14,6 @@ import {
   layerOfCategory,
 } from '../viz-core/data/transportCategories.js';
 import { Panel } from '../viz-core/panel.js';
-import { drawStationClock } from '../viz-core/render/stationClock.js';
 import {
   dominantStationMode,
   nearestStation,
@@ -34,7 +33,6 @@ import { drawnStationThatTravels } from '../viz-core/session/startStation.js';
 import { INSTRUMENTATIONS } from '../viz-core/sonification/presets.js';
 import { TRANSPORT_GROUPS } from '../viz-core/sonification/scheduling.js';
 import { SonificationEngine } from '../viz-core/sonification/sonificationEngine.js';
-import { todayIso } from '../viz-core/time/openingTime.js';
 import { VehiclePositionEngine } from '../viz-core/travel/vehiclePositionEngine.js';
 import { buildInfoContent } from './infoContent.js';
 
@@ -203,15 +201,12 @@ export class TaktPanel extends Panel {
     stationPicking: true,
     mapBackground: true,
     zoomSlider: true,
+    clock: true,
     sonification: true,
   };
 
-  // The service day is the day the artifacts were built for; it decides where
-  // the clock puts sunrise and sunset. Today stands in for it while nothing has
-  // said otherwise.
-  constructor(railBuffer, railStations, serviceDateIso = todayIso()) {
+  constructor(railBuffer, railStations) {
     super();
-    this.serviceDateIso = serviceDateIso;
     this.catalog = new StationCatalog([]);
     this.positionEngines = [];
     this.soundEngines = [];
@@ -330,10 +325,6 @@ export class TaktPanel extends Panel {
     }
     this.#drawStationNodes(p, context);
     this.#drawVehicles(p, context);
-  }
-
-  drawOverlay(p) {
-    drawStationClock(p, this.currentTimeSeconds, this.serviceDateIso);
   }
 
   #drawVehicles(p, context) {

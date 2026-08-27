@@ -1,5 +1,6 @@
 import { Attribution } from './controls/attribution.js';
 import { ChoiceList } from './controls/choiceList.js';
+import { Clock } from './controls/clock.js';
 import { Dock } from './controls/dock.js';
 import { tilesToHang } from './controls/dockTiles.js';
 import { element } from './controls/dom.js';
@@ -116,11 +117,10 @@ export class PanelShell {
       : null;
     // A panel that has a question to put over its picture gets the writing; the
     // rest of the views carry none.
-    this.headline = this.panel.headline
-      ? new Headline(this.root, {
-          besideAClock: this.panel.capabilities.stationClock,
-        })
-      : null;
+    this.headline = this.panel.headline ? new Headline(this.root) : null;
+    // A picture whose moment matters says which one it stands at; a view whose
+    // time does not run has nothing to show.
+    this.clock = this.panel.capabilities.clock ? new Clock(this.topBar) : null;
 
     new KeyboardControls(window, {
       // Space plays; a view that does not play does not answer to it.
@@ -292,6 +292,7 @@ export class PanelShell {
 
   #onFrameRendered() {
     this.headline?.show(this.panel.headline());
+    this.clock?.show(this.time.current);
     this.transport.sync();
     this.dock.showFaces();
     this.selection?.onFrameRendered();

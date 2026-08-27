@@ -35,11 +35,7 @@ async function bootstrap() {
     }),
   );
 
-  const panel = new TaktPanel(
-    result.railBuffer,
-    result.railStations,
-    result.config.serviceDate,
-  );
+  const panel = new TaktPanel(result.railBuffer, result.railStations);
   const shell = new PanelShell(root, panel, time);
   shell.start();
   time.play();

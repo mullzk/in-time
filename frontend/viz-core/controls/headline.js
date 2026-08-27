@@ -7,11 +7,8 @@ export const HEADLINE_WHILE_LOADING = 'Fahrplan wird geladen …';
 // The question a view answers, written over its picture. Plain DOM: where it
 // hangs is the stylesheet's business, not the canvas's.
 export class Headline {
-  constructor(container, { besideAClock = false } = {}) {
+  constructor(container) {
     this.root = element('p', 'panel-headline');
-    if (besideAClock) {
-      this.root.classList.add('is-beside-a-clock');
-    }
     container.appendChild(this.root);
   }
 

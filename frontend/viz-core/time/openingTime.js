@@ -8,9 +8,6 @@ import { SECONDS_PER_DAY } from './timeModel.js';
 // finer would be a false promise, since a picture changes by the timetable.
 export const DEPARTURE_STEP_SECONDS = 300;
 
-// The day a panel falls back on while nothing has named the one it shows.
-export const todayIso = () => new Date().toISOString().slice(0, 10);
-
 const ZURICH = new Intl.DateTimeFormat('en-GB', {
   timeZone: 'Europe/Zurich',
   hour: '2-digit',
