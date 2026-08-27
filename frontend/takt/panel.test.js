@@ -79,8 +79,8 @@ test('adopting the road schedule after init matches adopting it before', () => {
 test('a searched bus stop brings the tram along with the buses', () => {
   const panel = new TaktPanel(RAIL_BUFFER, RAIL_STATIONS);
   panel.adoptSchedule(ROAD_BUFFER, ROAD_STATIONS);
-  assert.equal(panel.layers.bus, false);
-  assert.equal(panel.layers.tram, false);
+  panel.layers.tram = false;
+  panel.layers.bus = false;
 
   panel.revealStation(panel.stationCatalog().matching('dorfplatz')[0]);
 

@@ -217,8 +217,8 @@ export class TaktPanel extends Panel {
       fernverkehr: true,
       interregio: true,
       regionalverkehr: true,
-      tram: false,
-      bus: false,
+      tram: true,
+      bus: true,
     };
     this.currentTimeSeconds = 0;
     this.customInstrumentation = null;
