@@ -67,8 +67,7 @@ const TRAIL_UNTIL_ZOOM_FRACTION_BY_BACKGROUND = new Map([
   ['black', Number.POSITIVE_INFINITY],
   ['swissview', 0.75],
   ['relief', 0.42],
-  ['pixel-color', 0],
-  ['pixel-grey', 0],
+  ['pixel', 0],
 ]);
 export const trailShownOn = (background, zoomFraction) =>
   zoomFraction < TRAIL_UNTIL_ZOOM_FRACTION_BY_BACKGROUND.get(background.id);

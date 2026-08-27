@@ -24,6 +24,21 @@ export const SWISSVIEW_TILE_SOURCE = tileSource(
   'jpeg',
 );
 
+// The two Landeskarten are one background, each shown where it is the better
+// map: the grey one over the overview, where the colour print collapses into a
+// wash of area tints that says nothing at that scale, and the colour one from
+// the middle of the zoom on, where its detail is what one has come for. The
+// level is swisstopo's own, so the switch follows the map's detail rather than
+// the size of the window.
+const COLOUR_FROM_LEVEL = 18;
+
+export const LANDESKARTE_TILE_SOURCE = {
+  urlFor: (z, x, y) =>
+    z >= COLOUR_FROM_LEVEL
+      ? PIXELKARTE_COLOR_TILE_SOURCE.urlFor(z, x, y)
+      : PIXELKARTE_GREY_TILE_SOURCE.urlFor(z, x, y),
+};
+
 // swisstopo's terms of use require a visible source credit wherever their maps
 // are shown; every raster background carries it, the black one (no raster) none.
 // The credit names the map layer, not the app, so it does not read as a
@@ -47,16 +62,9 @@ export const BACKGROUNDS = [
     attribution: SWISSTOPO_ATTRIBUTION,
   },
   {
-    id: 'pixel-color',
-    label: 'Landeskarte farbig',
-    source: PIXELKARTE_COLOR_TILE_SOURCE,
-    showsRailwayLines: true,
-    attribution: SWISSTOPO_ATTRIBUTION,
-  },
-  {
-    id: 'pixel-grey',
-    label: 'Landeskarte grau',
-    source: PIXELKARTE_GREY_TILE_SOURCE,
+    id: 'pixel',
+    label: 'Landeskarte',
+    source: LANDESKARTE_TILE_SOURCE,
     showsRailwayLines: true,
     attribution: SWISSTOPO_ATTRIBUTION,
   },
