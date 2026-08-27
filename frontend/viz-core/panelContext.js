@@ -11,12 +11,11 @@ const NETWORK_ON_BLACK = [90, 100, 115];
 const NETWORK_ON_RASTER = [18, 22, 30];
 
 // Curated facade onto the core services a panel is allowed to touch — camera,
-// projection, time, and the drawing helpers — rather than the whole VizCore.
+// time, and the drawing helpers — rather than the whole VizCore.
 // Panel-specific state (its VehiclePositionEngine) lives in the panel, not here.
 export class PanelContext {
-  constructor({ camera, projection, time, tileLayer }) {
+  constructor({ camera, time, tileLayer }) {
     this.camera = camera;
-    this.projection = projection;
     this.time = time;
     this.tileLayer = tileLayer;
     // The black background carries no raster, so a view that opens on it starts
