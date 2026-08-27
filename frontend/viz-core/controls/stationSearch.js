@@ -87,6 +87,9 @@ export class StationSearch {
     this.lucky.onclick = drawAStation;
     this.#placeTheAsk();
     this.root.classList.add('is-inviting');
+    // The ask is the only thing on the stage and there is one way to answer it,
+    // so the field takes the caret rather than waiting to be clicked.
+    this.input.focus();
   }
 
   endInvitation() {
