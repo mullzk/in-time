@@ -137,7 +137,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  align-self: flex-end;
+  align-self: flex-start;
   width: var(--control-height);
   height: var(--control-height);
   padding: 0;
