@@ -96,11 +96,8 @@ export class PanelShell {
     this.stationSearch = this.panel.capabilities.stationSearch
       ? new StationSearch(this.topBar, this.panel.stationCatalog(), {
           onSelect: (station) => this.#chooseStation(station),
-          // A view that draws its whole picture from one station cannot be left
-          // without one, so there the empty field says nothing.
-          onClear: this.panel.capabilities.needsAStation
-            ? () => {}
-            : () => this.#forgetStation(),
+          stationMayBeGivenUp: !this.panel.capabilities.needsAStation,
+          onClear: () => this.#forgetStation(),
           onDismiss: () => this.#turnDownTheAsk(),
         })
       : null;
@@ -201,10 +198,15 @@ export class PanelShell {
   // The station is given up again: nothing is marked on the map, nothing sounds,
   // the address names the view alone, and the camera pulls back to the whole
   // picture -- the view one starts from, now that no place is being looked at.
+  // The chosen sound goes with it: a sound has nowhere to play once no place is
+  // being listened to, and a sound left standing would ask for a station again
+  // at once -- in the exhibition by drawing one, which reads as a picture flying
+  // off on its own.
   #forgetStation() {
     this.stationChosen = false;
     this.selection?.clear();
     this.sonifier?.forgetStation();
+    this.#setInstrumentation(this.panel.silenceTheSound?.() ?? null);
     this.stationInUrl.forget();
     this.viewSwitcher?.refreshLinks();
     this.camera.fit();
