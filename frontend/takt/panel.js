@@ -411,13 +411,14 @@ export class TaktPanel extends Panel {
   }
 
   keyBindings() {
-    return { h: () => this.toggleStops() };
+    return {
+      h: () => this.toggleStops(),
+      n: () => this.toggleNetwork(),
+    };
   }
 
   infoContent() {
-    return buildInfoContent({
-      stationSearch: this.capabilities.stationSearch,
-    });
+    return buildInfoContent();
   }
 
   // The shell owns the background chooser; switching one has a consequence only
@@ -706,6 +707,10 @@ export class TaktPanel extends Panel {
 
   toggleStops() {
     this.#setStops(!this.layers.stops);
+  }
+
+  toggleNetwork() {
+    this.layers.network = !this.layers.network;
   }
 
   #layerControl() {

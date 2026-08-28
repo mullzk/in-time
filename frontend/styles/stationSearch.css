@@ -131,6 +131,44 @@
   font-size: 16px;
 }
 
+/* Room for the button that gives the station up, so a long name does not run
+   under it. */
+.station-search.is-showing-a-station .station-search-input {
+  padding-right: var(--control-height);
+}
+
+/* The station is given up at the end of the field that shows it. It takes the
+   field's full height so a finger has the whole corner to hit, and it stands
+   only while there is a station to give up. */
+.station-search-give-up {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: none;
+  width: var(--control-height);
+  padding: 0;
+  border: 0;
+  border-radius: 0 var(--radius-m) var(--radius-m) 0;
+  background: none;
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.station-search.is-showing-a-station .station-search-give-up {
+  display: block;
+}
+
+/* Guarded: a tap leaves :hover standing on a touch screen. */
+@media (hover: hover) {
+  .station-search-give-up:hover {
+    color: var(--color-control-text);
+  }
+}
+
 /* The box everything the ask shows is measured against: the field alone, so the
    suggestions drop right under it whether it stands in the bar or in the opened
    card, and the sentence and the button keep their distance from it throughout. */

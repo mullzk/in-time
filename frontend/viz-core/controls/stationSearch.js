@@ -22,17 +22,25 @@ const SUGGESTIONS_LEAST_PIXELS = 120;
 // StationCatalog, and a chosen station is handed back through onSelect so the
 // caller can move the camera. It owns only its DOM and selection state.
 export class StationSearch {
-  // `onClear` answers an empty field committed with Enter -- the way to say that
-  // no station is chosen any more. A view that cannot do without one passes a
-  // handler that does nothing. `onDismiss` answers Escape while the ask stands
-  // open: not a station given up, but the ask itself turned down.
+  // `stationMayBeGivenUp` says whether this view can stand without a station: a
+  // view drawing its whole picture from one cannot, and there neither the button
+  // in the field nor the empty commit is offered. `onClear` answers both of
+  // them -- the way to say that no station is chosen any more. `onDismiss`
+  // answers Escape while the ask stands open: not a station given up, but the
+  // ask itself turned down.
   constructor(
     container,
     catalog,
-    { onSelect, onClear = () => {}, onDismiss = () => {} },
+    {
+      onSelect,
+      stationMayBeGivenUp = true,
+      onClear = () => {},
+      onDismiss = () => {},
+    },
   ) {
     this.catalog = catalog;
     this.onSelect = onSelect;
+    this.stationMayBeGivenUp = stationMayBeGivenUp;
     this.onClear = onClear;
     this.onDismiss = onDismiss;
     this.suggestions = [];
@@ -47,6 +55,15 @@ export class StationSearch {
     this.input.addEventListener('input', () => this.#refresh());
     this.input.addEventListener('keydown', (event) => this.#onKeyDown(event));
 
+    // Giving a station up is a keystroke away, which a touch screen without a
+    // keyboard does not have: the field shows which station is chosen, so it
+    // carries the way to choose none.
+    this.giveUp = element('button', 'station-search-give-up');
+    this.giveUp.type = 'button';
+    this.giveUp.textContent = '×';
+    this.giveUp.setAttribute('aria-label', 'Auswahl aufheben');
+    this.giveUp.addEventListener('click', () => this.#giveUpTheStation());
+
     this.list = element('ul', 'station-search-suggestions');
 
     this.prompt = element('p', 'station-search-prompt');
@@ -59,7 +76,13 @@ export class StationSearch {
     // takes the length of the transition, so anything placed against the card
     // would spend that time standing on the field.
     this.field = element('div', 'station-search-field');
-    this.field.append(this.prompt, this.input, this.list, this.lucky);
+    this.field.append(
+      this.prompt,
+      this.input,
+      this.giveUp,
+      this.list,
+      this.lucky,
+    );
 
     this.root.appendChild(this.field);
     container.appendChild(this.root);
@@ -154,7 +177,23 @@ export class StationSearch {
 
   showSelection(station) {
     this.input.value = station.name;
+    this.#showWhetherAStationIsChosen(true);
     this.#close();
+  }
+
+  #showWhetherAStationIsChosen(isChosen) {
+    this.root.classList.toggle(
+      'is-showing-a-station',
+      this.stationMayBeGivenUp && isChosen,
+    );
+  }
+
+  #giveUpTheStation() {
+    this.input.value = '';
+    this.#showWhetherAStationIsChosen(false);
+    this.#close();
+    this.input.blur();
+    this.onClear();
   }
 
   #refresh() {
@@ -197,12 +236,15 @@ export class StationSearch {
     } else if (event.key === 'Enter' && this.activeIndex >= 0) {
       this.#choose(this.activeIndex);
       event.preventDefault();
-    } else if (event.key === 'Enter' && this.input.value === '') {
+    } else if (
+      event.key === 'Enter' &&
+      this.input.value === '' &&
+      this.stationMayBeGivenUp
+    ) {
       // Emptying the field and committing it is how a station is given up: the
       // field is what shows which one is chosen, so an empty one shows none.
-      this.onClear();
+      this.#giveUpTheStation();
       event.preventDefault();
-      this.input.blur();
     } else if (event.key === 'Escape') {
       // Keep this Escape to the search; without it the same press also reaches
       // the document-level info modal and closes both at once.
@@ -228,6 +270,7 @@ export class StationSearch {
     const station = this.suggestions[index];
     this.onSelect(station);
     this.input.value = station.name;
+    this.#showWhetherAStationIsChosen(true);
     this.#close();
     this.input.blur();
   }
