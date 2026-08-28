@@ -5,20 +5,21 @@
 const link = (label, href) => ({ label, href });
 
 export function buildInfoContent({ stationSearch }) {
+  // The card sets the list in two columns, filled row by row, so every second
+  // entry lands in the second column: the camera keys read down the left, the
+  // two ein- und ausblenden keys down the right.
   const shortcuts = [
     { keys: 'Leertaste', description: 'Wiedergabe starten und pausieren' },
-    { keys: '+', description: 'Hineinzoomen' },
-    { keys: '−', description: 'Herauszoomen' },
-    { keys: 'F', description: 'Ganze Schweiz einpassen' },
     { keys: 'H', description: 'Haltestellen ein- und ausblenden' },
+    { keys: '+', description: 'Hineinzoomen' },
+    { keys: 'N', description: 'Streckennetz ein- und ausblenden' },
+    { keys: '−', description: 'Herauszoomen' },
+    ...(stationSearch
+      ? [{ keys: 'G', description: 'Stationssuche öffnen' }]
+      : []),
+    { keys: 'F', description: 'Ganze Schweiz einpassen' },
+    { keys: 'I', description: 'Diese Information öffnen und schließen' },
   ];
-  if (stationSearch) {
-    shortcuts.push({ keys: 'G', description: 'Stationssuche öffnen' });
-  }
-  shortcuts.push({
-    keys: 'I',
-    description: 'Diese Information öffnen und schließen',
-  });
 
   return {
     title: 'All in Time',

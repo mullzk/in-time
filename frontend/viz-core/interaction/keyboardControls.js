@@ -37,8 +37,7 @@ export function normalizedBindingKey(key) {
 // what a view or a dock tile answers to. Bound to a target (window) so they work
 // regardless of focus; modifier combinations are left to the browser. Nothing
 // claims the keyboard for itself -- a card standing open over the picture is not
-// a dialogue that must be answered first. Reserved for later: n (network
-// toggle), l (labels layer).
+// a dialogue that must be answered first.
 export class KeyboardControls {
   constructor(target, { togglePlay, camera, bindings = {} }) {
     this.togglePlay = togglePlay;

@@ -411,7 +411,10 @@ export class TaktPanel extends Panel {
   }
 
   keyBindings() {
-    return { h: () => this.toggleStops() };
+    return {
+      h: () => this.toggleStops(),
+      n: () => this.toggleNetwork(),
+    };
   }
 
   infoContent() {
@@ -706,6 +709,10 @@ export class TaktPanel extends Panel {
 
   toggleStops() {
     this.#setStops(!this.layers.stops);
+  }
+
+  toggleNetwork() {
+    this.layers.network = !this.layers.network;
   }
 
   #layerControl() {
