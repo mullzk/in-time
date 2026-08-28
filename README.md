@@ -197,16 +197,5 @@ Implemented in another project (`webapp_infra`).
 
 ## Glossary
 
-Domain abbreviations and special terms used across the code and docs.
-
-- **GTFS** — General Transit Feed Specification: the open format of the planned
-  timetable, published for Switzerland on opentransportdata.swiss.
-- **DiDok** — the Swiss stop/station register number that uniquely identifies a
-  station. In GTFS it appears as the **BPUIC**; we use it as the stable key for
-  stations.
-- **ITSB** — "In Time Schedule Blob": the 4-byte magic and name of the binary
-  daily artifacts of the planned timetable (columnar, little-endian; the network
-  geometry stored once as a shared edge list, each trip a reference into it). A
-  day is published as one blob per network — rail (rail and tram, routed over
-  the BAV network) and road (buses, straight lines, hence no edges) — with the
-  network type in the header. Consumed by every view.
+Abbreviations and domain terms used across the code and docs live in
+[`GLOSSARY.md`](GLOSSARY.md).
