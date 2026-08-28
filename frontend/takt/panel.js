@@ -418,9 +418,7 @@ export class TaktPanel extends Panel {
   }
 
   infoContent() {
-    return buildInfoContent({
-      stationSearch: this.capabilities.stationSearch,
-    });
+    return buildInfoContent();
   }
 
   // The shell owns the background chooser; switching one has a consequence only

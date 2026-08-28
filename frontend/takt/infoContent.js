@@ -1,10 +1,9 @@
-// The Takt panel's info-modal content. Kept apart from the modal shell so
-// the copy lives in one place and the conditional shortcut (station search is a
-// panel capability) stays a pure, testable decision.
+// The Takt panel's info-modal content. Kept apart from the modal shell so the
+// copy lives in one place.
 
 const link = (label, href) => ({ label, href });
 
-export function buildInfoContent({ stationSearch }) {
+export function buildInfoContent() {
   // The card sets the list in two columns, filled row by row, so every second
   // entry lands in the second column: the camera keys read down the left, the
   // two ein- und ausblenden keys down the right.
@@ -14,9 +13,7 @@ export function buildInfoContent({ stationSearch }) {
     { keys: '+', description: 'Hineinzoomen' },
     { keys: 'N', description: 'Streckennetz ein- und ausblenden' },
     { keys: '−', description: 'Herauszoomen' },
-    ...(stationSearch
-      ? [{ keys: 'G', description: 'Stationssuche öffnen' }]
-      : []),
+    { keys: 'G', description: 'Stationssuche öffnen' },
     { keys: 'F', description: 'Ganze Schweiz einpassen' },
     { keys: 'I', description: 'Diese Information öffnen und schließen' },
   ];
