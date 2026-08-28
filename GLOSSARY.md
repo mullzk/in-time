@@ -6,11 +6,12 @@ Abbreviations and domain terms used across the code and docs.
 
 - **GTFS** — General Transit Feed Specification, the open format of the planned
   timetable, published for Switzerland on opentransportdata.swiss.
-- **DiDok** — the Swiss stop/station register number; our stable station key.
-- **BPUIC** — the stop identifier GTFS carries for a Swiss stop; it is the DiDok
-  number.
-- **SLOID** — Swiss Location ID (`ch:1:sloid:…`), GTFS identifier per stop and
-  platform; resolves to a DiDok, never a key of ours.
+- **DiDok** — Dienststellendokumentation. The Swiss stop/station register
+  number; our stable station key.
+- **BPUIC** — Betriebspunkt UIC, the stop identifier GTFS carries for a Swiss
+  stop; it is the DiDok number.
+- **SLOID** — Swiss Location ID. GTFS identifier per stop and platform; resolves
+  to a DiDok, never a key of ours.
 - **BAV** — Bundesamt für Verkehr, the Swiss Federal Office of Transport;
   publishes the rail network geodata.
 - **GDB** — Esri File Geodatabase, the format the BAV network arrives in.
@@ -19,24 +20,19 @@ Abbreviations and domain terms used across the code and docs.
 - **WGS84** — World Geodetic System 1984 (lat/long). Used in GTFS.
 - **EPSG** — registry naming coordinate reference systems by number: EPSG:2056
   is LV95, EPSG:4326 is WGS84.
-- **ITRC** — "In Time Regular Connections", magic of the frequency-filter cache
-  sidecar (`regular_connections.bin`); versioned, so an older encoding is
-  rescanned rather than trusted.
-- **ITSB** — "In Time Schedule Blob", magic and name of the binary daily
-  timetable artifacts; one blob per network, rail and road.
+- **ITRC** — "In Time Regular Connections", frequency-filter cache sidecar.
+- **ITSB** — "In Time Schedule Blob", binary daily timetable artifacts.
 - **LRU** — least recently used, the eviction order of the decoded map tiles.
 - **WMTS** — Web Map Tile Service, the standard the swisstopo tile server
   speaks; only our proxy talks to it.
 - **NFD** — the Unicode normalisation form splitting accented letters into base
   plus mark; how search and URL slugs fold diacritics.
-- **FM** — frequency modulation, the synthesis of the bell sound (`fmi`, `fmh`
-  are its index and harmonicity ratio).
+- **FM** — frequency modulation, the synthesis of the bell sound.
 - **SMACSS** — Scalable and Modular Architecture for CSS, the layering of the
   static stylesheets (base, layout, module, state).
 
 ## Timetable domain
 
-- **Taktfahrplan / Takt** — the clock-face timetable, the country's base rhythm.
 - **Service day / service date** — the operating day; runs past midnight (to ≈
   33 h).
 - **Trip** — one run of one vehicle across the day.
@@ -50,31 +46,12 @@ Abbreviations and domain terms used across the code and docs.
 - **Interchange / cluster** — several DiDoks at one physical place, treated as
   one.
 - **Place** — a dot in a picture: an interchange, not a single stop.
-- **Transfer time** — 120 s, paid only by whoever changes vehicle.
 - **Frequency filter / regular connection** — what runs often enough to enter
   the base map.
 - **Foreign stop bridging** — foreign stops skipped, their Swiss neighbours
   joined.
 - **Operating window / opening time** — the day's service window, and the moment
   a view opens on.
-
-## Network & geometry
-
-- **Netzknoten / Netzsegment** — node and track segment of the BAV source data.
-- **Rail graph — node, edge, subnetwork** — the routable network.
-- **Shared edge list** — geometry stored once, referenced by every trip.
-- **Leg routing — snapping, multi-snap, straight fallback** — how a leg is
-  placed on the network.
-- **Routing quality report** — the distribution of routing methods in a build.
-- **Polyline / degenerate geometry** — a chain of points; one collapsed to
-  nothing.
-- **Reprojection** — WGS84 → LV95.
-- **World space / screen space** — the two coordinate spaces of camera and
-  renderer.
-- **Tile matrix set — zoom level, resolution (m/px), TileCol, TileRow** — the
-  swisstopo tile grid.
-- **Tile proxy / tile cache** — the server-side tile intermediary.
-- **Relief, Pixelkarte (farbe/grau), swissimage** — the map layers.
 
 ## Travel time & spread
 
