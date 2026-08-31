@@ -37,6 +37,10 @@ const withTime = (panel) => {
   return time;
 };
 
+test('the spread opens on the black ground', () => {
+  assert.equal(panelFrom(10 * 3600).initialBackgroundId(), 'black');
+});
+
 test('a vehicle runs from its departure until it arrives', () => {
   const panel = panelFrom(10 * 3600);
 

@@ -30,34 +30,39 @@ import { formatRideWithWait, formatTravelTimeFrom } from './labels.js';
 
 const SECONDS_PER_HOUR = 3600;
 
-const GROUND_COLOR = [250, 250, 248];
+// The ground the canvas is cleared to, so a label carrying a little of it with
+// it carries the same colour.
+const GROUND_COLOR = [16, 18, 22];
 
 // Journeys are drawn in bands of half an hour, each band one shape rather than
 // thousands of coloured lines. The ramp runs from the green of the first minutes
-// through orange and red into a red so dark it is nearly black -- six hours out,
-// where the day is mostly spent travelling.
+// through yellow and orange into red and on into the violet of six hours out,
+// where the day is mostly spent travelling. On the dark ground the far bands
+// change their hue rather than their light: a colour that darkens towards the
+// end of the ramp would simply go out.
 const BAND_SECONDS = 1800;
 const BAND_COLORS = [
-  [40, 160, 90],
-  [95, 175, 70],
-  [145, 185, 60],
-  [195, 190, 55],
-  [230, 170, 50],
-  [240, 140, 45],
-  [235, 110, 45],
-  [220, 75, 45],
-  [190, 45, 45],
-  [150, 30, 40],
-  [100, 22, 32],
-  [45, 12, 18],
+  [70, 220, 130],
+  [125, 230, 105],
+  [175, 232, 90],
+  [220, 226, 85],
+  [244, 196, 72],
+  [250, 160, 66],
+  [250, 124, 70],
+  [244, 94, 86],
+  [232, 76, 116],
+  [208, 70, 148],
+  [174, 72, 172],
+  [140, 82, 190],
 ];
 
-// The lines are the skeleton and nothing more: one fine dark blue for all of
-// them. What kind of traffic runs where, and how far out it lies, is told by the
-// nodes alone -- the long-distance interchanges as the largest dots, the bus
-// stops as the smallest. Given in pixels and turned into world units at the
-// current zoom, so the picture keeps its look however close the view is.
-const LEG_COLOR = [32, 54, 104, 150];
+// The lines are the skeleton and nothing more: one fine blue-grey for all of
+// them, lifted off the dark ground just far enough to be followed. What kind of
+// traffic runs where, and how far out it lies, is told by the nodes alone -- the
+// long-distance interchanges as the largest dots, the bus stops as the smallest.
+// Given in pixels and turned into world units at the current zoom, so the
+// picture keeps its look however close the view is.
+const LEG_COLOR = [92, 106, 132, 180];
 const LEG_WIDTH_PIXELS = 0.5;
 const NODE_DIAMETERS = new Map([
   [CATEGORY_INTERCITY, 8],
@@ -76,14 +81,16 @@ const bySmallestNodeFirst = (first, second) =>
   nodeDiameterOfCategory(first.category) -
   nodeDiameterOfCategory(second.category);
 
-const RING_COLOR = [214, 214, 210];
-const RING_LABEL_COLOR = [140, 142, 145];
-const CENTRE_COLOR = [20, 22, 26];
-const LABEL_BACKGROUND = [28, 30, 34, 235];
+const RING_COLOR = [56, 60, 70];
+const RING_LABEL_COLOR = [126, 130, 140];
+const CENTRE_COLOR = [245, 246, 248];
+// The label the pointer carries is the one thing that must be read at a glance,
+// so it lifts off the ground rather than sinking into it.
+const LABEL_BACKGROUND = [46, 50, 60, 240];
 const LABEL_TEXT_COLOR = [245, 246, 248];
-const HIGHLIGHT_COLOR = [20, 22, 26];
+const HIGHLIGHT_COLOR = [255, 255, 255];
 
-const INTERCHANGE_LABEL_COLOR = [70, 74, 80];
+const INTERCHANGE_LABEL_COLOR = [176, 182, 194];
 
 const CENTRE_DIAMETER_PIXELS = 9;
 const HIGHLIGHT_WIDTH_PIXELS = 1.5;
@@ -169,10 +176,6 @@ export class ReisezeitPanel extends Panel {
     this.chooseStation = null;
     this.context = null;
     this.adoptSchedule(railBuffer, railStations);
-  }
-
-  groundColor() {
-    return GROUND_COLOR;
   }
 
   stationCatalog() {

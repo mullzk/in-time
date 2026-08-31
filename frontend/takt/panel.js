@@ -53,6 +53,11 @@ const DIAMETER_FACTOR_BY_CATEGORY = new Map([
 const diameterFactor = (category) =>
   DIAMETER_FACTOR_BY_CATEGORY.get(category) ?? 1.5;
 
+// The rhythm is what this view is about, and it reads best where nothing is
+// drawn under it: the black ground leaves the vehicles alone with their trails.
+// The chooser stays open for a map to place them on.
+const INITIAL_BACKGROUND_ID = 'black';
+
 // Whether a vehicle trails the stretch of schedule it has just covered follows
 // from the ground it draws on, so it needs no switch of its own: the busier the
 // texture underneath, the more the smear reads as mud rather than as movement.
@@ -221,7 +226,9 @@ export class TaktPanel extends Panel {
     this.currentTimeSeconds = 0;
     this.customInstrumentation = null;
     this.customOption = null;
-    this.background = BACKGROUNDS[0];
+    this.background = BACKGROUNDS.find(
+      ({ id }) => id === INITIAL_BACKGROUND_ID,
+    );
     this.previousZoomFraction = null;
     this.layerOptions = {};
     this.camera = null;
@@ -230,6 +237,10 @@ export class TaktPanel extends Panel {
 
   stationCatalog() {
     return this.catalog;
+  }
+
+  initialBackgroundId() {
+    return INITIAL_BACKGROUND_ID;
   }
 
   init(context) {

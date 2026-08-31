@@ -114,11 +114,11 @@ export class AusbreitungPanel extends Panel {
     return this.catalog;
   }
 
-  // The spread is light on dark ground: the aerial imagery is dark and low in
-  // contrast enough that the lit places read over it, and it says where they
-  // are. The chooser stays open for another ground.
+  // The spread is light on dark ground, and on the black one it is nothing but
+  // that: no map competes with the light, and where the places lie is told by
+  // the spread itself. The chooser stays open for a ground to check it against.
   initialBackgroundId() {
-    return 'swissview';
+    return 'black';
   }
 
   // The spread is computed before there is a clock to run it on, so the clock
