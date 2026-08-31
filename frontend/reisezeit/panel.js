@@ -26,7 +26,7 @@ import { RadialTravelTimeLayout } from '../viz-core/travel/radialTravelTime.js';
 import { distanceToSegmentSquared } from '../viz-core/travel/segmentDistance.js';
 import { VehiclePositionEngine } from '../viz-core/travel/vehiclePositionEngine.js';
 import { buildInfoContent } from './infoContent.js';
-import { formatDuration, formatThroughRide, formatWait } from './labels.js';
+import { formatRideWithWait, formatTravelTimeFrom } from './labels.js';
 
 const SECONDS_PER_HOUR = 3600;
 
@@ -83,9 +83,15 @@ const LABEL_BACKGROUND = [28, 30, 34, 235];
 const LABEL_TEXT_COLOR = [245, 246, 248];
 const HIGHLIGHT_COLOR = [20, 22, 26];
 
+const INTERCHANGE_LABEL_COLOR = [70, 74, 80];
+
 const CENTRE_DIAMETER_PIXELS = 9;
 const HIGHLIGHT_WIDTH_PIXELS = 1.5;
 const HIGHLIGHT_LEG_WIDTH_PIXELS = 2.5;
+const INTERCHANGE_WIDTH_PIXELS = 1;
+const INTERCHANGE_DIAMETER_PIXELS = 9;
+const INTERCHANGE_LABEL_TEXT_SIZE = 10;
+const INTERCHANGE_LABEL_GAP_PIXELS = 8;
 const NODE_PICK_RADIUS_PIXELS = 7;
 const LEG_PICK_RADIUS_PIXELS = 5;
 const LABEL_PADDING_PIXELS = 8;
@@ -417,15 +423,48 @@ export class ReisezeitPanel extends Panel {
     return this.placeOfStation[leg.fromStation];
   }
 
+  // The journey to a place as the picture draws it, the starting point first:
+  // each step back is the leg into a place, to the place that leg left. It ends
+  // where nothing led any further, which is where one set off.
+  placesOnPathTo(place) {
+    const reversed = [];
+    let step = place;
+    while (this.#hasALegOfItsOwn(step)) {
+      reversed.push(step);
+      step = this.#placeLeftBehind(this.#legIntoPlace(step));
+    }
+    reversed.push(step);
+    return reversed.reverse();
+  }
+
+  // Where one changes vehicles on the way to a place: a stop one arrives at on
+  // one trip and leaves on another. The starting point is none -- one boards
+  // there rather than changing -- and neither is the place one is heading for.
+  interchangesOnPathTo(place) {
+    const path = this.placesOnPathTo(place);
+    return path.filter(
+      (step, index) =>
+        index > 0 &&
+        index < path.length - 1 &&
+        this.#tripIntoPlace(step) !== this.#tripIntoPlace(path[index + 1]),
+    );
+  }
+
+  #tripIntoPlace(place) {
+    return this.#legIntoPlace(place).trip;
+  }
+
   // The vehicle's own last stretch, so a line follows the stops it calls at.
   #legIntoPlace(place) {
     const { servedStation } = this.places[place];
     return servedStation === null ? null : this.tree.legInto(servedStation);
   }
 
-  #rideIntoPlace(place) {
+  #waitBeforeLegIntoPlace(place) {
     const { servedStation } = this.places[place];
-    return servedStation === null ? null : this.tree.rideInto(servedStation);
+    return servedStation === null
+      ? 0
+      : this.tree.waitBeforeLegInto(servedStation);
   }
 
   #longestTravelTime() {
@@ -531,11 +570,44 @@ export class ReisezeitPanel extends Panel {
       return;
     }
     const worldPerPixel = context.camera.worldPerPixel();
-    if (this.hovered.kind === 'place') {
-      this.#drawHighlightedPlace(p, this.hovered.index, worldPerPixel);
-      return;
-    }
-    this.#drawHighlightedLeg(p, this.hovered.index, worldPerPixel);
+    // A leg is named by the place it arrives at, so both kinds of target stand
+    // for the same journey and are shown as the same one.
+    this.#drawHighlightedPath(p, this.hovered.index, worldPerPixel);
+    this.#drawHighlightedInterchanges(p, worldPerPixel);
+    this.#drawHighlightedPlace(p, this.hovered.index, worldPerPixel);
+  }
+
+  #interchangesOnTheHoveredPath() {
+    return this.hovered === null
+      ? []
+      : this.interchangesOnPathTo(this.hovered.index);
+  }
+
+  // The stops one changes at are what makes a journey a journey rather than a
+  // ride, so the path names them -- in a thinner ring than the place one asked
+  // about, which stays the one the eye goes to.
+  #drawHighlightedInterchanges(p, worldPerPixel) {
+    p.noFill();
+    p.stroke(...HIGHLIGHT_COLOR);
+    p.strokeWeight(INTERCHANGE_WIDTH_PIXELS * worldPerPixel);
+    this.#interchangesOnTheHoveredPath().forEach((place) => {
+      p.circle(
+        this.#eastOf(place),
+        this.#northOf(place),
+        INTERCHANGE_DIAMETER_PIXELS * worldPerPixel,
+      );
+    });
+  }
+
+  #drawHighlightedPath(p, place, worldPerPixel) {
+    p.noFill();
+    p.stroke(...HIGHLIGHT_COLOR);
+    p.strokeWeight(HIGHLIGHT_LEG_WIDTH_PIXELS * worldPerPixel);
+    p.beginShape();
+    this.placesOnPathTo(place).forEach((step) => {
+      p.vertex(this.#eastOf(step), this.#northOf(step));
+    });
+    p.endShape();
   }
 
   #drawHighlightedPlace(p, place, worldPerPixel) {
@@ -546,18 +618,6 @@ export class ReisezeitPanel extends Panel {
       this.#eastOf(place),
       this.#northOf(place),
       NODE_PICK_RADIUS_PIXELS * 2 * worldPerPixel,
-    );
-  }
-
-  #drawHighlightedLeg(p, place, worldPerPixel) {
-    const from = this.#placeLeftBehind(this.#legIntoPlace(place));
-    p.stroke(...HIGHLIGHT_COLOR);
-    p.strokeWeight(HIGHLIGHT_LEG_WIDTH_PIXELS * worldPerPixel);
-    p.line(
-      this.#eastOf(from),
-      this.#northOf(from),
-      this.#eastOf(place),
-      this.#northOf(place),
     );
   }
 
@@ -576,6 +636,7 @@ export class ReisezeitPanel extends Panel {
       return;
     }
     this.#drawRingLabels(p, context);
+    this.#drawInterchangeLabels(p, context);
     this.#drawHoverLabel(p);
   }
 
@@ -609,12 +670,37 @@ export class ReisezeitPanel extends Panel {
 
   // The inner rings fall where the tree is densest, so a label carries a little
   // of the ground with it rather than sitting on the lines.
-  #drawRingLabel(p, text, x, y) {
+  #drawLabelOnGround(p, text, x, y, color) {
     const width = p.textWidth(text);
     p.fill(...GROUND_COLOR, 220);
     p.rect(x - 3, y - 8, width + 6, 16, 3);
-    p.fill(...RING_LABEL_COLOR);
+    p.fill(...color);
     p.text(text, x, y);
+  }
+
+  #drawRingLabel(p, text, x, y) {
+    this.#drawLabelOnGround(p, text, x, y, RING_LABEL_COLOR);
+  }
+
+  // The changes of a hovered journey are named where they happen, quietly: the
+  // label the pointer carries says where one is going, these say what it takes.
+  #drawInterchangeLabels(p, context) {
+    p.noStroke();
+    p.textAlign(p.LEFT, p.CENTER);
+    p.textSize(INTERCHANGE_LABEL_TEXT_SIZE);
+    this.#interchangesOnTheHoveredPath().forEach((place) => {
+      const [x, y] = context.camera.worldToScreen(
+        this.#eastOf(place),
+        this.#northOf(place),
+      );
+      this.#drawLabelOnGround(
+        p,
+        this.#nameOfPlace(place),
+        x + INTERCHANGE_LABEL_GAP_PIXELS,
+        y,
+        INTERCHANGE_LABEL_COLOR,
+      );
+    });
   }
 
   #drawHoverLabel(p) {
@@ -676,7 +762,7 @@ export class ReisezeitPanel extends Panel {
       this.#nameOfPlace(place),
       travelTime === 0
         ? 'Ausgangspunkt'
-        : `${formatDuration(travelTime)} Reisezeit`,
+        : formatTravelTimeFrom(travelTime, this.startStation.name),
     ];
   }
 
@@ -684,20 +770,11 @@ export class ReisezeitPanel extends Panel {
     const leg = this.#legIntoPlace(place);
     return [
       `${this.#nameOfPlace(this.#placeLeftBehind(leg))} → ${this.#nameOfPlace(place)}`,
-      `${categoryLabel(this.connections.categoryOfTrip(leg.trip))}, ${formatDuration(
+      `${categoryLabel(this.connections.categoryOfTrip(leg.trip))}, ${formatRideWithWait(
         leg.arrivalTime - leg.departureTime,
+        this.#waitBeforeLegIntoPlace(place),
       )}`,
-      this.#describeBoarding(place, leg),
     ];
-  }
-
-  // Whether one got in here -- then the wait counts -- or is riding through,
-  // which is worth saying: it explains why one passes without waiting.
-  #describeBoarding(place, leg) {
-    const ride = this.#rideIntoPlace(place);
-    return ride.fromStation === leg.fromStation
-      ? formatWait(ride.waitSeconds)
-      : formatThroughRide(this.#nameOfStation(ride.fromStation));
   }
 
   #pick(screenX, screenY) {

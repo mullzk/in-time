@@ -13,14 +13,18 @@ export function formatDuration(seconds) {
   return remainder === 0 ? `${hours} h` : `${hours} h ${remainder} min`;
 }
 
-// A wait of nothing is worth saying so: it means one stays seated or steps
-// straight across.
-export function formatWait(seconds) {
-  return seconds < 60 ? 'ohne Wartezeit' : `${formatDuration(seconds)} warten`;
+// A leg one boards carries the wait it cost, since the two together are what
+// the leg takes out of the day. A leg without one says nothing about waiting:
+// there was no change of vehicle to wait through.
+export function formatRideWithWait(rideSeconds, waitSeconds) {
+  const ride = formatDuration(rideSeconds);
+  return waitSeconds < 60
+    ? ride
+    : `${ride} (+${formatDuration(waitSeconds)} Wartezeit)`;
 }
 
-// One is already sitting in the vehicle when this leg begins; naming where that
-// began keeps the leg from reading as a wait one never had.
-export function formatThroughRide(boardingName) {
-  return `durchgehend ab ${boardingName}`;
+// How far out a place lies, told as the journey to it. The starting point is
+// named, since that is what the number is counted from.
+export function formatTravelTimeFrom(seconds, startName) {
+  return `${formatDuration(seconds)} ab ${startName}`;
 }

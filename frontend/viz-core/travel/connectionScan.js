@@ -69,28 +69,23 @@ export class ReachabilityTree {
     };
   }
 
-  // The ride one is sitting in on arrival: where one got in, and how long one
-  // waited for it. A vehicle boarded earlier passes stops one could have been at
-  // long ago by another route -- riding through them is no wait.
-  rideInto(stationIndex) {
+  // What one waits at the stop the last leg sets off from, on the journey as the
+  // tree draws it: from being there until that vehicle leaves. Riding through is
+  // no wait -- the same vehicle brought one to that stop, and one stays seated.
+  //
+  // The wait belongs to the drawn path, not to the scan's own bookkeeping. Where
+  // the scan boarded the vehicle at an earlier stop, one may just as well board
+  // it here, and here is where the picture shows one standing.
+  waitBeforeLegInto(stationIndex) {
     const arriving = this._arrivedOn[stationIndex];
     if (arriving === NO_CONNECTION) {
       return null;
     }
-    const trip = this._list.trips[arriving];
-    const rodeThrough = this.#rodeThroughTheStopBefore(arriving);
-    const boarding = rodeThrough ? arriving : this._boardedOn[trip];
-    const fromStation = this._list.departureStations[boarding];
-    const departureTime = this._list.departureTimes[boarding];
-    return {
-      fromStation,
-      departureTime,
-      arrivalTime: this._list.arrivalTimes[arriving],
-      trip,
-      waitSeconds: rodeThrough
-        ? 0
-        : departureTime - this._arrivals[fromStation],
-    };
+    if (this.#rodeThroughTheStopBefore(arriving)) {
+      return 0;
+    }
+    const fromStation = this._list.departureStations[arriving];
+    return this._list.departureTimes[arriving] - this._arrivals[fromStation];
   }
 
   #rodeThroughTheStopBefore(connection) {
