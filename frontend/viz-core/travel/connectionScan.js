@@ -22,14 +22,63 @@ const UNREACHED = Number.POSITIVE_INFINITY;
 const NO_DEPARTURE_WINDOW = Number.NEGATIVE_INFINITY;
 const NO_CONNECTION = -1;
 
+const UNJUDGED = 0;
+const WITHIN_THE_WAIT = 1;
+const BEYOND_THE_WAIT = 2;
+
 export class ReachabilityTree {
-  constructor(list, startStation, startTime, arrivals, arrivedOn, boardedOn) {
+  constructor(
+    list,
+    startStation,
+    startTime,
+    arrivals,
+    arrivedOn,
+    boardedOn,
+    maximumWaitSeconds = MAXIMUM_WAIT_SECONDS,
+  ) {
     this._list = list;
     this._startStation = startStation;
     this._startTime = startTime;
     this._arrivals = arrivals;
     this._arrivedOn = arrivedOn;
     this._boardedOn = boardedOn;
+    this.#forgetJourneysStandingAroundTooLong(maximumWaitSeconds);
+  }
+
+  // The scan watches the wait where it boards a vehicle, which need not be the
+  // stop the journey is drawn from: a vehicle boarded further along its run
+  // passes stops one could have been at hours earlier, and the journey the tree
+  // then tells stands at such a stop all morning. Riding out and back to fill
+  // those hours makes no difference to the day, so the stops behind such a wait
+  // count as unreached -- which is what the maximum says in the first place.
+  #forgetJourneysStandingAroundTooLong(maximumWaitSeconds) {
+    const verdicts = new Uint8Array(this._arrivals.length);
+    const tooLong = this.reachedStations().filter(
+      (station) =>
+        !this.#journeyStaysWithinTheWait(station, maximumWaitSeconds, verdicts),
+    );
+    tooLong.forEach((station) => {
+      this._arrivals[station] = UNREACHED;
+      this._arrivedOn[station] = NO_CONNECTION;
+    });
+  }
+
+  // Every wait on the way, not just the last one: a stop behind an unbearable
+  // wait is no better reached than the stop the wait stands at.
+  #journeyStaysWithinTheWait(station, maximumWaitSeconds, verdicts) {
+    if (verdicts[station] === UNJUDGED) {
+      const leg = this.legInto(station);
+      const stays =
+        leg === null ||
+        (this.waitBeforeLegInto(station) <= maximumWaitSeconds &&
+          this.#journeyStaysWithinTheWait(
+            leg.fromStation,
+            maximumWaitSeconds,
+            verdicts,
+          ));
+      verdicts[station] = stays ? WITHIN_THE_WAIT : BEYOND_THE_WAIT;
+    }
+    return verdicts[station] === WITHIN_THE_WAIT;
   }
 
   isReached(stationIndex) {
@@ -211,6 +260,7 @@ export class ConnectionScan {
       Float64Array.from(this._arrivals),
       Int32Array.from(this._arrivedOn),
       Int32Array.from(this._boardedOn),
+      this._maximumWaitSeconds,
     );
   }
 
