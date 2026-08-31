@@ -208,8 +208,7 @@ const attachedPanel = (startTimeSeconds) => {
           : [Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER],
       worldPerPixel: () => 1,
       setWorldBounds: () => {},
-      fit: () => {},
-      setZoomFraction: () => {},
+      frameOn: () => {},
     },
   });
   const canvas = fakeCanvas();

@@ -104,8 +104,6 @@ const groupKey = (band, category) => `${band}:${category}`;
 
 const NO_PLACE = -1;
 
-const INITIAL_ZOOM_FRACTION = 0.11;
-
 const sameTarget = (first, second) =>
   first.kind === second.kind && first.index === second.index;
 
@@ -465,10 +463,41 @@ export class ReisezeitPanel extends Panel {
       northMax: this.startStation.north + radius,
     });
     if (openTheView) {
-      // Fit first, since that is what centres the view on the starting point.
-      camera.fit();
-      camera.setZoomFraction(INITIAL_ZOOM_FRACTION);
+      camera.frameOn(this.#pictureBounds());
     }
+  }
+
+  // How far the picture reaches in each direction, so a tall viewport zooms out
+  // as far as its narrow side needs instead of cropping the picture sideways.
+  // The starting point stays the centre, and the first hour ring is always in
+  // view even when everything reached lies close by.
+  #pictureBounds() {
+    const smallestReach = this.#ringRadius(1);
+    const reach = this.#reachOfPlaces();
+    const eastReach = Math.max(smallestReach, reach.east);
+    const northReach = Math.max(smallestReach, reach.north);
+    return {
+      eastMin: this.startStation.east - eastReach,
+      eastMax: this.startStation.east + eastReach,
+      northMin: this.startStation.north - northReach,
+      northMax: this.startStation.north + northReach,
+    };
+  }
+
+  #reachOfPlaces() {
+    return this.places.reduce(
+      (reach, _, index) => ({
+        east: Math.max(
+          reach.east,
+          Math.abs(this.positions[index * 2] - this.startStation.east),
+        ),
+        north: Math.max(
+          reach.north,
+          Math.abs(this.positions[index * 2 + 1] - this.startStation.north),
+        ),
+      }),
+      { east: 0, north: 0 },
+    );
   }
 
   drawWorld(p, context) {
