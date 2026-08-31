@@ -158,7 +158,6 @@ export class TaktPanel extends Panel {
   capabilities = {
     simulationSpeed: true,
     timeScrubber: true,
-    timeSeeking: true,
     stationSearch: true,
     stationPicking: true,
     mapBackground: true,

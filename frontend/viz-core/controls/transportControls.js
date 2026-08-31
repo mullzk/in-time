@@ -28,7 +28,7 @@ export class TransportControls {
       this.#offerTempo();
     }
     if (panel.capabilities.timeScrubber) {
-      this.#offerTime(panel.capabilities.timeSeeking);
+      this.#offerTime();
     }
   }
 
@@ -73,9 +73,9 @@ export class TransportControls {
     });
   }
 
-  #offerTime(seekable) {
+  #offerTime() {
     this.timeLabel = element('span', 'transport-clock');
-    this.scrubber = this.#buildScrubber(seekable);
+    this.scrubber = this.#buildScrubber();
     this.offered.push({
       section: {
         id: 'clock',
@@ -120,24 +120,20 @@ export class TransportControls {
     this.time.setTempo(tempoForSliderPosition(Number(this.tempoSlider.value)));
   }
 
-  // Without seeking the scrubber is a reading only, and takes no input.
-  #buildScrubber(seekable) {
+  #buildScrubber() {
     const scrubber = element('input', 'transport-scrubber');
     scrubber.type = 'range';
     scrubber.min = '0';
     scrubber.max = '1';
     scrubber.step = 'any';
     scrubber.value = '0';
-    scrubber.disabled = !seekable;
-    if (seekable) {
-      scrubber.addEventListener('input', () => {
-        this.scrubbing = true;
-        this.time.seekToPosition(Number(scrubber.value));
-      });
-      scrubber.addEventListener('change', () => {
-        this.scrubbing = false;
-      });
-    }
+    scrubber.addEventListener('input', () => {
+      this.scrubbing = true;
+      this.time.seekToPosition(Number(scrubber.value));
+    });
+    scrubber.addEventListener('change', () => {
+      this.scrubbing = false;
+    });
     return scrubber;
   }
 

@@ -70,7 +70,6 @@ const nodeSizeFactor = (category) =>
 export class AusbreitungPanel extends Panel {
   capabilities = {
     simulationSpeed: true,
-    timeScrubber: true,
     stationSearch: true,
     stationPicking: true,
     mapBackground: true,
