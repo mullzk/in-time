@@ -11,11 +11,9 @@
 // to each other at no cost, and the transfer time is paid once, on boarding.
 export const MINIMUM_TRANSFER_SECONDS = 120;
 
-// Nobody stands two hours on a platform to get somewhere. A departure further
-// away than this is not boarded, and whatever it alone would have opened up is
-// not reached -- the picture shows where one travels to, not where one could end
-// up after an evening on a bench. Sitting in a vehicle is not waiting, however
-// long it stands.
+// A departure further away than this is not boarded, and whatever it alone
+// would have opened up counts as unreached. Sitting in a vehicle is not
+// waiting, however long it stands.
 export const MAXIMUM_WAIT_SECONDS = 2 * 3600;
 
 const UNREACHED = Number.POSITIVE_INFINITY;
@@ -47,10 +45,8 @@ export class ReachabilityTree {
 
   // The scan watches the wait where it boards a vehicle, which need not be the
   // stop the journey is drawn from: a vehicle boarded further along its run
-  // passes stops one could have been at hours earlier, and the journey the tree
-  // then tells stands at such a stop all morning. Riding out and back to fill
-  // those hours makes no difference to the day, so the stops behind such a wait
-  // count as unreached -- which is what the maximum says in the first place.
+  // passes stops one could have been at hours earlier, so the drawn journey may
+  // wait longer than the scan ever saw.
   #forgetJourneysStandingAroundTooLong(maximumWaitSeconds) {
     const verdicts = new Uint8Array(this._arrivals.length);
     const tooLong = this.reachedStations().filter(
@@ -95,16 +91,13 @@ export class ReachabilityTree {
       : null;
   }
 
-  // The connection one arrived on, which also names where one came from -- the
-  // edge of the tree that ends at this station.
+  // The connection one arrived on, which also names where one came from.
   arrivedOn(stationIndex) {
     const connection = this._arrivedOn[stationIndex];
     return connection === NO_CONNECTION ? null : connection;
   }
 
   // The last stretch of the vehicle's own run: from the stop before to here.
-  // That is the line on the ground, whatever brought one to that stop -- a
-  // picture drawing anything else would leap over stops the vehicle calls at.
   legInto(stationIndex) {
     const arriving = this._arrivedOn[stationIndex];
     if (arriving === NO_CONNECTION) {
@@ -118,13 +111,10 @@ export class ReachabilityTree {
     };
   }
 
-  // What one waits at the stop the last leg sets off from, on the journey as the
-  // tree draws it: from being there until that vehicle leaves. Riding through is
-  // no wait -- the same vehicle brought one to that stop, and one stays seated.
-  //
-  // The wait belongs to the drawn path, not to the scan's own bookkeeping. Where
-  // the scan boarded the vehicle at an earlier stop, one may just as well board
-  // it here, and here is where the picture shows one standing.
+  // What one waits at the stop the last leg sets off from, on the journey as
+  // the tree draws it; riding through is no wait. The wait belongs to the drawn
+  // path, not to the scan's own bookkeeping: where the scan boarded the vehicle
+  // at an earlier stop, one may just as well board it here.
   waitBeforeLegInto(stationIndex) {
     const arriving = this._arrivedOn[stationIndex];
     if (arriving === NO_CONNECTION) {
@@ -151,16 +141,12 @@ export class ReachabilityTree {
     );
   }
 
-  // The journey to a station, earliest leg first: a chain of stops without a
-  // hole, since every leg sets off where the one before it arrived. Changes of
-  // vehicle -- whether at the arrival stop or at another stop of its
-  // interchange -- sit between consecutive legs and carry no entry of their own.
+  // The journey to a station, earliest leg first. Changes of vehicle sit
+  // between consecutive legs and carry no entry of their own.
   pathTo(stationIndex) {
     const reversed = [];
     let station = stationIndex;
     let leg = this.legInto(station);
-    // The walk ends where nothing brought one: at the start, or at a stop of its
-    // interchange, which one stood at from the beginning.
     while (leg !== null) {
       reversed.push(this._arrivedOn[station]);
       station = leg.fromStation;
@@ -170,9 +156,8 @@ export class ReachabilityTree {
   }
 
   // The vehicles one really rides: a trip boarded once and stayed in until the
-  // last stop it brings one to. Legs the tree drops in between -- a stop one
-  // could already be at earlier -- do not break the ride apart, since one keeps
-  // sitting in the vehicle through them.
+  // last stop it brings one to. Legs the tree drops in between do not break the
+  // ride apart, since one keeps sitting in the vehicle through them.
   rides() {
     const rides = new Map();
     this.connections().forEach((connection) => {
@@ -192,8 +177,7 @@ export class ReachabilityTree {
     return [...rides.values()];
   }
 
-  // When the spread comes to rest: the last arrival anywhere. A tree that
-  // reaches nowhere is over the moment it begins.
+  // The last arrival anywhere; a tree that reaches nowhere ends where it began.
   latestArrival() {
     return this._arrivals.reduce(
       (latest, arrival) =>
@@ -202,8 +186,8 @@ export class ReachabilityTree {
     );
   }
 
-  // Every leg the tree is made of, each once -- what a panel draws. One leg can
-  // stand for several stations at once when it serves an interchange.
+  // Every leg the tree is made of, each once; one leg can stand for several
+  // stations at once when it serves an interchange.
   connections() {
     return [
       ...new Set(
@@ -245,9 +229,7 @@ export class ConnectionScan {
     this._boardableFrom[startStation] = startTimeSeconds;
     this._boardableUntil[startStation] =
       startTimeSeconds + this._maximumWaitSeconds;
-    // One is not only at the stop one named but at its whole interchange: the
-    // bus stop in front of the station is where one already stands, reached at
-    // no cost, boardable once one has walked across.
+    // The whole interchange is reached at no cost, boardable after a transfer.
     this._list.clusterSiblingsOf(startStation).forEach((sibling) => {
       this._arrivals[sibling] = startTimeSeconds;
       this.#allowBoardingAt(sibling, startTimeSeconds);
@@ -281,11 +263,9 @@ export class ConnectionScan {
     return low;
   }
 
-  // The one place in this code base that walks by cursor rather than by
-  // `forEach`, and the only one hot enough to earn it: a Swiss day holds 2.3
-  // million legs, where the callback per element costs more than everything the
-  // scan does with them. Measured on a real day -- 31 ms with `forEach`, 16 ms
-  // with the cursor, same tree.
+  // Walks by cursor rather than by `forEach`: a Swiss day holds 2.3 million
+  // legs, where the callback per element costs more than everything the scan
+  // does with them (31 ms with `forEach`, 16 ms with the cursor, same tree).
   #scanFrom(firstConnection) {
     const list = this._list;
     let connection = firstConnection;
@@ -326,8 +306,8 @@ export class ConnectionScan {
     });
   }
 
-  // Arriving at a place opens a window on its departures: from the moment one
-  // can have changed vehicles until patience runs out.
+  // Arriving opens a window on the place's departures: from the moment one can
+  // have changed vehicles until the maximum wait is used up.
   #allowBoardingAt(station, arrival) {
     const boardable = arrival + this._minimumTransferSeconds;
     if (boardable < this._boardableFrom[station]) {

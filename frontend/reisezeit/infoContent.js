@@ -1,5 +1,4 @@
-// The Reisezeit panel's info-modal content. Kept apart from the modal shell so
-// the copy lives in one place.
+// The Reisezeit panel's info-modal content.
 
 const link = (label, href) => ({ label, href });
 

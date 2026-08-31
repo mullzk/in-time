@@ -1,12 +1,8 @@
 import { stationMatchingSlug } from './stationInUrl.js';
 
-// Nobody is shown an empty canvas: without a station chosen, a panel sets off
-// from wherever in the country, and whoever looks searches on from there.
-
-// A stop nothing leaves from at this hour would be a picture of a single dot, so
-// the walk carries on from the drawn stop until it finds one that travels. It
-// gives up after a handful of tries -- at a quiet hour a whole walk of scans
-// would cost more than the plainer picture is worth.
+// A stop nothing leaves from at this hour would be a picture of a single dot,
+// so drawing carries on until it finds one that travels -- but only for a
+// handful of tries, since every try costs a scan.
 const ATTEMPTS = 10;
 
 export function drawnStationThatTravels(
@@ -41,12 +37,11 @@ export function stationToTravelFrom(
   return drawnStationThatTravels(served, travelsAnywhere);
 }
 
-// Where a view sets off from until somebody picks a station on it. The address
-// may name the stop, and the answer to a name is worth waiting for: a stop lives
-// in a schedule that may still be on its way, and a picture of a stop nobody
-// asked for would only have to be taken back. A view that draws on its own
-// answers an address naming nothing at once, by drawing a stop that travels; one
-// that does not rests at no station until somebody names one.
+// Where a view sets off from until somebody picks a station on it. A stop the
+// address names may live in a schedule that is still on its way, so the choice
+// waits for it rather than drawing a picture that would be taken back. A view
+// that draws on its own answers an address naming nothing by drawing a stop
+// that travels; one that does not rests at no station until somebody names one.
 export class StartStationChoice {
   constructor(addressedSlug = null, { drawsOnItsOwn = true } = {}) {
     this.addressedSlug = addressedSlug;
@@ -66,9 +61,9 @@ export class StartStationChoice {
     this.moreScheduleIsComing = false;
   }
 
-  // Made again with every schedule that arrives, until it rests on a station
-  // nobody has to take back: what the address names beats what the panel drew
-  // for itself, and while the name may yet be answered, nothing is drawn at all.
+  // Made again with every schedule that arrives: what the address names beats
+  // what the panel drew for itself, and while the name may yet be answered by a
+  // schedule still on its way, nothing is drawn at all.
   settleOn(catalog, connections, scan, startTimeSeconds) {
     if (this.station !== null && !this.drawnByThePanel) {
       return this.station;
@@ -93,9 +88,8 @@ export class StartStationChoice {
     return this.station;
   }
 
-  // A stop the timetable does not serve is as good as unknown -- the picture
-  // from it would be a single dot -- so the name waits for a schedule that does
-  // serve it.
+  // A stop no loaded schedule serves counts as unknown, so the name waits for a
+  // schedule that does serve it.
   #addressedStationServedBy(catalog, connections) {
     if (this.addressedSlug === null) {
       return null;

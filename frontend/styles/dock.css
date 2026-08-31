@@ -1,8 +1,7 @@
 /* SMACSS Module: the dock — the control surface at the left edge, at the foot of
    a narrow screen. One tile per group of controls; hovering a tile lifts it and
    names it, clicking it opens the card beside it that holds the controls
-   themselves. Only one card stands open at a time, which is a class on the
-   tile. */
+   themselves. Only one card stands open at a time, as a class on the tile. */
 .dock {
   position: absolute;
   z-index: 13;
@@ -35,24 +34,22 @@
   background: var(--color-control);
   color: var(--color-control-text);
   cursor: pointer;
-  /* Grown from its left edge, so a lifted tile reaches out over the picture
-     rather than pushing the dock's edge into it. */
+  /* Grown from its left edge, so a lifted tile keeps the dock's edge in
+     place. */
   transform-origin: left center;
   transition:
     transform var(--transition-panel),
     background var(--transition-panel);
 }
 
-/* A share of the tile rather than a size of its own, so an icon shrinks with the
-   tile that carries it. */
+/* A share of the tile, so an icon shrinks with the tile that carries it. */
 .dock-tile-button svg {
   width: 55%;
   height: 55%;
 }
 
-/* Guarded, because a tap leaves :hover standing on a touch screen: the tile
-   would keep the lifted look of a pointer that is no longer there. Standing
-   before the open tile's own colour, so an open tile keeps it while hovered. */
+/* Guarded: a tap leaves :hover standing on a touch screen. Stands before the
+   open tile's own colour, so an open tile keeps it while hovered. */
 @media (hover: hover) {
   .dock-tile:hover .dock-tile-button {
     background: var(--color-control-hover);
@@ -65,8 +62,7 @@
   transform: scale(1.15);
 }
 
-/* The name stands where the card will stand, so hovering already points at
-   where the controls are about to appear -- and steps aside once they do. */
+/* The name stands where the card will stand, and steps aside once it opens. */
 .dock-tile-name {
   position: absolute;
   left: calc(100% + var(--space-m));
@@ -123,9 +119,7 @@
   transform: translate(0, -50%);
 }
 
-/* Text rather than controls: read across a wide card it stays short enough to
-   take in, where the width of a settings card would draw it out into a column
-   taller than the screen. */
+/* For a card holding text rather than controls. */
 .dock-card-wide {
   width: 560px;
 }
@@ -159,9 +153,8 @@
   cursor: pointer;
 }
 
-/* The colour a layer is drawn in, between its switch and its name, so the card
-   is read in the same colours as the picture. Which colour is the script's; the
-   dot is this stylesheet's. */
+/* The colour a layer is drawn in; the script supplies it as a custom
+   property. */
 .control-swatch {
   width: 10px;
   height: 10px;
@@ -169,8 +162,6 @@
   background: var(--swatch-color);
 }
 
-/* The traffic and the ground it moves over are two kinds of thing, told apart by
-   a rule rather than by a heading each. */
 .layer-choices {
   display: flex;
   flex-direction: column;
@@ -182,7 +173,7 @@
   border-top: 1px solid var(--color-border);
 }
 
-/* A note under a control: a reading it writes, or why it cannot do its job yet. */
+/* A note under a control. */
 .control-hint {
   display: none;
   margin: 0;
@@ -214,10 +205,10 @@
   }
 }
 
-/* On a narrow screen the dock lies along the foot of the picture, where a thumb
-   reaches it, and its cards open upwards. A card is no longer measured against
-   its tile there: centred on a tile at the end of the row it would hang off the
-   screen, so it spans the width and only its tile says which one it is. */
+/* On a narrow screen the dock lies along the foot of the picture and its cards
+   open upwards. A card is no longer measured against its tile there: centred on
+   a tile at the end of the row it would hang off the screen, so it spans the
+   width instead. */
 @media (max-width: 640px) {
   .dock {
     left: calc(var(--space-m) + env(safe-area-inset-left));
@@ -232,9 +223,8 @@
     border-radius: 16px;
   }
 
-  /* However many tiles there are and however narrow the screen, they stay in one
-     row inside the dock: each may give up width down to nothing rather than
-     wrap or overflow, and the icon keeps its share of whatever is left. */
+  /* The tiles stay in one row however narrow the screen: each may give up width
+     down to nothing rather than wrap or overflow. */
   .dock-tile {
     flex: 0 1 var(--dock-tile);
     min-width: 0;
@@ -247,8 +237,7 @@
     transform-origin: center bottom;
   }
 
-  /* Nothing hovers on a touch screen, and a name floating over the picture
-     beside the credit would only be in the way. The tile is tapped instead. */
+  /* Nothing hovers on a touch screen. */
   .dock-tile-name {
     display: none;
   }

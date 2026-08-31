@@ -1,7 +1,6 @@
-// The instrumentations the sound card offers, in its order. Each is a
-// document in the same format a listener could bring along; they are imported
-// rather than fetched so they are there when the module is, and so a mistake in
-// one shows on loading instead of on listening.
+// The instrumentations the sound card offers, in its order. Each is a document
+// in the same format a listener could bring along; they are imported rather
+// than fetched, so a mistake in one shows on loading instead of on listening.
 
 import { Instrumentation } from './instrumentation.js';
 import drumSet from './instrumentations/drum-set.json' with { type: 'json' };

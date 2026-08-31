@@ -17,13 +17,10 @@ async function bootstrap() {
     return;
   }
 
-  // The tree is of the journey one could set off on now; the dock offers every
-  // other departure. Nothing moves in the picture, so the clock stands.
   const departure = departureToOpenOn(secondsOfDayInZurich());
 
   // The address is read before the first tree is worked out, so the picture is
-  // drawn from the station it names rather than from one of the panel's own,
-  // which would have to be taken back once the canvas stands.
+  // drawn from the station it names instead of being computed twice.
   const stationInUrl = new StationInUrl();
   const panel = new ReisezeitPanel(
     result.railBuffer,

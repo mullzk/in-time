@@ -181,10 +181,8 @@ export class VehiclePositionEngine {
     );
 
     let pathCursor = 0;
-    // Returns List of Trips
     return Array.from({ length: count }, (_, trip) => {
       const first = eventStart[trip];
-      // Events: Station-Index, Arrival, Departure + Edges of outgoing Leg
       const events = Array.from({ length: eventLen[trip] }, (_, offset) => {
         const eventIndex = first + offset;
         const legEdges = Array.from(
@@ -198,7 +196,6 @@ export class VehiclePositionEngine {
           legEdges,
         };
       });
-      // Trip: Category, Events, and Distances to every stop
       return {
         category: category[trip],
         events,
@@ -347,8 +344,7 @@ export class VehiclePositionEngine {
     };
   }
 
-  // A selected vehicle's live position, recomputed each frame so a popover can
-  // follow it; null once the trip is no longer running (so the caller drops it).
+  // Null once the trip is no longer running, so the caller drops it.
   positionAt(tripIndex, t) {
     const trip = this.trips[tripIndex];
     const firstDep = trip.events[0].dep;
@@ -363,10 +359,8 @@ export class VehiclePositionEngine {
     return { east, north };
   }
 
-  // The same trip at receding schedule times — the smear a moving vehicle drags
-  // behind it. Ordered head first and cut short where the trip had not yet
-  // departed, so a just-started trip carries a short trail rather than a stub at
-  // its origin.
+  // The same trip at receding schedule times, head first and cut short where
+  // the trip had not yet departed.
   trailPositions(tripIndex, t, sampleCount, spacingSeconds) {
     const samples = Array.from({ length: sampleCount }, (_, sample) =>
       this.positionAt(tripIndex, t - sample * spacingSeconds),

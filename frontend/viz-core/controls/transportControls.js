@@ -13,11 +13,9 @@ const formatTempo = (tempo) =>
     ? `1 s ≙ ${Math.round(tempo)} s`
     : `1 s ≙ ${Math.round(tempo / SECONDS_PER_MINUTE)} min`;
 
-// The controls that drive the simulation: the hand that stops and starts the
-// picture, which is a tile of its own because it is pressed far more often than
-// anything else is set, and the tempo and the time of day as sections of the
-// time tile. What a panel does not declare is neither built nor followed -- a
-// view whose time stands has no scrubber position to be asked for.
+// The controls that drive the simulation: play as a tile of its own, tempo and
+// time of day as sections of the time tile. What a panel does not declare is
+// neither built nor followed.
 export class TransportControls {
   constructor(panel, time) {
     this.time = time;
@@ -44,8 +42,6 @@ export class TransportControls {
     });
   }
 
-  // The one control that is its own tile: it is not set but pressed, and what it
-  // will do next is written on its face.
   #offerPlay() {
     this.offered.push({
       section: {
@@ -58,7 +54,7 @@ export class TransportControls {
             : { icon: 'play', label: 'Wiedergabe' },
         keepInExhibition: true,
       },
-      // Its face is asked for on every frame; there is nothing else to follow.
+      // The tile's face is asked for every frame; there is nothing to follow.
       follow: () => {},
     });
   }
@@ -119,15 +115,12 @@ export class TransportControls {
     return slider;
   }
 
-  // Choosing a tempo says how fast, not whether: a picture standing still keeps
-  // standing, and takes the chosen tempo up when it is started again.
   #onTempoInput() {
     this.tempoScrubbing = true;
     this.time.setTempo(tempoForSliderPosition(Number(this.tempoSlider.value)));
   }
 
-  // A view whose time cannot be sought keeps the scrubber as a reading: it says
-  // how far the clock has come, and the hand is turned away from it.
+  // Without seeking the scrubber is a reading only, and takes no input.
   #buildScrubber(seekable) {
     const scrubber = element('input', 'transport-scrubber');
     scrubber.type = 'range';

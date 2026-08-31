@@ -1,8 +1,6 @@
 // The dock, tile by tile: what each one is called, which control sections it
-// opens, and whether what it holds is read rather than operated and wants a
-// wider card for it. A section belongs to exactly one tile, and a tile whose sections the
-// view does not offer is not hung in the dock at all -- which is how a view
-// without a map keeps the display tile away without knowing the dock exists.
+// opens, and whether it wants a wider card. A section belongs to exactly one
+// tile, and a tile whose sections the view does not offer is not hung at all.
 const TILES = [
   { id: 'play', label: 'Wiedergabe', sections: ['play'] },
   { id: 'sound', label: 'Vertonung', sections: ['sound'] },
@@ -17,8 +15,8 @@ const homeOf = (sectionId) =>
   TILES.find((tile) => tile.sections.includes(sectionId)) ?? null;
 
 // The sections handed in, grouped into the tiles that carry them, in the dock's
-// order and each tile's own. A section nothing carries is refused rather than
-// dropped in silence, and the exhibition keeps only what survives it.
+// order and each tile's own. A section no tile carries is refused rather than
+// dropped in silence.
 export function tilesToHang(sections, { exhibition = false } = {}) {
   const seen = new Set();
   sections.forEach(({ id }) => {

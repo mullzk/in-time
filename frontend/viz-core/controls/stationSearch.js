@@ -1,33 +1,25 @@
 import { element } from './dom.js';
 
-// How wide the ask stands, and how much screen it leaves beside it. The field in
-// the bar is capped narrower than that, so the ask takes a width of its own
-// rather than growing out of the field's.
 const INVITED_WIDTH_PIXELS = 380;
 const INVITED_MARGIN_PIXELS = 24;
 
-// How far down the ask may travel. The middle of the screen would be the obvious
-// place, but the suggestions drop below the field and an on-screen keyboard
-// takes the lower half of a phone, so a card resting in the middle would answer
-// into a list nobody can see. It stays in the upper part instead.
+// How far down the ask may travel: the suggestions drop below the field and an
+// on-screen keyboard takes the lower half of a phone, so it stays in the upper
+// part rather than resting in the middle.
 const INVITED_DROP_PIXELS = 200;
 
 // What the suggestions leave standing below themselves, and the least room they
-// take even when there is none: a list squeezed to a single line is worse to
-// answer than one that overlaps the very foot of the screen.
+// take even when there is none.
 const SUGGESTIONS_FOOT_PIXELS = 12;
 const SUGGESTIONS_LEAST_PIXELS = 120;
 
 // Floating search field in the middle of the top bar: the panel supplies the
-// StationCatalog, and a chosen station is handed back through onSelect so the
-// caller can move the camera. It owns only its DOM and selection state.
+// StationCatalog, and a chosen station is handed back through onSelect.
 export class StationSearch {
-  // `stationMayBeGivenUp` says whether this view can stand without a station: a
-  // view drawing its whole picture from one cannot, and there neither the button
-  // in the field nor the empty commit is offered. `onClear` answers both of
-  // them -- the way to say that no station is chosen any more. `onDismiss`
-  // answers Escape while the ask stands open: not a station given up, but the
-  // ask itself turned down.
+  // `stationMayBeGivenUp` says whether this view can stand without a station;
+  // where it cannot, neither the button in the field nor the empty commit is
+  // offered. `onClear` answers both of them, `onDismiss` answers Escape while
+  // the ask stands open.
   constructor(
     container,
     catalog,
@@ -55,9 +47,8 @@ export class StationSearch {
     this.input.addEventListener('input', () => this.#refresh());
     this.input.addEventListener('keydown', (event) => this.#onKeyDown(event));
 
-    // Giving a station up is a keystroke away, which a touch screen without a
-    // keyboard does not have: the field shows which station is chosen, so it
-    // carries the way to choose none.
+    // A touch screen has no keyboard to give the station up with, so the field
+    // carries a button for it.
     this.giveUp = element('button', 'station-search-give-up');
     this.giveUp.type = 'button';
     this.giveUp.textContent = '×';
@@ -73,8 +64,7 @@ export class StationSearch {
 
     // Everything the ask shows is measured against the field, never against the
     // card around it: the card makes its room by growing its padding, which
-    // takes the length of the transition, so anything placed against the card
-    // would spend that time standing on the field.
+    // takes the length of the transition.
     this.field = element('div', 'station-search-field');
     this.field.append(
       this.prompt,
@@ -108,16 +98,11 @@ export class StationSearch {
     this.input.select();
   }
 
-  // A view that cannot draw its picture without a station asks for one on the
-  // empty stage: the same field, moved and opened into the ask, so that once it
-  // is answered it visibly becomes the search it was all along.
   invite(prompt, drawAStation) {
     this.prompt.textContent = prompt;
     this.lucky.onclick = drawAStation;
     this.#placeTheAsk();
     this.root.classList.add('is-inviting');
-    // The ask is the only thing on the stage and there is one way to answer it,
-    // so the field takes the caret rather than waiting to be clicked.
     this.input.focus();
   }
 
@@ -125,15 +110,12 @@ export class StationSearch {
     this.root.classList.remove('is-inviting');
   }
 
-  // Where the ask stands and how far the field has to travel to get there,
-  // measured rather than assumed: the bar puts the field in the middle of the top
-  // row only on the wide layout, and below the narrow breakpoint it sits beside
-  // the buttons and under a row of its own. Sideways it lands in the middle of
-  // the screen; downwards it stops short of it, see INVITED_DROP_PIXELS.
+  // How far the field has to travel to reach the ask, measured rather than
+  // assumed, since the bar places the field differently per breakpoint.
   // offsetLeft and offsetTop are read instead of a bounding rectangle because
-  // they are the layout position, which the field's own transform does not move
-  // -- so a window resized mid-invitation re-aims from where it would be standing
-  // rather than from where it has flown.
+  // they are the layout position, which the field's own transform does not
+  // move -- so a window resized mid-invitation re-aims from where the field
+  // would be standing rather than from where it has flown.
   #placeTheAsk() {
     const width = Math.min(
       INVITED_WIDTH_PIXELS,
@@ -156,11 +138,10 @@ export class StationSearch {
     this.#capTheSuggestions();
   }
 
-  // How much screen is left under the open list for it to fill. It is measured
-  // from where it actually hangs, transform and all, against the part of the
-  // window that is still to be seen: with a keyboard open that is the upper half
-  // of a phone, which the window's own height knows nothing about. A closed list
-  // has no box to measure and none to fill; it is capped as it opens.
+  // How much screen is left under the open list, measured from where it
+  // actually hangs, transform and all, against the visual viewport: with a
+  // keyboard open that is the upper half of a phone, which the window's own
+  // height knows nothing about. A closed list has no box to measure.
   #capTheSuggestions() {
     if (!this.root.classList.contains('is-open')) {
       return;
@@ -241,8 +222,6 @@ export class StationSearch {
       this.input.value === '' &&
       this.stationMayBeGivenUp
     ) {
-      // Emptying the field and committing it is how a station is given up: the
-      // field is what shows which one is chosen, so an empty one shows none.
       this.#giveUpTheStation();
       event.preventDefault();
     } else if (event.key === 'Escape') {

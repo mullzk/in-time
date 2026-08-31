@@ -3,9 +3,8 @@
 // and density rules that thin out a busy hub, and the cursor arithmetic that
 // walks a time-sorted event list. The side-effecting Sonifier composes these.
 
-// Display groups in drop-priority order: when more sounds compete than the voice
-// budget allows, later groups are dropped first, so the Fernverkehr beat -- the
-// steady anchor of the clock-face timetable -- always survives.
+// Display groups in drop-priority order: when more sounds compete than the
+// voice budget allows, later groups are dropped first.
 export const TRANSPORT_GROUPS = [
   'fernverkehr',
   'interregio',

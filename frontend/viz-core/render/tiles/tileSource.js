@@ -24,12 +24,9 @@ export const SWISSVIEW_TILE_SOURCE = tileSource(
   'jpeg',
 );
 
-// The two Landeskarten are one background, each shown where it is the better
-// map: the grey one over the overview, where the colour print collapses into a
-// wash of area tints that says nothing at that scale, and the colour one from
-// the middle of the zoom on, where its detail is what one has come for. The
-// level is swisstopo's own, so the switch follows the map's detail rather than
-// the size of the window.
+// The two Landeskarten are one background: grey over the overview, colour from
+// this level on. The level is swisstopo's own, so the switch follows the map's
+// detail rather than the size of the window.
 const COLOUR_FROM_LEVEL = 18;
 
 export const LANDESKARTE_TILE_SOURCE = {
@@ -41,8 +38,6 @@ export const LANDESKARTE_TILE_SOURCE = {
 
 // swisstopo's terms of use require a visible source credit wherever their maps
 // are shown; every raster background carries it, the black one (no raster) none.
-// The credit names the map layer, not the app, so it does not read as a
-// copyright over the whole page — only the source name links out.
 const SWISSTOPO_ATTRIBUTION = {
   prefix: 'Karten-Layer: ',
   label: 'swisstopo',
@@ -51,9 +46,8 @@ const SWISSTOPO_ATTRIBUTION = {
 
 // A null source means no raster: the dark canvas clear shows through as the
 // black background. The first entry is the default the panel opens with.
-// `showsRailwayLines` marks rasters that already draw the rail network (and its
-// labels) once zoomed in, so a panel can suppress its own network overlay there
-// and keep it only on the label-free overview.
+// `showsRailwayLines` marks rasters that already draw the rail network once
+// zoomed in, so a panel can suppress its own network overlay there.
 export const BACKGROUNDS = [
   {
     id: 'relief',

@@ -17,14 +17,10 @@ async function bootstrap() {
     return;
   }
 
-  // The spread sets off from the moment one is watching it -- except late in the
-  // evening, when it would be a picture of what no longer runs. The slider moves
-  // it from there.
   const departure = departureToOpenOn(secondsOfDayInZurich());
 
   // The address is read before the first spread is worked out, so the panel
-  // sets off from the station it names rather than computing a spread from a
-  // station of its own and taking it back once the canvas stands.
+  // starts from the station it names instead of computing one twice.
   const stationInUrl = new StationInUrl();
   const panel = new AusbreitungPanel(
     result.railBuffer,
@@ -32,16 +28,13 @@ async function bootstrap() {
     departure,
     stationInUrl.slug,
   );
-  // The panel hands the clock the stretch its own spread covers as soon as it
-  // has one; until then it runs from the departure. A spread is over when the
-  // last vehicle has landed, so the clock does not start it again.
+  // The panel hands the clock the range its spread covers as soon as it has
+  // one; a spread ends with the last arrival, so the clock does not repeat.
   const time = new TimeModel(departure, departure + 3600, {
     repeats: false,
   });
   const shell = new PanelShell(root, panel, time, stationInUrl);
   shell.start();
-  // A spread runs for hours of schedule; at the ordinary tempo one would watch
-  // the country fill up for minutes, so it opens at the fastest one.
   time.setTempo(MAX_TEMPO);
   time.play();
 

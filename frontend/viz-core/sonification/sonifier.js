@@ -28,8 +28,6 @@ import {
 // schedule the whole backlog at once.
 const STALL_RESYNC_SECONDS = 0.5;
 
-// A fixed master level (no slider); the per-sound gains and the density damping
-// do the balancing, system volume does the rest.
 const MASTER_GAIN = 0.9;
 const DEFAULT_GAIN = 0.3;
 
@@ -65,8 +63,6 @@ export class Sonifier {
     this.#ensureAudio();
   }
 
-  // Nobody is listening to a place any more: the events are dropped rather than
-  // asked of a station that is no longer there.
   forgetStation() {
     this.station = null;
     this.events = [];

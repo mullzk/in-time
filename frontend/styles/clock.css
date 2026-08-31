@@ -1,7 +1,5 @@
-/* SMACSS Module: the clock at the right end of the top bar — the moment the
-   picture stands at. It takes the face and the size of the chrome around it,
-   the search field beside it included; only the figures are set on one width,
-   so they do not shift under one another as the minutes run. */
+/* SMACSS Module: the clock at the right end of the top bar. The figures are set
+   on one width, so they do not shift under one another as the minutes run. */
 .panel-clock {
   grid-column: 3;
   justify-self: end;

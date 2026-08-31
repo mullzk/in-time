@@ -5,8 +5,7 @@
 export const PAN_BY_SIDE = { left: 0.35, center: 0.5, right: 0.65 };
 
 export const KINDS = {
-  // A pitched sound distinguishes the events by pitch and side, and hums an
-  // octave below itself while a vehicle stands.
+  // Distinguishes the events by pitch and side.
   pitched: {
     dwellType: 'repeat',
     events: {
@@ -25,8 +24,7 @@ export const KINDS = {
       },
     },
   },
-  // A drum cannot change pitch, so an arrival slows down and a departure grows
-  // louder -- unless the document marks them by a different drum instead.
+  // A drum cannot change pitch, so the events differ by speed and loudness.
   percussive: {
     dwellType: 'repeat',
     events: {

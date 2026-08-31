@@ -1,8 +1,7 @@
 // Every sound an instrumentation may name, under the name a document uses. The
-// name is ours, not the audio engine's: whoever writes a document should not
-// have to know which soundfont or sample bank stands behind "marimba". This list
-// is also what the vendoring script reads, so a sound the app offers is a sound
-// it has.
+// name is ours, not the audio engine's, so a document need not know which
+// soundfont or sample bank stands behind it. The vendoring script reads this
+// list, so a sound the app offers is a sound it has.
 
 import { bassDrum } from './bassDrum.js';
 import { closedHihat } from './closedHihat.js';

@@ -1,19 +1,17 @@
 const TAP_MOVE_PIXELS = 8;
 const DOUBLE_CLICK_MS = 300;
 
-// Turns canvas taps into target selections: a tap (pointer down and up without a
-// drag) picks the target under it — a station or a vehicle — and reports it
-// through onSelect together with the kind of pointer that tapped, which is what
-// lets a caller ask a finger for a second tap where a mouse needs none. A second
-// click on the same target within DOUBLE_CLICK_MS activates it — the double
-// click is a mouse idiom and is read from the mouse alone. Panning drags and
+// Turns canvas taps into target selections: a tap (pointer down and up without
+// a drag) picks the target under it and reports it through onSelect together
+// with the kind of pointer that tapped, so a caller can ask a finger for a
+// second tap where a mouse needs none. A second click on the same target within
+// DOUBLE_CLICK_MS activates it, read from the mouse alone. Panning drags and
 // multi-finger gestures never count as taps, so this coexists with the camera
-// controls on the same canvas: a pinch ends with a finger lifting off a place it
-// never meant to choose. onPointerDown fires the moment a pointer is set down,
-// onNothingTapped only once a completed tap has hit nothing. Time comes from the
-// caller so the module stays free of the clock. `sameTarget(a, b)` decides
-// double-click identity (default reference equality) for callers whose picks are
-// fresh wrappers rather than stable objects.
+// controls on the same canvas. onPointerDown fires the moment a pointer is set
+// down, onNothingTapped only once a completed tap has hit nothing. Time comes
+// from the caller so the module stays free of the clock. `sameTarget(a, b)`
+// decides double-click identity (default reference equality) for callers whose
+// picks are fresh wrappers rather than stable objects.
 export class TapInteraction {
   constructor(
     canvasElement,

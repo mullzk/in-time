@@ -25,9 +25,8 @@ export class Camera {
     this.fit();
   }
 
-  // The extent the view may roam over and must be able to show whole. It is the
-  // country for a map, but a travel-time picture reaches far beyond it, so the
-  // panel drawing one says how far.
+  // The extent the view may roam over and must be able to show whole; a panel
+  // whose picture reaches beyond the country says how far.
   setWorldBounds(bounds) {
     this.bounds = bounds;
     this.scale = this.#clampScale(this.scale);

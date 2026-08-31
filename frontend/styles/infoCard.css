@@ -1,6 +1,5 @@
-/* SMACSS Module: the info card — what the dock's info tile opens: the project
-   described, its controls explained, its shortcuts listed. Type only; the card
-   around it is the dock's. */
+/* SMACSS Module: the info card — what the dock's info tile opens. Type only;
+   the card around it is the dock's. */
 .info-card {
   display: flex;
   flex-direction: column;
@@ -75,8 +74,7 @@
   text-align: center;
 }
 
-/* Given the width, the shortcuts pair up: two key-and-meaning columns halve a
-   list that would otherwise be the tallest thing in the card. */
+/* Given the width, the shortcuts run in two key-and-meaning columns. */
 .dock-card-wide .info-card-shortcuts {
   grid-template-columns: auto 1fr auto 1fr;
 }

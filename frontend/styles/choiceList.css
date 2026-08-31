@@ -1,6 +1,5 @@
 /* SMACSS Module: the choice list — a handful of options standing open, the one
-   in force filled in. Used wherever a card has the room to show what a dropdown
-   would hide: the gallery of views, the map background, the sound. */
+   in force filled in. */
 .choice-list {
   display: flex;
   flex-direction: column;

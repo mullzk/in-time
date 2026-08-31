@@ -4,8 +4,8 @@
 .l-viz-root {
   position: relative;
   width: 100vw;
-  /* The dynamic unit: the picture is not to be cut off by the bars a phone
-     browser lays over the foot of the screen. */
+  /* The dynamic unit, so the bars a phone browser lays over the foot of the
+     screen do not cut the picture off. */
   height: 100dvh;
 }
 
@@ -19,12 +19,9 @@
 
 /* The bar across the top carries the station search in the middle of the screen
    and the clock at its right end. The two outer columns are of one width, so the
-   search stays centred on the screen while the clock takes room of its own
-   rather than lying over it; where the screen is too narrow for both, the middle
-   column gives way rather than the bar overflowing. The bar stands above the
-   dock, because the ask a
-   view without a station puts and the suggestions under it open over the picture
-   and have to be readable there; the instrumentation editor stands above both. */
+   search stays centred on the screen; where the screen is too narrow for both,
+   the middle column gives way rather than the bar overflowing. The bar stands
+   above the dock, the instrumentation editor above both. */
 .l-topbar {
   position: absolute;
   z-index: 14;
@@ -33,8 +30,6 @@
   right: calc(var(--space-m) + env(safe-area-inset-right));
   display: grid;
   grid-template-columns: 1fr minmax(0, max-content) 1fr;
-  /* What the bar keeps off the edge of the screen it also keeps between its own
-     two boxes, which on a narrow screen stand right beside each other. */
   gap: var(--space-m);
   align-items: center;
 }

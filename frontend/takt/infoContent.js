@@ -1,12 +1,10 @@
-// The Takt panel's info-modal content. Kept apart from the modal shell so the
-// copy lives in one place.
+// The Takt panel's info-modal content.
 
 const link = (label, href) => ({ label, href });
 
 export function buildInfoContent() {
   // The card sets the list in two columns, filled row by row, so every second
-  // entry lands in the second column: the camera keys read down the left, the
-  // two ein- und ausblenden keys down the right.
+  // entry lands in the second column.
   const shortcuts = [
     { keys: 'Leertaste', description: 'Wiedergabe starten und pausieren' },
     { keys: 'H', description: 'Haltestellen ein- und ausblenden' },

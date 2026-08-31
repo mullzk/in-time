@@ -1,14 +1,10 @@
 import { iconNamed } from './dockIcons.js';
 import { element } from './dom.js';
 
-// The control surface at the left edge: one tile per group of controls, hovered
-// to learn its name, clicked to open the card that holds them. Only one card
-// stands open, so the picture is never covered by more than the one thing being
-// looked at. Nearly every tile is of the same kind, the info text included; the
-// exception is a tile whose one control is the press itself -- play, which stops
-// and starts the picture where it stands and wears the face of what pressing it
-// will do next. The shell owns what is in a card; the dock owns only the tiles,
-// the naming and the opening.
+// The control surface at the left edge: one tile per group of controls, only
+// one card open at a time. A tile may instead be pressed directly (play), in
+// which case it wears the face of what pressing it will do next. The shell owns
+// what is in a card; the dock owns the tiles, the naming and the opening.
 export class Dock {
   constructor(container, tiles) {
     this.root = element('nav', 'dock');
@@ -18,8 +14,6 @@ export class Dock {
     this.root.append(...this.tiles.map(({ root }) => root));
     container.appendChild(this.root);
 
-    // A card is closed by anything that is not it: the next tile, the picture
-    // behind it, or Escape.
     document.addEventListener('pointerdown', (event) => {
       if (!this.root.contains(event.target)) {
         this.close();
@@ -37,15 +31,12 @@ export class Dock {
     this.#open(null);
   }
 
-  // A tile may also be reached by its key rather than by its face.
   toggle(tileId) {
     const tile = this.tiles.find((candidate) => candidate.id === tileId);
     this.#open(this.openTile === tile ? null : tile);
   }
 
-  // Shows the current face of every tile that answers a press directly: what
-  // pressing it will do now. Unchanged faces are left alone, since this is asked
-  // on every frame.
+  // Called every frame, so an unchanged face is left alone.
   showFaces() {
     this.tiles.forEach((tile) => {
       const face = tile.face?.();
@@ -99,10 +90,6 @@ export class Dock {
     return card;
   }
 
-  // A lone section the tile is named after needs no heading over it, since the
-  // name already stands in the dock. Every other section keeps its own: one of
-  // several, or one whose name says more precisely what is being set than the
-  // tile it hangs under can.
   #section({ id, title, element: content }, headed) {
     const section = element('section', 'dock-card-section');
     section.dataset.section = id;
