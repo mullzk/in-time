@@ -74,9 +74,10 @@ export class Dock {
     });
   }
 
-  #tile({ id, label, sections, wideCard = false }) {
+  #tile({ id, label, sections, group, wideCard = false }) {
     const root = element('div', 'dock-tile');
     root.dataset.tile = id;
+    root.dataset.group = group;
 
     const button = element('button', 'dock-tile-button');
     button.type = 'button';

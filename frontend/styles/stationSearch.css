@@ -31,7 +31,6 @@
   max-width: none;
   padding: var(--ask-inset) var(--space-m);
   margin-block: calc(-1 * var(--ask-inset));
-  border-radius: var(--radius-m);
   background: var(--color-surface);
   backdrop-filter: blur(6px);
   transform: translate(
@@ -67,7 +66,6 @@
   transform: translateX(-50%);
   padding: 6px 18px;
   border: 0;
-  border-radius: 999px;
   background: var(--color-control-text);
   color: var(--color-background);
   font-family: inherit;
@@ -101,7 +99,6 @@
   height: var(--control-height);
   padding: 0 14px;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-m);
   background: var(--color-surface);
   backdrop-filter: blur(6px);
   color: var(--color-text);
@@ -137,7 +134,6 @@
   width: var(--control-height);
   padding: 0;
   border: 0;
-  border-radius: 0 var(--radius-m) var(--radius-m) 0;
   background: none;
   color: var(--color-text);
   font-family: inherit;
@@ -172,7 +168,6 @@
   margin: 0;
   padding: 0;
   list-style: none;
-  border-radius: var(--radius-m);
   background: var(--color-surface);
   backdrop-filter: blur(6px);
   /* A long list is held to the room actually left under the field and scrolls

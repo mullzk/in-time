@@ -6,7 +6,6 @@
   align-items: stretch;
   padding: 3px;
   gap: 2px;
-  border-radius: 6px;
   background: var(--color-control);
 }
 
@@ -15,7 +14,6 @@
   align-items: center;
   padding: 8px 10px;
   border: 0;
-  border-radius: 4px;
   background: none;
   color: var(--color-control-text);
   font: inherit;

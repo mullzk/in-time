@@ -6,7 +6,6 @@
   z-index: 10;
   transform: translate(-50%, calc(-100% - 8px));
   padding: 6px 10px;
-  border-radius: var(--radius-m);
   background: var(--color-surface);
   backdrop-filter: blur(6px);
   color: var(--color-text);
