@@ -1,6 +1,29 @@
 import { iconNamed } from './dockIcons.js';
 import { element } from './dom.js';
 
+// The card a tile opens. On a narrow screen it stands over its own tile, which
+// takes it off the screen at either end of the row; the shift slides it back
+// within the dock's own width, which is the screen's minus its margins.
+class DockCard {
+  constructor(cardElement) {
+    this.cardElement = cardElement;
+  }
+
+  keepWithin(dockRect, tileRect) {
+    const halfCard = this.cardElement.offsetWidth / 2;
+    const tileCentre = (tileRect.left + tileRect.right) / 2;
+    const overshootLeft = dockRect.left + halfCard - tileCentre;
+    const overshootRight = tileCentre + halfCard - dockRect.right;
+    const shift = Math.max(overshootLeft, 0) - Math.max(overshootRight, 0);
+    this.cardElement.style.setProperty('--dock-card-shift', `${shift}px`);
+  }
+}
+
+// The stand-in for a tile that presses rather than opens, and so has no card.
+class NoDockCard {
+  keepWithin() {}
+}
+
 // The control surface at the left edge: one tile per group of controls, only
 // one card open at a time. A tile may instead be pressed directly (play), in
 // which case it wears the face of what pressing it will do next. The shell owns
@@ -19,6 +42,7 @@ export class Dock {
         this.close();
       }
     });
+    window.addEventListener('resize', () => this.#placeOpenCard());
     document.addEventListener('keydown', (event) => {
       if (event.key === 'Escape' && this.openTile !== null) {
         event.stopPropagation();
@@ -64,9 +88,19 @@ export class Dock {
     root.append(button, name);
 
     const pressed = sections.find((section) => section.onActivate) ?? null;
-    const tile = { id, root, button, name, face: pressed?.face, wearing: id };
+    const tile = {
+      id,
+      root,
+      button,
+      name,
+      face: pressed?.face,
+      wearing: id,
+      card: new NoDockCard(),
+    };
     if (pressed === null) {
-      root.appendChild(this.#card(sections, { label, wideCard }));
+      const card = this.#card(sections, { label, wideCard });
+      root.appendChild(card);
+      tile.card = new DockCard(card);
       button.addEventListener('click', () => this.toggle(id));
     } else {
       button.addEventListener('click', () => {
@@ -109,5 +143,16 @@ export class Dock {
       candidate.root.classList.toggle('is-open', open);
       candidate.button.setAttribute('aria-expanded', String(open));
     });
+    this.#placeOpenCard();
+  }
+
+  #placeOpenCard() {
+    if (this.openTile === null) {
+      return;
+    }
+    this.openTile.card.keepWithin(
+      this.root.getBoundingClientRect(),
+      this.openTile.root.getBoundingClientRect(),
+    );
   }
 }
