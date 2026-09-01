@@ -48,12 +48,7 @@
   background: var(--color-surface);
   color: var(--color-control-text);
   cursor: pointer;
-  /* Grown from its left edge, so a lifted tile keeps the dock's edge in
-     place. */
-  transform-origin: left center;
-  transition:
-    transform var(--transition-panel),
-    background var(--transition-panel);
+  transition: background var(--transition-panel);
 }
 
 /* A share of the tile, so an icon shrinks with the tile that carries it. */
@@ -72,7 +67,6 @@
 
 .dock-tile.is-open .dock-tile-button {
   background: var(--color-surface);
-  transform: scale(1.15);
 }
 
 /* The name stands where the card will stand, and steps aside once it opens. */
@@ -258,7 +252,6 @@
     width: 100%;
     height: auto;
     aspect-ratio: 1;
-    transform-origin: center bottom;
   }
 
   /* Nothing hovers on a touch screen. */
