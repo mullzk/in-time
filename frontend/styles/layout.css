@@ -3,6 +3,10 @@
    order). */
 .l-viz-root {
   position: relative;
+  /* Clips what is parked outside it, the closed drawer above all: a box reaching
+     past the stage would widen the page, which a mobile browser answers by
+     laying the whole page out wider and never taking that back. */
+  overflow: hidden;
   width: 100vw;
   /* The dynamic unit, so the bars a phone browser lays over the foot of the
      screen do not cut the picture off. */
