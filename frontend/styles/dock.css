@@ -266,7 +266,12 @@
     display: none;
   }
 
+  /* A closed card is taken out of the layout here rather than merely hidden:
+     standing over its own tile it would reach off the screen until the dock has
+     measured it, and a browser that once widened its page for that never
+     narrows it again. */
   .dock-card {
+    display: none;
     left: 50%;
     right: auto;
     top: auto;
@@ -274,9 +279,14 @@
     max-width: var(--dock-card-room);
     max-height: 60vh;
     transform: translate(calc(-50% + var(--dock-card-shift, 0px)), 6px);
+    /* The card takes its place at once instead of sliding into it: a card
+       travelling from over its own tile would reach off the screen on the way,
+       which is enough to widen the page for good. */
+    transition: opacity var(--transition-panel);
   }
 
   .dock-tile.is-open .dock-card {
+    display: flex;
     transform: translate(calc(-50% + var(--dock-card-shift, 0px)), 0);
   }
 }

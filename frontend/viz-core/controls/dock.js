@@ -36,13 +36,14 @@ export class Dock {
     this.tiles = tiles.map((tile) => this.#tile(tile));
     this.root.append(...this.tiles.map(({ root }) => root));
     container.appendChild(this.root);
+    this.#placeCards();
 
     document.addEventListener('pointerdown', (event) => {
       if (!this.root.contains(event.target)) {
         this.close();
       }
     });
-    window.addEventListener('resize', () => this.#placeOpenCard());
+    window.addEventListener('resize', () => this.#placeCards());
     document.addEventListener('keydown', (event) => {
       if (event.key === 'Escape' && this.openTile !== null) {
         event.stopPropagation();
@@ -144,16 +145,15 @@ export class Dock {
       candidate.root.classList.toggle('is-open', open);
       candidate.button.setAttribute('aria-expanded', String(open));
     });
-    this.#placeOpenCard();
+    this.#placeCards();
   }
 
-  #placeOpenCard() {
-    if (this.openTile === null) {
-      return;
-    }
-    this.openTile.card.keepWithin(
-      this.root.getBoundingClientRect(),
-      this.openTile.root.getBoundingClientRect(),
-    );
+  // Every card, not just the open one: a card that stood off the screen would
+  // widen the page even while it is closed.
+  #placeCards() {
+    const dockRect = this.root.getBoundingClientRect();
+    this.tiles.forEach((tile) => {
+      tile.card.keepWithin(dockRect, tile.root.getBoundingClientRect());
+    });
   }
 }

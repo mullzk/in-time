@@ -3,9 +3,9 @@ import { element } from './dom.js';
 // What the info tile's card holds. The content (title, intro, shortcuts) is
 // supplied by the caller so the shell stays panel-agnostic. An intro paragraph
 // is a list of parts: a string is plain text, an object of label and href
-// becomes a link.
+// becomes a link. Actions (label and handler) are offered as buttons under it.
 export class InfoCard {
-  constructor(content) {
+  constructor(content, actions = []) {
     this.root = element('div', 'info-card');
 
     const title = element('h3', 'info-card-title');
@@ -16,6 +16,17 @@ export class InfoCard {
       this.root.appendChild(this.#paragraph(paragraph));
     });
     this.root.appendChild(this.#shortcutSection(content.shortcuts));
+    actions.forEach((action) => {
+      this.root.appendChild(this.#action(action));
+    });
+  }
+
+  #action({ label, onActivate }) {
+    const button = element('button', 'control-button');
+    button.type = 'button';
+    button.textContent = label;
+    button.addEventListener('click', onActivate);
+    return button;
   }
 
   #paragraph(parts) {

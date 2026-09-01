@@ -10,6 +10,7 @@ import { InstrumentationEditor } from './controls/instrumentationEditor.js';
 import { StationSearch } from './controls/stationSearch.js';
 import { TransportControls } from './controls/transportControls.js';
 import { ViewSwitcher } from './controls/viewSwitcher.js';
+import { NoWelcome, WelcomeOverlay } from './controls/welcomeOverlay.js';
 import { KeyboardControls } from './interaction/keyboardControls.js';
 import { MapSelection } from './interaction/mapSelection.js';
 import { PanelContext } from './panelContext.js';
@@ -19,6 +20,7 @@ import { BACKGROUNDS } from './render/tiles/tileSource.js';
 import { VizCore } from './render/vizCore.js';
 import { localStorageOrForgetful } from './session/browserStorage.js';
 import { StationInUrl, stationMatchingSlug } from './session/stationInUrl.js';
+import { WelcomeVisit } from './session/welcomeVisit.js';
 import { AudioBridge } from './sonification/audioBridge.js';
 import { CustomInstrumentationStore } from './sonification/customInstrumentation.js';
 import { Sonifier } from './sonification/sonifier.js';
@@ -50,6 +52,9 @@ export class PanelShell {
     this.everyScheduleHasArrived = false;
     this.soundIsWaitedOn = false;
     this.invitationShown = false;
+    this.welcome = new NoWelcome();
+    this.welcomeContent = null;
+    this.playbackAwaitsTheWelcome = false;
     // A panel that draws no map gets the black ground and no chooser; one that
     // does may name the background it opens on.
     this.background = panel.capabilities.mapBackground
@@ -82,7 +87,8 @@ export class PanelShell {
     this.viewSwitcher = this.exhibition
       ? null
       : new ViewSwitcher(this.stationInUrl);
-    this.infoCard = new InfoCard(this.panel.infoContent());
+    this.#buildWelcome();
+    this.infoCard = new InfoCard(this.panel.infoContent(), this.#infoActions());
     this.dock = new Dock(this.root, this.#tiles());
     // After the dock, since the offer goes into the sound control it built.
     if (this.sonifier) {
@@ -189,6 +195,57 @@ export class PanelShell {
     this.stationInUrl.forget();
     this.viewSwitcher?.refreshLinks();
     this.camera.fit();
+  }
+
+  // Only a view that offers a welcome has one, and only outside the exhibition,
+  // where nobody would dismiss it. Whether it is shown is the visit's to say.
+  #buildWelcome() {
+    const content = this.exhibition ? undefined : this.panel.welcomeContent?.();
+    if (content === undefined) {
+      return;
+    }
+    this.welcomeContent = content;
+    this.welcomeVisit = new WelcomeVisit();
+    this.welcome = new WelcomeOverlay(this.root, content, {
+      onDismiss: () => this.#onWelcomeDismissed(),
+    });
+    if (this.welcomeVisit.isDue()) {
+      this.welcome.show();
+    }
+  }
+
+  // Whoever wants the welcome again finds it under the info tile.
+  #infoActions() {
+    if (this.welcomeContent === null) {
+      return [];
+    }
+    return [
+      {
+        label: this.welcomeContent.replayLabel,
+        onActivate: () => {
+          this.dock.close();
+          this.welcome.show();
+        },
+      },
+    ];
+  }
+
+  #onWelcomeDismissed() {
+    this.welcomeVisit.recordDismissal();
+    if (this.playbackAwaitsTheWelcome) {
+      this.playbackAwaitsTheWelcome = false;
+      this.time.play();
+    }
+  }
+
+  // The clock waits behind the welcome: the schedule loads and the picture
+  // stands, but nothing moves until the visitor has read it.
+  startPlayback() {
+    if (this.welcome.isOpen) {
+      this.playbackAwaitsTheWelcome = true;
+      return;
+    }
+    this.time.play();
   }
 
   // An own instrumentation outlives the page it was written on, so it is

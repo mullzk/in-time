@@ -36,7 +36,7 @@ async function bootstrap() {
   const shell = new PanelShell(root, panel, time, stationInUrl);
   shell.start();
   time.setTempo(MAX_TEMPO);
-  time.play();
+  shell.startPlayback();
 
   result.roadBuffer
     .then((roadBuffer) => {

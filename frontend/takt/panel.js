@@ -34,6 +34,7 @@ import { TRANSPORT_GROUPS } from '../viz-core/sonification/scheduling.js';
 import { SonificationEngine } from '../viz-core/sonification/sonificationEngine.js';
 import { VehiclePositionEngine } from '../viz-core/travel/vehiclePositionEngine.js';
 import { buildInfoContent } from './infoContent.js';
+import { buildWelcomeContent } from './welcomeContent.js';
 
 // Stacking order where points overlap: buses lowest, then trams, trains on top.
 const DRAW_PRIORITY_BY_CATEGORY = new Map([
@@ -378,6 +379,10 @@ export class TaktPanel extends Panel {
 
   infoContent() {
     return buildInfoContent();
+  }
+
+  welcomeContent() {
+    return buildWelcomeContent();
   }
 
   // The pixel maps draw the rail network themselves, so the overlay would
