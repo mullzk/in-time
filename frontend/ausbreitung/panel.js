@@ -28,6 +28,7 @@ import { SECONDS_PER_DAY } from '../viz-core/time/timeModel.js';
 import { formatTimeOfDay } from '../viz-core/time/timeOfDay.js';
 import { buildConnectionList } from '../viz-core/travel/connectionList.js';
 import { ConnectionScan } from '../viz-core/travel/connectionScan.js';
+import { JourneyOnTheGround } from '../viz-core/travel/journeyOnTheGround.js';
 import { VehiclePositionEngine } from '../viz-core/travel/vehiclePositionEngine.js';
 import { buildInfoContent } from './infoContent.js';
 import { ReachedPlaces } from './reachedPlaces.js';
@@ -53,6 +54,18 @@ const START_COLOR = [255, 255, 255];
 const START_RING_WIDTH_PIXELS = 1.5;
 
 const VEHICLE_HIT_RADIUS_PIXELS = 10;
+
+// The line is drawn against the ground it lies on: white on the black one, and
+// laid on in black wherever the map itself is light. Thin and half see-through,
+// so it traces the journey without covering the places it runs past.
+const JOURNEY_ON_BLACK = [255, 255, 255, 150];
+const JOURNEY_ON_RASTER = [0, 0, 0, 150];
+const JOURNEY_WIDTH_PIXELS = 1.625;
+const INTERCHANGE_WIDTH_PIXELS = 1.5;
+const INTERCHANGE_DIAMETER_PIXELS = 9;
+
+// What is drawn while no reached place is pointed at.
+const NO_JOURNEY = { legs: [], interchanges: [] };
 
 // The place one sets off from is reached by no vehicle, so it has no category.
 const NO_CATEGORY = -1;
@@ -96,6 +109,7 @@ export class AusbreitungPanel extends Panel {
     this.rides = [];
     this.places = new ReachedPlaces([]);
     this.activeVehicles = [];
+    this.journey = NO_JOURNEY;
     this.settled = null;
     this.currentTimeSeconds = startTimeSeconds;
     this.camera = null;
@@ -126,6 +140,10 @@ export class AusbreitungPanel extends Panel {
     this.networks.push({ engine, trips: engine.trips, stations });
     this.connections = buildConnectionList(this.networks);
     this.scan = new ConnectionScan(this.connections);
+    this.journeys = new JourneyOnTheGround(
+      this.connections,
+      this.networks.map((network) => network.engine),
+    );
     this.#settleOnAStartStation();
     this.#rescan();
   }
@@ -201,6 +219,7 @@ export class AusbreitungPanel extends Panel {
     this.tree = this.scan.from(start, this.startTimeSeconds);
     this.rides = this.#ridesOfTree();
     this.places = new ReachedPlaces(this.#placesOfTree());
+    this.journey = NO_JOURNEY;
     this.settled?.forget();
     this.spreadOnScreen = {
       station: this.startStation,
@@ -223,6 +242,7 @@ export class AusbreitungPanel extends Panel {
     this.tree = null;
     this.rides = [];
     this.places = new ReachedPlaces([]);
+    this.journey = NO_JOURNEY;
     this.settled?.forget();
     this.spreadOnScreen = null;
     this.#handTheClockItsRange();
@@ -324,6 +344,7 @@ export class AusbreitungPanel extends Panel {
       return;
     }
     this.#drawReachedPlaces(p, context);
+    this.#drawJourney(p, context);
     this.#drawVehicles(p, context);
     this.#drawStart(p, context);
   }
@@ -390,6 +411,82 @@ export class AusbreitungPanel extends Panel {
 
   #placeColor(category) {
     return category === NO_CATEGORY ? START_COLOR : categoryColor(category);
+  }
+
+  // A place wears the time it is reached at, which is what the spread is about;
+  // a place no journey leads to is only named.
+  describeStation(station) {
+    const arrival = this.#arrivalAt(station);
+    return arrival === null
+      ? [station.name]
+      : [`${formatTimeOfDay(arrival)} ${station.name}`];
+  }
+
+  // The place one sets off from is reached the moment one leaves it, which is a
+  // departure and not an arrival.
+  #arrivalAt(station) {
+    const reached = this.connections.stationOf(station.didok);
+    if (this.spreadOnScreen === null || reached === undefined) {
+      return null;
+    }
+    return this.tree.travelTimeTo(reached) === 0
+      ? null
+      : this.tree.arrivalAt(reached);
+  }
+
+  // The journey to the place under the pointer, worked out once here rather
+  // than in every frame that draws it. Its interchanges are handed back, since
+  // they are named on the map rather than drawn.
+  previewJourneyTo(station) {
+    this.journey = station === null ? NO_JOURNEY : this.#journeyTo(station);
+    return this.journey.interchanges;
+  }
+
+  #journeyTo(station) {
+    const reached = this.connections.stationOf(station.didok);
+    if (
+      this.tree === null ||
+      reached === undefined ||
+      !this.tree.isReached(reached)
+    ) {
+      return NO_JOURNEY;
+    }
+    const { legs, interchangeStations } = this.journeys.to(this.tree, reached);
+    return {
+      legs,
+      interchanges: this.#interchangePlacesOf(interchangeStations),
+    };
+  }
+
+  #interchangePlacesOf(stations) {
+    return stations.flatMap((station) => {
+      const entry = this.catalog.entryOf(this.connections.didokOf(station));
+      return entry === null ? [] : [entry];
+    });
+  }
+
+  // Each leg is a line of its own, so the step across an interchange stays open
+  // rather than being drawn as a ride.
+  #drawJourney(p, context) {
+    const worldPerPixel = context.camera.worldPerPixel();
+    p.noFill();
+    p.stroke(...(context.tilesVisible ? JOURNEY_ON_RASTER : JOURNEY_ON_BLACK));
+    p.strokeWeight(JOURNEY_WIDTH_PIXELS * worldPerPixel);
+    this.journey.legs.forEach((polyline) => {
+      p.beginShape();
+      polyline.forEach(([east, north]) => {
+        p.vertex(east, north);
+      });
+      p.endShape();
+    });
+    p.strokeWeight(INTERCHANGE_WIDTH_PIXELS * worldPerPixel);
+    this.journey.interchanges.forEach((place) => {
+      p.circle(
+        place.east,
+        place.north,
+        INTERCHANGE_DIAMETER_PIXELS * worldPerPixel,
+      );
+    });
   }
 
   #drawVehicles(p, context) {

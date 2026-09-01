@@ -290,3 +290,21 @@ test('a panel with no spread yet asks no question', () => {
 
   assert.equal(panel.headline(), HEADLINE_WHILE_LOADING);
 });
+
+test('a reached place is named with the time it is reached at', () => {
+  const panel = panelFrom(10 * 3600);
+
+  assert.deepEqual(
+    panel.describeStation(panel.stationCatalog().entryOf(8_500_002)),
+    ['10:10 Mitte'],
+  );
+});
+
+test('the place one sets off from is only named', () => {
+  const panel = panelFrom(10 * 3600);
+
+  assert.deepEqual(
+    panel.describeStation(panel.stationCatalog().entryOf(8_500_001)),
+    ['Anfang'],
+  );
+});

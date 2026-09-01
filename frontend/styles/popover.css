@@ -32,6 +32,14 @@
   z-index: 9;
 }
 
+/* Nothing one has settled on is set this small: a preview and the interchanges
+   it names are read in passing. */
+.popover-hover,
+.popover-interchange {
+  padding: 3px 7px;
+  font-size: 11px;
+}
+
 .popover-hover:not(.is-accented) {
   background: var(--color-surface-translucent);
 }
@@ -44,4 +52,13 @@
 .popover-line:not(:last-child) {
   font-size: 11px;
   opacity: 0.7;
+}
+
+/* An interchange on a previewed journey is only named in passing: it stands
+   under both the selection and the hover preview and speaks more quietly, text
+   and ground together -- unlike the preview, whose wording is the point. */
+.popover-interchange {
+  z-index: 8;
+  background: var(--color-surface-translucent);
+  opacity: 0.75;
 }

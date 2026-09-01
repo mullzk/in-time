@@ -336,6 +336,30 @@ export class VehiclePositionEngine {
     return tripDistancesToEvents[tripDistancesToEvents.length - 1];
   }
 
+  // The ground a trip covers between one stop and the next, as the vehicle runs
+  // it: the routed edges end to end, or the straight line a leg without edges
+  // takes. The last stop of a trip leads nowhere, so it has no line.
+  legPolyline(tripIndex, eventIndex) {
+    const { events } = this.trips[tripIndex];
+    const departure = events[eventIndex];
+    const arrival = events[eventIndex + 1];
+    if (arrival === undefined) {
+      return [];
+    }
+    if (departure.legEdges.length === 0) {
+      return [this.stations[departure.station], this.stations[arrival.station]];
+    }
+    return departure.legEdges.flatMap((signedEdge) =>
+      this.#pointsAlongEdge(signedEdge),
+    );
+  }
+
+  // A negative edge is the same line run against its stored direction.
+  #pointsAlongEdge(signedEdge) {
+    const polyline = this.edges[Math.abs(signedEdge) - 1];
+    return signedEdge < 0 ? [...polyline].reverse() : polyline;
+  }
+
   tripEndpoints(tripIndex) {
     const { events } = this.trips[tripIndex];
     return {

@@ -1,4 +1,5 @@
 import { HoverInteraction } from './hoverInteraction.js';
+import { InterchangeLabels } from './interchangeLabels.js';
 import { Popover } from './popover.js';
 import { TapInteraction } from './tapInteraction.js';
 import { TrackedPopover } from './trackedPopover.js';
@@ -27,13 +28,21 @@ export function sameSelectionTarget(first, second) {
 // mouse previews by hovering and commits by clicking; a finger, which cannot
 // hover, previews with its first tap and commits with a second one on the same
 // target. The panel supplies the pickers and, for vehicles, describeVehicle and
-// vehiclePosition.
+// vehiclePosition; a panel that draws something of its own for the previewed
+// station is told about it through previewJourneyTo, and the places it answers
+// with are named on the map.
 export class MapSelection {
   constructor(
     container,
     panel,
     context,
-    { onStationChosen, onNothingTapped, popover, hoverPopover } = {},
+    {
+      onStationChosen,
+      onNothingTapped,
+      popover,
+      hoverPopover,
+      interchangeLabels,
+    } = {},
   ) {
     this.panel = panel;
     this.context = context;
@@ -51,6 +60,12 @@ export class MapSelection {
       this.camera,
       this.time,
     );
+    this.interchangeLabels =
+      interchangeLabels ??
+      new InterchangeLabels(
+        this.camera,
+        () => new Popover(container, 'popover-interchange'),
+      );
     this.onStationChosen = onStationChosen;
     this.onNothingTapped = onNothingTapped;
     this.previewed = null;
@@ -79,6 +94,7 @@ export class MapSelection {
   onFrameRendered() {
     this.selection.reanchor();
     this.hover.reanchor();
+    this.interchangeLabels.reanchor();
   }
 
   revealStation(station) {
@@ -109,6 +125,7 @@ export class MapSelection {
   #hover(target) {
     if (target === null || this.#isSelected(target)) {
       this.hover.clear();
+      this.#previewJourneyTo(null);
       return;
     }
     this.#preview(target);
@@ -121,11 +138,17 @@ export class MapSelection {
       this.hover.showVehicle(target.vehicle);
     }
     this.previewed = target;
+    this.#previewJourneyTo(target.kind === 'station' ? target.station : null);
+  }
+
+  #previewJourneyTo(station) {
+    this.interchangeLabels.show(this.panel.previewJourneyTo?.(station) ?? []);
   }
 
   #dropPreview() {
     this.previewed = null;
     this.hover.clear();
+    this.#previewJourneyTo(null);
   }
 
   // A finger has no hover, so its first tap on a target only names it and the
@@ -144,6 +167,7 @@ export class MapSelection {
       return;
     }
     this.previewed = null;
+    this.#previewJourneyTo(null);
     if (target.kind === 'station') {
       this.revealStation(target.station);
     } else {
