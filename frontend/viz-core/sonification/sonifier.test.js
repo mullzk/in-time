@@ -19,12 +19,19 @@ class FakeAudioBridge {
     this.started = false;
     this.currentTime = 0;
     this.plays = [];
+    this.starts = 0;
+    this.warmedSources = [];
   }
 
-  // The test controls `started` directly, so start() stays a no-op: it stands in
-  // for a load whose completion the test times explicitly.
-  async start() {}
-  async warmUp() {}
+  // The test controls `started` directly, so start() only counts its calls: it
+  // stands in for a load whose completion the test times explicitly.
+  async start() {
+    this.starts += 1;
+  }
+
+  async warmUp(sources) {
+    this.warmedSources.push(sources);
+  }
 
   play(parameters, deadline, duration) {
     this.plays.push({ parameters, deadline, duration });
@@ -108,4 +115,31 @@ test('events elapsed while audio was loading do not burst on first frame', () =>
   timeModel.current = 299.95;
   sonifier.onFrameRendered();
   assert.equal(bridge.plays.length, 1);
+});
+
+const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+// The audio context may only start on a user gesture. A station named in the
+// address is chosen without one, so the start does not take; picking an
+// instrumentation is a gesture and has to start it again.
+test('picking an instrumentation starts audio the station could not', async () => {
+  const { bridge, sonifier } = makeHarness(pastEvents);
+  sonifier.setStation('station');
+  await settle();
+  assert.equal(bridge.starts, 1, 'the station tried');
+
+  sonifier.setInstrumentation(instrumentation);
+  await settle();
+
+  assert.equal(bridge.starts, 2, 'and the instrumentation tries again');
+  assert.deepEqual(bridge.warmedSources.at(-1), ['sine']);
+});
+
+test('dropping the instrumentation starts no audio', async () => {
+  const { bridge, sonifier } = makeHarness(pastEvents);
+
+  sonifier.setInstrumentation(null);
+  await settle();
+
+  assert.equal(bridge.starts, 0);
 });

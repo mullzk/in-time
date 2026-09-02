@@ -48,11 +48,14 @@ export class Sonifier {
     this.dwellVoices = [];
   }
 
+  // Picking an instrumentation is a user gesture, and so the audio's second
+  // chance to start: a station taken from the address was chosen without one,
+  // and a context the autoplay policy held back then is still silent.
   setInstrumentation(instrumentation) {
     this.instrumentation = instrumentation;
     this.dwellVoices = [];
-    if (instrumentation && this.audioBridge.started) {
-      this.audioBridge.warmUp(this.#sources());
+    if (instrumentation !== null) {
+      this.#ensureAudio();
     }
   }
 
