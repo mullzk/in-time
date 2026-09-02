@@ -190,6 +190,7 @@ export class PanelShell {
   #forgetStation() {
     this.stationChosen = false;
     this.selection?.clear();
+    this.panel.forgetStation?.();
     this.sonifier?.forgetStation();
     this.#setInstrumentation(this.panel.silenceTheSound?.() ?? null);
     this.stationInUrl.forget();

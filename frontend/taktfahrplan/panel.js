@@ -117,6 +117,16 @@ const STATION_STROKE_BY_MODE = new Map([
   ['bus', categoryColor(CATEGORY_BUS)],
 ]);
 const STATION_STROKE_WIDTH_PIXELS = 1;
+
+// The ring around the chosen station. It is laid on a darker one of its own, so
+// that it reads on the black ground and over a light map alike, without having
+// to know which of the two lies underneath.
+const CHOSEN_STATION_RING_DIAMETER_PIXELS = 14;
+const CHOSEN_STATION_RING_COLOR = [255, 255, 255];
+const CHOSEN_STATION_RING_WIDTH_PIXELS = 2;
+const CHOSEN_STATION_HALO_COLOR = [0, 0, 0, 140];
+const CHOSEN_STATION_HALO_WIDTH_PIXELS = 4;
+
 const VEHICLE_HIT_RADIUS_PIXELS = 10;
 
 // Zoom fraction at and above which the stops layer switches itself on; below it,
@@ -191,6 +201,7 @@ export class TaktfahrplanPanel extends Panel {
     this.previousZoomFraction = null;
     this.layerOptions = {};
     this.camera = null;
+    this.chosenStation = null;
     this.adoptSchedule(railBuffer, railStations);
   }
 
@@ -284,6 +295,7 @@ export class TaktfahrplanPanel extends Panel {
       });
     }
     this.#drawStationNodes(p, context);
+    this.#drawChosenStation(p, context);
     this.#drawVehicles(p, context);
   }
 
@@ -506,6 +518,11 @@ export class TaktfahrplanPanel extends Panel {
       this.#showLayer(layer);
     }
     this.#setStops(true);
+    this.chosenStation = station;
+  }
+
+  forgetStation() {
+    this.chosenStation = null;
   }
 
   #showLayer(layer) {
@@ -569,6 +586,24 @@ export class TaktfahrplanPanel extends Panel {
         p.circle(station.east, station.north, diameter);
       }
     });
+  }
+
+  // Drawn past the stops layer and past the mode layers: the ring says which
+  // station is sounding, which holds however little else is shown.
+  #drawChosenStation(p, context) {
+    if (this.chosenStation === null) {
+      return;
+    }
+    const { east, north } = this.chosenStation;
+    const worldPerPixel = context.camera.worldPerPixel();
+    const diameter = CHOSEN_STATION_RING_DIAMETER_PIXELS * worldPerPixel;
+    p.noFill();
+    p.stroke(...CHOSEN_STATION_HALO_COLOR);
+    p.strokeWeight(CHOSEN_STATION_HALO_WIDTH_PIXELS * worldPerPixel);
+    p.circle(east, north, diameter);
+    p.stroke(...CHOSEN_STATION_RING_COLOR);
+    p.strokeWeight(CHOSEN_STATION_RING_WIDTH_PIXELS * worldPerPixel);
+    p.circle(east, north, diameter);
   }
 
   railStationNear(screenX, screenY) {

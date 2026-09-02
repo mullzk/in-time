@@ -213,6 +213,25 @@ test('a stop whose own layer is switched off is not picked', () => {
   assert.equal(panel.minorStationNear(400, 300), null);
 });
 
+test('the chosen station is marked even once the stops are hidden', () => {
+  const panel = new TaktfahrplanPanel(RAIL_BUFFER, RAIL_STATIONS);
+  const chosen = panel.stationCatalog().entryOf(1);
+
+  panel.revealStation(chosen);
+  panel.layers.stops = false;
+
+  assert.equal(panel.chosenStation, chosen);
+});
+
+test('giving the station up takes its mark away', () => {
+  const panel = new TaktfahrplanPanel(RAIL_BUFFER, RAIL_STATIONS);
+  panel.revealStation(panel.stationCatalog().entryOf(1));
+
+  panel.forgetStation();
+
+  assert.equal(panel.chosenStation, null);
+});
+
 test('the sound options are told apart by value, not by name', () => {
   const namesake = Instrumentation.fromDocument({
     instrumentation: INSTRUMENTATIONS[0].name,
