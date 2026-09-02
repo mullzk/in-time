@@ -1,4 +1,5 @@
 import { HoverInteraction } from './hoverInteraction.js';
+import { InterchangeLabels } from './interchangeLabels.js';
 import { Popover } from './popover.js';
 import { TapInteraction } from './tapInteraction.js';
 import { TrackedPopover } from './trackedPopover.js';
@@ -23,18 +24,25 @@ export function sameSelectionTarget(first, second) {
 // Tap- and hover-to-select on the map, sharing one ranked picker so a hover
 // previews exactly what a click would take: a rail station wins, then a vehicle,
 // then a tram or bus stop. The committed selection and the preview each drive
-// their own tracked popover -- the preview's drawn weaker and beneath -- and both
-// follow the moving camera every frame. A mouse previews by hovering and commits
-// by clicking; a finger, which cannot hover, previews with its first tap and
-// commits with a second one on the same target, so reading a station's name never
-// costs a choice. The panel supplies the pickers and, for vehicles,
-// describeVehicle and vehiclePosition.
+// their own tracked popover, both following the moving camera every frame. A
+// mouse previews by hovering and commits by clicking; a finger, which cannot
+// hover, previews with its first tap and commits with a second one on the same
+// target. The panel supplies the pickers and, for vehicles, describeVehicle and
+// vehiclePosition; a panel that draws something of its own for the previewed
+// station is told about it through previewJourneyTo, and the places it answers
+// with are named on the map.
 export class MapSelection {
   constructor(
     container,
     panel,
     context,
-    { onStationChosen, popover, hoverPopover } = {},
+    {
+      onStationChosen,
+      onNothingTapped,
+      popover,
+      hoverPopover,
+      interchangeLabels,
+    } = {},
   ) {
     this.panel = panel;
     this.context = context;
@@ -52,7 +60,14 @@ export class MapSelection {
       this.camera,
       this.time,
     );
+    this.interchangeLabels =
+      interchangeLabels ??
+      new InterchangeLabels(
+        this.camera,
+        () => new Popover(container, 'popover-interchange'),
+      );
     this.onStationChosen = onStationChosen;
+    this.onNothingTapped = onNothingTapped;
     this.previewed = null;
   }
 
@@ -64,7 +79,10 @@ export class MapSelection {
       onSelect: (target, pointerType) => this.#select(target, pointerType),
       onActivate: (target) => this.#activate(target),
       onPointerDown: () => this.clear(),
-      onNothingTapped: () => this.#dropPreview(),
+      onNothingTapped: () => {
+        this.#dropPreview();
+        this.onNothingTapped?.();
+      },
     });
     new HoverInteraction(canvasElement, {
       pick,
@@ -76,6 +94,7 @@ export class MapSelection {
   onFrameRendered() {
     this.selection.reanchor();
     this.hover.reanchor();
+    this.interchangeLabels.reanchor();
   }
 
   revealStation(station) {
@@ -84,8 +103,7 @@ export class MapSelection {
     this.selectStation(station);
   }
 
-  // Moving in on the chosen station is what a map view wants; a view whose
-  // picture is the whole country says so itself and frames it its own way.
+  // A panel that frames a station itself is asked instead of the camera.
   #bringIntoView(station) {
     if (this.panel.frameStation) {
       this.panel.frameStation(this.context, station);
@@ -107,6 +125,7 @@ export class MapSelection {
   #hover(target) {
     if (target === null || this.#isSelected(target)) {
       this.hover.clear();
+      this.#previewJourneyTo(null);
       return;
     }
     this.#preview(target);
@@ -119,16 +138,21 @@ export class MapSelection {
       this.hover.showVehicle(target.vehicle);
     }
     this.previewed = target;
+    this.#previewJourneyTo(target.kind === 'station' ? target.station : null);
+  }
+
+  #previewJourneyTo(station) {
+    this.interchangeLabels.show(this.panel.previewJourneyTo?.(station) ?? []);
   }
 
   #dropPreview() {
     this.previewed = null;
     this.hover.clear();
+    this.#previewJourneyTo(null);
   }
 
-  // A finger has no hover to read a name with, so its first tap on a target only
-  // names it and its second one takes it. The mouse, which has hovered the target
-  // already, takes it on the first click.
+  // A finger has no hover, so its first tap on a target only names it and the
+  // second one takes it; a mouse has hovered it already.
   #awaitsAnotherTap(target, pointerType) {
     return (
       pointerType !== 'mouse' &&
@@ -143,6 +167,7 @@ export class MapSelection {
       return;
     }
     this.previewed = null;
+    this.#previewJourneyTo(null);
     if (target.kind === 'station') {
       this.revealStation(target.station);
     } else {

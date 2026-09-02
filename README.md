@@ -1,213 +1,181 @@
 # All in Time
 
-Mapping Public Transportation Data
+Mapping public transport data: a web app that visualises and sonifies the rhythm
+of the Swiss clock-face timetable (Taktfahrplan). See https://all-in-time.ch
 
-_All in Time_ visualises — and makes audible — the rhythm of the Swiss
-clock-face timetable (Taktfahrplan): the heartbeat of the country's base
-infrastructure. The name carries the double sense of _in time_ (musical, in
-tempo) and _on time_ (Swiss punctuality).
+## Views
 
-## Product vision & scope
+Three views on the same day, one page each, switched by a page load:
 
-A web app as a **gallery of views** onto the same public-transport data, each a
-distinct perspective. **Three are built**, and they are what the app delivers:
+- **`/taktfahrplan`** — the day's timetable as pulsing motion; sonified.
+- **`/reisefaecher`** — reachability spreading from a station over time.
+- **`/zeitkarte`** — a radial still image of travel times from a station.
 
-1. **Spread** — how reachability spreads out from a location over time
-   (wildfire).
-2. **Travel-time graph** — a radial still image of travel times from a location.
-3. **Takt** — the day's timetable as a pulsing motion; also **sonified**.
+Each takes an optional station in the path (`/taktfahrplan/zürich-hb`).
+`?mode=exhibition` is the unattended kiosk variant: no view switcher, no
+instrumentation editor, and a view awaiting a station picks one itself instead
+of asking.
 
-Two further views live on the planned timetable's counterpart, the delays
-actually measured, and are **deferred**: **Delays** (a past day as it really
-ran) and **Hotspots** (aggregated delay hotspots over a freely chosen time
-range). Nothing of that chain is built — no measured data is fetched, no delay
-artifact is written — and the app makes no claim about punctuality until it is.
+## Data
 
-**Two usage contexts:** the regular web app and an **exhibition mode** (kiosk,
-unattended). Data sources: the GTFS planned timetable and swisstopo geometry —
-Switzerland-wide, always the **current day**; measured data joins them with the
-two deferred views. Rail and tram run on the real geometry of the BAV rail
-network; buses are drawn as straight lines between their stops, since routing
-them over the road network would buy little at the zoom levels the views live
-at.
+GTFS planned timetable (opentransportdata.swiss) and swisstopo maps,
+Switzerland-wide, always the current day. Rail and tram are routed over the BAV
+rail network geometry, buses run straight-line between stops.
 
-## Running locally
+## Getting started
 
-Prerequisites: [mise](https://mise.jdx.dev/) (pins Python) and
-[uv](https://docs.astral.sh/uv/) (dependencies).
+Requirement: [mise](https://mise.jdx.dev/), activated in your shell.
 
 ```bash
-cp .env.example .env          # then fill in the values
-mise exec -- uv run python backend/manage.py migrate
-mise exec -- uv run python backend/manage.py build_schedule
-mise exec -- uv run python backend/manage.py runserver
+mise trust && mise install
+uv sync
+cp .env.example .env    # adjust if local dev environment defaults do not fit.
+python backend/manage.py migrate
+python backend/manage.py build_schedule
+python backend/manage.py runserver
 ```
 
-Then browse <http://127.0.0.1:8000/>. `build_schedule` publishes the current
-day's artifacts; without it, `/api/config` returns `503` (nothing published
-yet). Run the commands from the repository root so the relative
-`IN_TIME_DATA_DIR` resolves. In `DEBUG` the dev server also serves `/artifacts/`
-from the data directory and proxies `/tiles/` to swisstopo, so both the schedule
-blobs and the map tiles load without the reverse proxy.
+Without shell activation, drop the `mise` and `uv` commands and prefix the three
+`python`-commands with `mise exec -- uv run `.
 
-`tooling/check.sh` runs every formatter and linter (`--fix` applies them),
-`tooling/test.sh` runs both test suites.
+### Without mise
 
-A second management command, `verify_railnet --gdb <path>`, loads a BAV rail
-network geodatabase on its own and reports node, edge and subnetwork counts plus
-load and routing-build times. It publishes nothing and is meant for judging a
-new network release before a build runs on it.
+Install `python` as stated in `mise.toml` (`node` as well, for frontend tooling)
+and the dependencies listed in `pyproject.toml`. From there the `manage.py`
+sequence above is the same.
 
-## HTTP surface
+### What `build_schedule` and `runserver` do
 
-The browser-facing app (`web`) exposes a small surface; everything else the
-client needs is served directly by the reverse proxy.
+`build_schedule` fetches the sources, assembles the current service day and
+publishes it. Without it nothing is published and `/api/config` returns `503`.
 
-- `GET /` — the entry point, redirecting to `/takt`.
-- `GET /takt`, `GET /ausbreitung`, `GET /reisezeit` — one page per view, each
-  carrying its own panel. Switching between them is a page load, reached through
-  the view switcher in the dock's app tile.
-- `GET /api/config` — JSON
-  `{ serviceDate, railScheduleBlobUrl, roadScheduleBlobUrl, railStationsUrl, roadStationsUrl }`.
-  The service day is read from the `current` artifact symlink. Returns `503`
-  when no day is published yet.
-- `GET /api/stations-rail`, `GET /api/stations-road` — the station catalog per
-  network (`[{ didok, name, modes, cluster }]`, in blob index order; `cluster`
-  only for a stop belonging to an interchange), passed through from the
-  published artifacts.
+`runserver` starts a local django-server so you can access the app in your
+browser on http://127.0.0.1:8000/. Under `DEBUG` the dev server stands in for
+the reverse proxy: it serves `/artifacts/` from the data directory and proxies
+`/tiles/` to swisstopo. (`DJANGO_DEBUG` in `.env`)
 
-Every `/api/*` endpoint carries a weak `ETag` over its own payload plus
-`Cache-Control: public, no-cache`, so a client revalidates cheaply (`304`) until
-the content actually changes. The ETag is deliberately not keyed to the service
-day: a deploy can change the config URLs and a rebuild can re-emit the same day
-with new fields, and a day-keyed validator would strand clients on a stale body.
+### Developer tooling
 
-The schedule blobs themselves are **not** served by the app in production: the
-proxy serves them from the published `current` symlink under
-`/artifacts/schedule-rail.itsb` and `/artifacts/schedule-road.itsb` (the dev
-server stands in for the proxy under `DEBUG`). The config hands out those paths
-with the published file's version appended as `?v=…`, so a rebuild is a new
-address and no cache can hold a blob against a catalog that has moved on.
+We run `ruff` and `mypy` on our python code, `biome` and `prettier` on
+everything else. The backend is tested with `pytest`, the frontend with plain
+`npm test`. All tools are present in CI, some also in githook.
 
-## Frontend (viz-core)
+All tools are combined in two commands:
 
-The client lives in `frontend/` as static ES modules with **no bundler**; the
-runtime stays bundler-free. `viz-core` is a small framework the views plug into
-— the Takt panel, the Spread and the travel-time graph:
+- `tooling/check.sh` — every formatter and linter (`--fix` applies).
+- `tooling/test.sh` — both test suites.
 
-- **`VizCore`** owns the single [p5.js](https://p5js.org/) instance-mode render
-  loop (vendored as `frontend/vendor/p5.esm.min.js`, pinned in `package.json`
-  and kept in sync by `npm run vendor` / checked in CI by
-  `npm run vendor:check`).
-- The pure, unit-tested core — **`Camera`** (LV95 world space, screen↔world,
-  zoom/pan clamps), **`Projection`** (WGS84→LV95), **`TimeModel`** (operating
-  window, tempo, loop, scrubber), **`VehiclePositionEngine`** (reads a binary
-  schedule blob and answers `activeAt(t)` with interpolated positions) and
-  **`StationCatalog`** (the merged stations of both networks, with the search
-  ranking) — carries no p5 or DOM, so `node:test` covers it directly. Rendering
-  is verified visually.
-- The **`VehiclePositionEngine`** mirrors the Python blob writer column for
-  column; the committed golden fixtures under `frontend/viz-core/fixtures/`
-  (generated by `python -m pipeline.tests.golden_blob`) are the cross-language
-  proof that reader and writer agree on the format.
-- **Journeys are computed in the browser**, not on the server. A
-  `ConnectionList` turns the loaded blobs into every leg of the day in departure
-  order — one shared station directory over both networks — and a
-  `ConnectionScan` walks it once to leave the earliest arrival at every station,
-  with the connection one came on. That reachability tree is what the Spread
-  animates and the travel-time graph draws: some 2.3 million legs scanned in a
-  few milliseconds, so a visitor may pick any starting point without the server
-  hearing of it.
-- **Sonification** is a sibling of the position engine and runs entirely in the
-  browser off the same daily blobs: a `SonificationEngine` indexes a blob's
-  events by station, and the `Sonifier` voices the selected station — a whole
-  interchange counting as one place — through the vendored
-  [superdough](https://www.npmjs.com/package/superdough) audio engine. Its
-  samples are vendored too, so the client fetches audio same-origin like
-  everything else.
-- **An instrumentation is a document, not code.** A JSON file under
-  `frontend/viz-core/sonification/instrumentations/` names a sound per transport
-  group and per event (arrival, departure, pass-through, standing); what it
-  leaves out is inherited from the level above it, down to the sound itself and
-  the kind of sound it is. The sounds it may name are the registry in
-  `sonification/sounds/`, and that same registry is what the vendoring script
-  mirrors — so a sound the app offers is one it can play.
-- **A listener may write one.** The `InstrumentationEditor` is a drawer opposite
-  the dock in which such a document is typed and checked on every keystroke;
-  what plays is heard at once and kept in the browser's local storage, so it
-  outlasts the page and joins the sound list. It never reaches the server, and
-  the exhibition mode does not build it.
-- **The controls live in a dock**, not in a chrome of their own: a strip of
-  tiles down the left edge of the picture, along its foot on a narrow screen.
-  One tile per group — the gallery of views, play, time, elements, map, sound,
-  info. A tile is hovered to learn its name and clicked to open the card holding
-  its controls; only one card stands open, so the picture is never covered by
-  more than the one thing being set. Which control belongs to which tile is held
-  once, in `dockTiles`, so a panel supplies its sections without knowing where
-  they surface, and a tile whose sections a view does not offer is not hung at
-  all — which is how the exhibition and the travel-time view thin the dock out
-  by themselves. Play is the one tile that answers the press itself, wearing the
-  face of what pressing it will do next.
-- **Styling** follows [SMACSS](http://smacss.com/) as static CSS under
-  `frontend/styles/` (base with design tokens, layout, one file per module) — no
-  inline styles, bundler-free, biome-formatted. A base template carries the
-  global layers; each page links only the modules it uses.
+The additional django-command `verify_railnet --gdb <path>` loads a BAV network
+geodatabase on its own and reports node, edge and subnetwork counts plus
+timings. Publishes nothing; for judging a new network release.
 
-## Expectations toward the infrastructure
+## Architecture
 
-_All in Time_ expects of its runtime environment:
+### Pipeline
 
-- **A Python application server** behind a **reverse proxy**. The proxy serves
-  static files and large artifacts directly (not through the app server), so
-  that slow clients never tie up app workers.
-- **Static serving** of three paths by the proxy: the frontend assets
-  (`STATIC_ROOT`), an **artifact directory** (daily binary blobs), and a **tile
-  cache**.
-- **Pre-compressed artifacts.** The schedule blobs are large (a current day: ≈ 8
-  MB rail and tram, ≈ 32 MB bus) but, being columnar, compress by ~90 %. The
-  build writes `.gz` and `.br` sidecars next to every artifact; the proxy is
-  expected to serve them via its _static_ pre-compression (gzip/brotli), so
-  nothing is recompressed per request. Sidecars sit in the per-day directory and
-  swap atomically with the blob, so they never go stale.
-- **Versioned artifact URLs.** `/api/config` addresses each blob with the
-  version of the published file (`?v=…`), the way the static files carry their
-  content hash. A rebuilt day is a new address, so a client can never read a
-  cached blob against the station catalog whose indices no longer match it. The
-  config response itself revalidates, which is what makes the new address reach
-  clients at all; the blobs behind those addresses may be cached freely.
-- **A tile proxy with cache** (server-to-server to swisstopo) — the client talks
-  **only** to our server, never to third-party hosts (for all assets, fonts,
-  maps). The client requests same-origin `/tiles/{layer}/{z}/{x}/{y}.{ext}`; the
-  proxy adds the swisstopo host, referer and cache, so the layer choice lives in
-  the path and the client stays origin-agnostic.
-- **A MariaDB database** (per app, with its own user).
-- **A scheduler** running `build_schedule` daily and alerting on failure. A
-  second command for the measured data comes with the two deferred views.
-  `build_schedule` builds the **current** day (Europe/Zurich), so it must run
-  **after local midnight**; it briefly needs extra disk (a new raw feed is
-  fetched next to the previous one before the old is pruned), so it should run
-  **before the nightly VM snapshot** and not overlap it, keeping the snapshot
-  consistent and free of the transient peak.
-- **An env file** with the configuration/secret values (no hostname, no
-  infrastructure reference in the code repo).
-- **A persistent data directory** that survives deploys and is shared by the app
-  _and_ the build commands.
-- **Continuous deployment**: on green tests the new version is rolled out.
+A daily Django command (`build_schedule`) turns two versioned archives — the
+GTFS feed and the BAV rail network — into the artifacts the client reads. Both
+versions together tag the run, so a day already published from the same pair is
+skipped rather than rebuilt.
 
-Implemented in another project (`webapp_infra`).
+- Inputs become a rail graph in LV95, one point per Swiss station, the
+  interchange clusters that make a railway station and its surrounding tram and
+  bus stops one place, and a feed-wide scan of which connections run regularly
+  enough to belong on a base map.
+- The day splits into two published networks, railbound (rail and tram) and road
+  (bus). Railbound legs are routed over the track network, with the shared
+  geometry held once and referenced; bus legs carry no geometry at all.
+- The output per network is a binary schedule blob plus a station catalog, each
+  written with `.gz` and `.br` sidecars. Publishing swaps a symlink to the new
+  day and drops the day it replaced.
+- `BuildRun` is the permanent ledger of every attempt — day, source version,
+  outcome — and is what skip-if-done reads.
 
-## Glossary
+### HTTP surface
 
-Domain abbreviations and special terms used across the code and docs.
+Everything else the client needs comes from the reverse proxy.
 
-- **GTFS** — General Transit Feed Specification: the open format of the planned
-  timetable, published for Switzerland on opentransportdata.swiss.
-- **DiDok** — the Swiss stop/station register number that uniquely identifies a
-  station. In GTFS it appears as the **BPUIC**; we use it as the stable key for
-  stations.
-- **ITSB** — "In Time Schedule Blob": the 4-byte magic and name of the binary
-  daily artifacts of the planned timetable (columnar, little-endian; the network
-  geometry stored once as a shared edge list, each trip a reference into it). A
-  day is published as one blob per network — rail (rail and tram, routed over
-  the BAV network) and road (buses, straight lines, hence no edges) — with the
-  network type in the header. Consumed by every view.
+- `/taktfahrplan`, `/reisefaecher`, `/zeitkarte`: simple html-pages loading js
+  and css and providing the canvas.
+- `/api/config`: returns a dict with the serviceDate and the urls to the
+  scheduleBlobs and stationCatalogs; `503` when nothing is published.
+- `/api/stations-rail`, `/api/stations-road`: station catalog per network
+  (`[{ didok, name, modes, cluster }]`, in blob index order).
+- `/health/` — plain `ok`.
+
+Every `/api/*` response carries a weak `ETag` over its own payload plus
+`Cache-Control: public, no-cache`. The ETag is keyed to the payload, not the
+service day: a deploy can change config URLs and a rebuild can re-emit the same
+day with new fields.
+
+Blob URLs point at `/artifacts/schedule-rail.itsb` and `schedule-road.itsb` with
+the published file's version as `?v=…`, so a rebuild is a new address.
+
+### Frontend
+
+Static ES modules under `frontend/`. No bundler, no CDN! Runtime dependencies
+are vendored with `npm run vendor` and tracked in git. In order to allow
+dependency-management (dependabot), CI checks consistency with
+`npm run vendor:check`
+
+- `VizCore` owns the single [p5.js](https://p5js.org/) instance and render loop;
+  the panels plug into it.
+- A panel is a view's plug-in: It implements the lifecycle hooks — `update`,
+  `drawWorld` inside the camera transform, `drawOverlay` in screen space. The
+  panels sees camera, time and background-tiles in its context. Every panel also
+  declares its UI-controls.
+- Core-Elements: _`Camera`_ (LV95 world space, zoom/pan clamps), _`TimeModel`_
+  (operating window, tempo, loop, scrubber), _`StationCatalog`_ (both networks
+  merged, search ranking).
+- _What the views draw is computed in the browser_, from the schedule blobs
+  alone — the server only serves static content and does not care what the
+  browser shows:
+  - `VehiclePositionEngine` reads a blob and answers `activeAt(t)`: every trip
+    running at that moment with its position interpolated along the route
+    geometry. That is the pulse the taktfahrplan view animates.
+  - `ConnectionList` (every leg of the day in departure order, one shared
+    station directory) plus `ConnectionScan` (one pass, earliest arrival per
+    station) yield the reachability tree the reisefaecher and zeitkarte views
+    draw — ~2.3 million legs in milliseconds.
+- The background is a swisstopo tile layer under the drawing: `TileLayer`
+  fetches and caches what the camera sees on the LV95 tile grid
+  (`tileMatrixSet`).
+- Sonification runs off the same blobs: `SonificationEngine` indexes a blob's
+  events per station, `Sonifier` voices the selected station (an interchange
+  counting as one place) through vendored
+  [superdough](https://www.npmjs.com/package/superdough); samples vendored too.
+  What plays is described by an instrumentation, a JSON document the
+  `InstrumentationEditor` drawer edits live and keeps in local storage.
+- The UI-Controls (dock, station-search, clock) live outside the canvas. Each
+  panel decides which controls are present.
+- Styling is [SMACSS](http://smacss.com/) as static CSS under
+  `frontend/styles/`.
+- Golden fixtures under `frontend/viz-core/fixtures/` (written by
+  `python -m pipeline.tests.golden_blob`) pin the blob format across the two
+  languages.
+
+## Deployment requirements
+
+What the serving environment has to provide; implemented in another project
+(`webapp_infra`).
+
+- gunicorn: Python application server — running `./backend/`
+- nginx: Reverse proxy,
+  - making the python application server accessible to the outside.
+  - serving static files (frontend-js) and artifacts directly.
+  - providing a cached tile proxy to swisstopo. The client requests same-origin
+    `/tiles/{layer}/{z}/{x}/{y}.{ext}`; the proxy adds host, referer and cache.
+- mariadb: Database — the `BuildRun` ledger.
+- A scheduler running `build_schedule` daily, alerting on failure. It builds the
+  current day (Europe/Zurich), so it must run after local midnight.
+- An environment with configuration and secrets not in the repo.
+- A persistent data directory, shared by app and build commands, surviving
+  deploys.
+
+The app tries to be product-agnostic, so switching out gunicorn, nginx, mariadb
+and systemd should be easily possible.
+
+## Further reading
+
+- [`GLOSSARY.md`](GLOSSARY.md) — abbreviations and domain terms used across the
+  code and docs.

@@ -1,10 +1,9 @@
-// Turns mouse movement over the canvas into a hovered target: as the pointer
-// moves it picks whatever lies under it and reports the change through onHover,
-// passing null when nothing is hit or the pointer leaves. Mouse only -- touch
-// has no hover -- and quiet while a button is held so it never fires during a
-// camera drag. sameTarget(a, b) decides when two picks are the same target, so a
-// vehicle rebuilt each frame is not reported as a fresh hover on every move; only
-// a real change reaches onHover.
+// Turns mouse movement over the canvas into a hovered target: it picks whatever
+// lies under the pointer and reports the change through onHover, passing null
+// when nothing is hit or the pointer leaves. Mouse only -- touch has no hover --
+// and quiet while a button is held, so it never fires during a camera drag.
+// sameTarget(a, b) decides when two picks are the same target, so a vehicle
+// rebuilt each frame is not reported as a fresh hover on every move.
 export class HoverInteraction {
   constructor(canvasElement, { pick, onHover, sameTarget }) {
     this.canvas = canvasElement;

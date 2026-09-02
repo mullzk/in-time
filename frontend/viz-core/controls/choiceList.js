@@ -1,9 +1,7 @@
 import { element } from './dom.js';
 
-// One choice out of a handful, all of them on show: the option in force is
-// filled in, the rest are there to be picked. What a dropdown hides behind a
-// click stands open here, which is what the cards have the room for. An option
-// is { value, label }; the value is what comes back through onChoose.
+// One choice out of a handful, all of them on show. An option is
+// { value, label }; the value is what comes back through onChoose.
 export class ChoiceList {
   constructor(options, { onChoose, chosen = null } = {}) {
     this.onChoose = onChoose;
@@ -16,8 +14,7 @@ export class ChoiceList {
     });
   }
 
-  // An option may arrive long after the list is built -- an instrumentation
-  // someone writes -- and may be renamed while it stands in it.
+  // An option may arrive after the list is built and may be renamed later.
   offer({ value, label }) {
     const known = this.options.find((option) => option.value === value);
     if (known) {

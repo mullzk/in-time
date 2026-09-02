@@ -39,7 +39,9 @@ function makeFakePopover() {
     showAt(x, y) {
       this.calls.push(['showAt', x, y]);
     },
-    showLines(x, y) {
+    lines: [],
+    showLines(x, y, lines) {
+      this.lines = lines;
       this.calls.push(['showLines', x, y]);
     },
     moveTo(x, y) {
@@ -48,6 +50,16 @@ function makeFakePopover() {
     hide() {
       this.calls.push(['hide']);
     },
+  };
+}
+
+function makeFakeLabels() {
+  return {
+    shown: [],
+    show(places) {
+      this.shown.push(places);
+    },
+    reanchor() {},
   };
 }
 
@@ -66,7 +78,13 @@ function makeFakeCanvas() {
 
 // A camera whose horizontal pan the test can shift to mimic any view change,
 // so worldToScreen returns a different screen point after a camera move.
-function makeSelection({ popover, hoverPopover, panel } = {}) {
+function makeSelection({
+  popover,
+  hoverPopover,
+  panel,
+  onNothingTapped,
+  interchangeLabels,
+} = {}) {
   const camera = {
     pan: 0,
     worldToScreen(east, north) {
@@ -82,6 +100,8 @@ function makeSelection({ popover, hoverPopover, panel } = {}) {
   const selection = new MapSelection(null, panel ?? {}, context, {
     popover: popover ?? makeFakePopover(),
     hoverPopover: hoverPopover ?? makeFakePopover(),
+    interchangeLabels: interchangeLabels ?? makeFakeLabels(),
+    onNothingTapped,
   });
   return { selection, camera, focused };
 }
@@ -90,7 +110,7 @@ test('a selected station popover re-anchors to the camera each frame', () => {
   const popover = makeFakePopover();
   const { selection, camera } = makeSelection({ popover });
   selection.selectStation({ east: 100, north: 200, name: 'Bern' });
-  assert.deepEqual(popover.calls.at(-1), ['showAt', 100, 200]);
+  assert.deepEqual(popover.calls.at(-1), ['showLines', 100, 200]);
 
   camera.pan = 50;
   selection.onFrameRendered();
@@ -141,7 +161,7 @@ test('hovering a station shows a popover that re-anchors each frame', () => {
   selection.attachTo(canvas);
 
   canvas.handlers.pointermove(mouseMove(5, 5));
-  assert.deepEqual(hoverPopover.calls.at(-1), ['showAt', 100, 200]);
+  assert.deepEqual(hoverPopover.calls.at(-1), ['showLines', 100, 200]);
 
   camera.pan = 50;
   selection.onFrameRendered();
@@ -200,7 +220,7 @@ test('hovering the already-selected station shows no hover popover', () => {
 
   selection.selectStation(bern);
   canvas.handlers.pointermove(mouseMove(5, 5));
-  assert.ok(!hoverPopover.calls.some((call) => call[0] === 'showAt'));
+  assert.ok(!hoverPopover.calls.some((call) => call[0] === 'showLines'));
 });
 
 test('touch input never triggers a hover popover', () => {
@@ -246,7 +266,7 @@ test('clicking a rail station reveals its layer, zooms and selects it', () => {
   click(canvas, 5, 5);
   assert.deepEqual(revealed, [bern]);
   assert.deepEqual(focused, [[100, 200]]);
-  assert.deepEqual(popover.calls.at(-1), ['showAt', 100, 200]);
+  assert.deepEqual(popover.calls.at(-1), ['showLines', 100, 200]);
 });
 
 test('a rail station wins over a vehicle on top of it', () => {
@@ -350,7 +370,7 @@ test('a first tap on a station only names it', () => {
 
   tap(canvas, 5, 5);
 
-  assert.deepEqual(hoverPopover.calls.at(-1), ['showAt', 100, 200]);
+  assert.deepEqual(hoverPopover.calls.at(-1), ['showLines', 100, 200]);
   assert.deepEqual(revealed, [], 'nothing is chosen yet');
   assert.deepEqual(focused, [], 'and the camera stays where it was');
 });
@@ -383,7 +403,7 @@ test('a tap on another station names that one instead of choosing the first', ()
   tap(canvas, 5, 5);
   tap(canvas, 100, 5);
 
-  assert.deepEqual(hoverPopover.calls.at(-1), ['showAt', 300, 400]);
+  assert.deepEqual(hoverPopover.calls.at(-1), ['showLines', 300, 400]);
   assert.deepEqual(revealed, []);
 });
 
@@ -403,6 +423,41 @@ test('a tap on nothing takes the name away again', () => {
 
   tap(canvas, 5, 5);
   assert.deepEqual(revealed, [], 'and the station has to be named anew');
+});
+
+// The ask a chosen sound puts stands over the picture, and tapping the map past
+// it is one of the two ways to turn it down again.
+test('a tap that hits nothing is reported to the caller', () => {
+  const taps = [];
+  const bern = { east: 100, north: 200, name: 'Bern' };
+  const { selection } = makeSelection({
+    panel: { ...railPanel(bern), revealStation: () => {} },
+    onNothingTapped: () => taps.push('nothing'),
+  });
+  const canvas = makeFakeCanvas();
+  selection.attachTo(canvas);
+
+  click(canvas, 100, 200);
+
+  assert.deepEqual(taps, [], 'a station was tapped, not the map');
+});
+
+test('a tap on the bare map is reported to the caller', () => {
+  const taps = [];
+  const { selection } = makeSelection({
+    panel: {
+      railStationNear: () => null,
+      vehicleAt: () => null,
+      minorStationNear: () => null,
+    },
+    onNothingTapped: () => taps.push('nothing'),
+  });
+  const canvas = makeFakeCanvas();
+  selection.attachTo(canvas);
+
+  click(canvas, 5, 5);
+
+  assert.deepEqual(taps, ['nothing']);
 });
 
 test('a pinch that ends over a station chooses nothing', () => {
@@ -441,5 +496,86 @@ test('a pinch that ends over a station chooses nothing', () => {
   });
 
   assert.deepEqual(revealed, []);
-  assert.ok(!hoverPopover.calls.some((call) => call[0] === 'showAt'));
+  assert.ok(!hoverPopover.calls.some((call) => call[0] === 'showLines'));
+});
+
+const journeyPanel = (station, interchanges) => ({
+  ...railPanel(station),
+  previewJourneyTo: (hovered) => (hovered === null ? [] : interchanges),
+});
+
+test('the places a panel previews are named on the map', () => {
+  const interchangeLabels = makeFakeLabels();
+  const bern = { east: 100, north: 200, name: 'Bern' };
+  const olten = { east: 50, north: 60, name: 'Olten' };
+  const { selection } = makeSelection({
+    interchangeLabels,
+    panel: journeyPanel(bern, [olten]),
+  });
+  const canvas = makeFakeCanvas();
+  selection.attachTo(canvas);
+
+  canvas.handlers.pointermove(mouseMove(5, 5));
+
+  assert.deepEqual(interchangeLabels.shown.at(-1), [olten]);
+});
+
+test('leaving a previewed station leaves nothing named', () => {
+  const interchangeLabels = makeFakeLabels();
+  const bern = { east: 100, north: 200, name: 'Bern' };
+  const { selection } = makeSelection({
+    interchangeLabels,
+    panel: journeyPanel(bern, [{ east: 50, north: 60, name: 'Olten' }]),
+  });
+  const canvas = makeFakeCanvas();
+  selection.attachTo(canvas);
+
+  canvas.handlers.pointermove(mouseMove(5, 5));
+  canvas.handlers.pointerleave();
+
+  assert.deepEqual(interchangeLabels.shown.at(-1), []);
+});
+
+test('a panel that previews nothing leaves the labels alone', () => {
+  const interchangeLabels = makeFakeLabels();
+  const { selection } = makeSelection({
+    interchangeLabels,
+    panel: railPanel({ east: 100, north: 200, name: 'Bern' }),
+  });
+  const canvas = makeFakeCanvas();
+  selection.attachTo(canvas);
+
+  canvas.handlers.pointermove(mouseMove(5, 5));
+
+  assert.deepEqual(interchangeLabels.shown.at(-1), []);
+});
+
+test('a station says what the panel has to say about it', () => {
+  const hoverPopover = makeFakePopover();
+  const bern = { east: 100, north: 200, name: 'Bern' };
+  const { selection } = makeSelection({
+    hoverPopover,
+    panel: {
+      ...railPanel(bern),
+      describeStation: (station) => [`10:10 ${station.name}`],
+    },
+  });
+  const canvas = makeFakeCanvas();
+  selection.attachTo(canvas);
+
+  canvas.handlers.pointermove(mouseMove(5, 5));
+
+  assert.deepEqual(hoverPopover.lines, ['10:10 Bern']);
+});
+
+test('a station a panel says nothing about is named alone', () => {
+  const hoverPopover = makeFakePopover();
+  const bern = { east: 100, north: 200, name: 'Bern' };
+  const { selection } = makeSelection({ hoverPopover, panel: railPanel(bern) });
+  const canvas = makeFakeCanvas();
+  selection.attachTo(canvas);
+
+  canvas.handlers.pointermove(mouseMove(5, 5));
+
+  assert.deepEqual(hoverPopover.lines, ['Bern']);
 });

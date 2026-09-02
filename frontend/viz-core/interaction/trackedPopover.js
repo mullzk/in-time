@@ -3,10 +3,11 @@ import {
   categoryTextColor,
 } from '../data/transportCategories.js';
 
-// A popover bound to one map target -- a station or a vehicle -- that it shows
-// and, each frame, re-anchors to the target's current screen position. A vehicle
-// is followed through its live position and hides once its trip ends; a station
-// sits on a fixed world point. The selection and the hover each own one.
+// A popover bound to one map target that it shows and, each frame, re-anchors
+// to the target's current screen position. A vehicle is followed through its
+// live position and hides once its trip ends; a station sits on a fixed world
+// point. A station is named by its name alone unless the panel has more to say
+// about it through describeStation.
 export class TrackedPopover {
   constructor(popover, panel, camera, time) {
     this.popover = popover;
@@ -20,9 +21,9 @@ export class TrackedPopover {
   showStation(station) {
     this.vehicle = null;
     this.station = station;
-    this.popover.showAt(
+    this.popover.showLines(
       ...this.#screen(station.east, station.north),
-      station.name,
+      this.panel.describeStation?.(station) ?? [station.name],
     );
   }
 

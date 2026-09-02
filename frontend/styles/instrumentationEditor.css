@@ -1,9 +1,8 @@
 /* SMACSS Module: the instrumentation editor — a drawer on the right in which an
-   own instrumentation is written, opposite the dock so the sound tile stays
-   reachable while the document is being tuned. The open state lives as `is-open`
-   on the drawer. On a narrow screen drawer and opening button step aside
-   entirely; CSS alone decides that, and widening the window brings the drawer
-   back as it was. */
+   own instrumentation is written. The open state lives as `is-open` on the
+   drawer. On a narrow screen drawer and opening button step aside entirely; CSS
+   alone decides that, so widening the window brings the drawer back as it
+   was. */
 .instrumentation-editor {
   position: absolute;
   /* Above the top bar: the bar spans the full width, so its transparent right
@@ -43,8 +42,6 @@
   gap: var(--space-s);
 }
 
-/* Discarding cannot be taken back, so it stands apart from the two harmless
-   actions rather than next to them. */
 .instrumentation-editor-discard {
   margin-left: auto;
 }
@@ -75,9 +72,8 @@
   cursor: default;
 }
 
-/* Grows into whatever the opened accordions leave over, but never below the
-   height at which a document stops being readable -- past that the drawer
-   scrolls instead. */
+/* Grows into whatever the opened accordions leave over, down to a minimum past
+   which the drawer scrolls instead. */
 .instrumentation-editor-text {
   flex: 1;
   min-height: 12em;
@@ -93,8 +89,7 @@
   tab-size: 2;
 }
 
-/* Empty while the document plays, so the line draws attention only when it
-   carries something to read. */
+/* Empty while the document plays. */
 .instrumentation-editor-message {
   margin: 0;
   min-height: 1.4em;
@@ -131,13 +126,11 @@
   line-height: 1.5;
 }
 
-/* A pencil and nothing else: the button stands beside the sound it would rewrite,
-   where a sentence would read as a second topic. */
 .instrumentation-editor-open {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  align-self: flex-end;
+  align-self: flex-start;
   width: var(--control-height);
   height: var(--control-height);
   padding: 0;

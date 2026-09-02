@@ -8,15 +8,17 @@ import { applyCameraTransform } from './cameraTransform.js';
 // noise in this bundler-free app.
 p5.disableFriendlyErrors = true;
 
-// The ground a map is drawn on: dark, so the relief and the vehicles carry the
-// light. A panel that wants another one says so.
 const DEFAULT_GROUND_COLOR = [16, 18, 22];
 
 // A frame the browser stalled on -- a schedule adopted while the picture runs, a
-// tab that was away -- carries the wall clock of the whole stall, and at the
-// fastest tempo that would jump the schedule a quarter of an hour on. It counts
-// for no more than an ordinary frame.
+// tab that was away -- carries the wall clock of the whole stall, which at the
+// fastest tempo would jump the schedule a quarter of an hour on.
 const LONGEST_FRAME_SECONDS = 0.1;
+
+// Every frame reads the position of every vehicle running at that moment. The
+// clock runs off the elapsed time either way, so a halved rate costs only the
+// smoothness of the motion, not the schedule.
+const FRAMES_PER_SECOND = 30;
 
 // Owns the single p5 instance-mode loop and drives the active panel. Panels draw
 // in world coordinates (LV95); VizCore pushes the camera transform so geometry
@@ -51,6 +53,8 @@ export class VizCore {
       this.container.clientWidth,
       this.container.clientHeight,
     );
+    p.frameRate(FRAMES_PER_SECOND);
+    p.textFont(getComputedStyle(document.body).fontFamily);
     this.context.camera.setViewport(p.width, p.height);
     this.controls = new CameraControls(canvas.elt, this.context.camera, {
       onZoomGesture: this.onZoomGesture,
@@ -70,9 +74,8 @@ export class VizCore {
     this.onFrameRendered?.();
   }
 
-  // Draw the panel inside the camera transform: world LV95 metres map to screen
-  // pixels exactly as Camera.worldToScreen does, so one loop keeps geometry (and
-  // later tiles) coincident. The negative y scale is the north-up flip.
+  // Draws the panel inside the camera transform, so world LV95 metres map to
+  // screen pixels exactly as Camera.worldToScreen does.
   #drawThroughCamera(p) {
     p.push();
     applyCameraTransform(p, this.context.camera);

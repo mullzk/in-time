@@ -85,10 +85,9 @@ export class CameraControls {
     this.camera.panBy(current[0] - previous[0], current[1] - previous[1]);
   }
 
-  // Two fingers carry the picture with them as well as scale it: the midpoint
-  // between them pans, their spacing zooms about that same midpoint. Panning
-  // first puts the grasped place back under the fingers, so zooming about the
-  // new midpoint leaves it there.
+  // The midpoint between the fingers pans, their spacing zooms about that same
+  // midpoint. Panning first puts the grasped place back under the fingers, so
+  // zooming about the new midpoint leaves it there.
   #pinch(points) {
     const centre = midpointOf(points);
     const distance = spreadOf(points);

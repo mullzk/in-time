@@ -15,11 +15,9 @@
 //    group and an event kind against it into concrete superdough parameters. The
 //    document may say as little as one sound for everything: what it leaves out
 //    comes from the transport group above it, then from the document, then from
-//    the sound itself (sounds/), then from the kind of sound (sounds/kinds.js),
-//    which is where arrival is marked against departure by pitch and panorama or
-//    -- for drums -- by speed and loudness. A standing vehicle gets a figure of
-//    its own: silence, one strike, or the same sound at a fixed interval, which
-//    the sonifier repeats for as long as the dwell lasts.
+//    the sound itself (sounds/), then from the kind of sound (sounds/kinds.js).
+//    A standing vehicle gets a figure of its own: silence, one strike, or the
+//    same sound at a fixed interval, repeated for as long as the dwell lasts.
 // 4. How it is produced -- audioBridge.js, the only side-effecting layer, over
 //    the vendored superdough engine.
 //

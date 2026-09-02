@@ -1,11 +1,8 @@
 // Where a station belongs in the travel-time picture: in the direction it truly
-// lies, at the distance the journey there takes. The country stays recognisable
-// while the timetable stretches and shrinks it -- a corner an hour away sits as
-// far out as a suburb an hour away.
+// lies, at the distance the journey there takes.
 
-// The scale that turns a second of travel into a world distance. At ten metres
-// per second the whole picture reads as a journey at 36 km/h, so anything drawn
-// closer than it lies is faster than that, anything further out is slower.
+// Turns a second of travel into a world distance; ten metres a second puts the
+// picture at the scale of a 36 km/h journey.
 export const WORLD_METRES_PER_TRAVEL_SECOND = 10;
 
 // A stop that shares the centre's coordinate has no direction of its own; it is

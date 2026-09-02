@@ -1,14 +1,33 @@
 import { iconNamed } from './dockIcons.js';
 import { element } from './dom.js';
 
-// The control surface at the left edge: one tile per group of controls, hovered
-// to learn its name, clicked to open the card that holds them. Only one card
-// stands open, so the picture is never covered by more than the one thing being
-// looked at. Nearly every tile is of the same kind, the info text included; the
-// exception is a tile whose one control is the press itself -- play, which stops
-// and starts the picture where it stands and wears the face of what pressing it
-// will do next. The shell owns what is in a card; the dock owns only the tiles,
-// the naming and the opening.
+// The card a tile opens. On a narrow screen it stands over its own tile, which
+// takes it off the screen at either end of the row; the shift slides it back
+// within the dock's own width, which is the screen's minus its margins.
+class DockCard {
+  constructor(cardElement) {
+    this.cardElement = cardElement;
+  }
+
+  keepWithin(dockRect, tileRect) {
+    const halfCard = this.cardElement.offsetWidth / 2;
+    const tileCentre = (tileRect.left + tileRect.right) / 2;
+    const overshootLeft = dockRect.left + halfCard - tileCentre;
+    const overshootRight = tileCentre + halfCard - dockRect.right;
+    const shift = Math.max(overshootLeft, 0) - Math.max(overshootRight, 0);
+    this.cardElement.style.setProperty('--dock-card-shift', `${shift}px`);
+  }
+}
+
+// The stand-in for a tile that presses rather than opens, and so has no card.
+class NoDockCard {
+  keepWithin() {}
+}
+
+// The control surface at the left edge: one tile per group of controls, only
+// one card open at a time. A tile may instead be pressed directly (play), in
+// which case it wears the face of what pressing it will do next. The shell owns
+// what is in a card; the dock owns the tiles, the naming and the opening.
 export class Dock {
   constructor(container, tiles) {
     this.root = element('nav', 'dock');
@@ -17,14 +36,14 @@ export class Dock {
     this.tiles = tiles.map((tile) => this.#tile(tile));
     this.root.append(...this.tiles.map(({ root }) => root));
     container.appendChild(this.root);
+    this.#placeCards();
 
-    // A card is closed by anything that is not it: the next tile, the picture
-    // behind it, or Escape.
     document.addEventListener('pointerdown', (event) => {
       if (!this.root.contains(event.target)) {
         this.close();
       }
     });
+    window.addEventListener('resize', () => this.#placeCards());
     document.addEventListener('keydown', (event) => {
       if (event.key === 'Escape' && this.openTile !== null) {
         event.stopPropagation();
@@ -37,15 +56,12 @@ export class Dock {
     this.#open(null);
   }
 
-  // A tile may also be reached by its key rather than by its face.
   toggle(tileId) {
     const tile = this.tiles.find((candidate) => candidate.id === tileId);
     this.#open(this.openTile === tile ? null : tile);
   }
 
-  // Shows the current face of every tile that answers a press directly: what
-  // pressing it will do now. Unchanged faces are left alone, since this is asked
-  // on every frame.
+  // Called every frame, so an unchanged face is left alone.
   showFaces() {
     this.tiles.forEach((tile) => {
       const face = tile.face?.();
@@ -59,9 +75,10 @@ export class Dock {
     });
   }
 
-  #tile({ id, label, sections, wideCard = false }) {
+  #tile({ id, label, sections, group, wideCard = false }) {
     const root = element('div', 'dock-tile');
     root.dataset.tile = id;
+    root.dataset.group = group;
 
     const button = element('button', 'dock-tile-button');
     button.type = 'button';
@@ -73,9 +90,19 @@ export class Dock {
     root.append(button, name);
 
     const pressed = sections.find((section) => section.onActivate) ?? null;
-    const tile = { id, root, button, name, face: pressed?.face, wearing: id };
+    const tile = {
+      id,
+      root,
+      button,
+      name,
+      face: pressed?.face,
+      wearing: id,
+      card: new NoDockCard(),
+    };
     if (pressed === null) {
-      root.appendChild(this.#card(sections, { label, wideCard }));
+      const card = this.#card(sections, { label, wideCard });
+      root.appendChild(card);
+      tile.card = new DockCard(card);
       button.addEventListener('click', () => this.toggle(id));
     } else {
       button.addEventListener('click', () => {
@@ -99,10 +126,6 @@ export class Dock {
     return card;
   }
 
-  // A lone section the tile is named after needs no heading over it, since the
-  // name already stands in the dock. Every other section keeps its own: one of
-  // several, or one whose name says more precisely what is being set than the
-  // tile it hangs under can.
   #section({ id, title, element: content }, headed) {
     const section = element('section', 'dock-card-section');
     section.dataset.section = id;
@@ -121,6 +144,16 @@ export class Dock {
       const open = candidate === tile;
       candidate.root.classList.toggle('is-open', open);
       candidate.button.setAttribute('aria-expanded', String(open));
+    });
+    this.#placeCards();
+  }
+
+  // Every card, not just the open one: a card that stood off the screen would
+  // widen the page even while it is closed.
+  #placeCards() {
+    const dockRect = this.root.getBoundingClientRect();
+    this.tiles.forEach((tile) => {
+      tile.card.keepWithin(dockRect, tile.root.getBoundingClientRect());
     });
   }
 }

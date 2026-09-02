@@ -1,0 +1,52 @@
+import { loadSchedule } from '../viz-core/data/loader.js';
+import { PanelShell } from '../viz-core/panelShell.js';
+import { StationInUrl } from '../viz-core/session/stationInUrl.js';
+import {
+  departureToOpenOn,
+  secondsOfDayInZurich,
+} from '../viz-core/time/openingTime.js';
+import { StoppedTimeModel } from '../viz-core/time/stoppedTimeModel.js';
+import { ZeitkartePanel } from './panel.js';
+
+const root = document.getElementById('viz-root');
+
+async function bootstrap() {
+  const result = await loadSchedule(root.dataset.configUrl);
+  if (!result.published) {
+    root.textContent = 'Kein Fahrplan publiziert.';
+    return;
+  }
+
+  const departure = departureToOpenOn(secondsOfDayInZurich());
+
+  // The address is read before the first tree is worked out, so the picture is
+  // drawn from the station it names instead of being computed twice.
+  const stationInUrl = new StationInUrl();
+  const panel = new ZeitkartePanel(
+    result.railBuffer,
+    result.railStations,
+    departure,
+    stationInUrl.slug,
+  );
+  const shell = new PanelShell(
+    root,
+    panel,
+    new StoppedTimeModel(departure),
+    stationInUrl,
+  );
+  shell.start();
+
+  result.roadBuffer
+    .then((roadBuffer) => {
+      panel.adoptSchedule(roadBuffer, result.roadStations);
+    })
+    .catch((error) => {
+      console.error('the road schedule stays unavailable', error);
+    })
+    .finally(() => {
+      panel.noFurtherScheduleIsComing();
+      shell.onPanelDataChanged();
+    });
+}
+
+bootstrap();

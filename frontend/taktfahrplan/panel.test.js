@@ -1,0 +1,253 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { test } from 'node:test';
+import { Camera } from '../viz-core/render/camera.js';
+import { BACKGROUNDS } from '../viz-core/render/tiles/tileSource.js';
+import { Instrumentation } from '../viz-core/sonification/instrumentation.js';
+import { INSTRUMENTATIONS } from '../viz-core/sonification/presets.js';
+import {
+  CUSTOM_OPTION_VALUE,
+  instrumentationForOptionValue,
+  presetOptionValue,
+  SILENT_OPTION_VALUE,
+  TaktfahrplanPanel,
+  trailShownOn,
+} from './panel.js';
+
+const fixture = (name) => {
+  const bytes = readFileSync(
+    new URL(`../viz-core/fixtures/${name}`, import.meta.url),
+  );
+  return bytes.buffer.slice(
+    bytes.byteOffset,
+    bytes.byteOffset + bytes.byteLength,
+  );
+};
+
+const RAIL_BUFFER = fixture('golden-rail-day.itsb');
+const ROAD_BUFFER = fixture('golden-bus-day.itsb');
+
+// The golden blobs carry three stations each; the catalog side of them is a
+// published stations list, which the fixtures do not include.
+const RAIL_STATIONS = [
+  { didok: 1, name: 'Bahnhof', modes: ['rail'], cluster: 1 },
+  { didok: 2, name: 'Mittelstadt', modes: ['rail'] },
+  { didok: 3, name: 'Endstation', modes: ['rail'] },
+];
+const ROAD_STATIONS = [
+  { didok: 10, name: 'Bahnhof Bus', modes: ['bus'], cluster: 1 },
+  { didok: 11, name: 'Dorfplatz', modes: ['bus'] },
+  { didok: 12, name: 'Schulhaus', modes: ['bus'] },
+];
+
+const context = { camera: {} };
+
+const describeState = (panel) => ({
+  positionEngines: panel.positionEngines.length,
+  soundEngines: panel.soundEngines.length,
+  stations: panel.catalog.entries
+    .map((entry) => `${entry.didok}:${entry.name}`)
+    .sort(),
+  clusters: [...panel.clusterToDidoks.entries()]
+    .map(([cluster, didoks]) => [cluster, [...didoks].sort()])
+    .sort(),
+  didokLookups: panel.soundEngines.map(({ didokToIndex }) => didokToIndex.size),
+});
+
+test('a panel without the road blob knows only the rail stations', () => {
+  const panel = new TaktfahrplanPanel(RAIL_BUFFER, RAIL_STATIONS);
+  panel.init(context);
+
+  assert.equal(panel.positionEngines.length, 1);
+  assert.equal(panel.soundEngines.length, 1);
+  assert.deepEqual(panel.stationCatalog().matching('dorfplatz'), []);
+});
+
+test('adopting the road schedule after init matches adopting it before', () => {
+  const afterInit = new TaktfahrplanPanel(RAIL_BUFFER, RAIL_STATIONS);
+  afterInit.init(context);
+  afterInit.adoptSchedule(ROAD_BUFFER, ROAD_STATIONS);
+
+  const beforeInit = new TaktfahrplanPanel(RAIL_BUFFER, RAIL_STATIONS);
+  beforeInit.adoptSchedule(ROAD_BUFFER, ROAD_STATIONS);
+  beforeInit.init(context);
+
+  assert.deepEqual(describeState(afterInit), describeState(beforeInit));
+  assert.equal(afterInit.positionEngines.length, 2);
+  assert.equal(afterInit.stationCatalog().matching('dorfplatz')[0].didok, 11);
+});
+
+test('a searched bus stop brings the tram along with the buses', () => {
+  const panel = new TaktfahrplanPanel(RAIL_BUFFER, RAIL_STATIONS);
+  panel.adoptSchedule(ROAD_BUFFER, ROAD_STATIONS);
+  panel.layers.tram = false;
+  panel.layers.bus = false;
+
+  panel.revealStation(panel.stationCatalog().matching('dorfplatz')[0]);
+
+  assert.equal(panel.layers.bus, true);
+  assert.equal(panel.layers.tram, true);
+  assert.equal(panel.layers.fernverkehr, true, 'the trains stay on as well');
+});
+
+test('the station drawn to be sounded is one the trains call at', () => {
+  const panel = new TaktfahrplanPanel(RAIL_BUFFER, RAIL_STATIONS);
+  panel.adoptSchedule(ROAD_BUFFER, ROAD_STATIONS);
+
+  const drawn = panel.drawStation();
+
+  assert.deepEqual(drawn.modes, ['rail'], 'never one of the bus stops');
+  assert.ok(
+    panel.stationSoundEvents(drawn).length > 0,
+    'and one that has something to sound',
+  );
+});
+
+const backgroundNamed = (id) => BACKGROUNDS.find((entry) => entry.id === id);
+
+// The view opens without the overlay, so these start by switching it on, the
+// way a user would before choosing a background.
+test('a raster drawing the rails itself switches the network overlay off', () => {
+  const panel = new TaktfahrplanPanel(RAIL_BUFFER, RAIL_STATIONS);
+  panel.layers.network = true;
+
+  panel.onBackgroundChange(backgroundNamed('pixel'));
+  assert.equal(panel.layers.network, false);
+});
+
+test('a background without rails leaves the network overlay alone', () => {
+  const panel = new TaktfahrplanPanel(RAIL_BUFFER, RAIL_STATIONS);
+  panel.layers.network = true;
+
+  panel.onBackgroundChange(backgroundNamed('black'));
+  assert.equal(panel.layers.network, true);
+
+  panel.onBackgroundChange(backgroundNamed('relief'));
+  assert.equal(panel.layers.network, true);
+});
+
+// The zoom is continuous, so each threshold is read just short of it and just
+// past it: the last fraction that still trails and the first one that does not.
+const trailsAt = (backgroundId, zoomFraction) =>
+  trailShownOn(backgroundNamed(backgroundId), zoomFraction);
+
+test('the black ground trails at every zoom', () => {
+  assert.ok(trailsAt('black', 0));
+  assert.ok(trailsAt('black', 0.5));
+  assert.ok(trailsAt('black', 1));
+});
+
+test('the relief trails over the overview and stops partway in', () => {
+  assert.ok(trailsAt('relief', 0.41));
+  assert.ok(!trailsAt('relief', 0.43));
+});
+
+test('the aerial imagery trails much further in than the relief', () => {
+  assert.ok(trailsAt('swissview', 0.74));
+  assert.ok(!trailsAt('swissview', 0.76));
+});
+
+test('a drawn map never trails, not even fully zoomed out', () => {
+  assert.ok(!trailsAt('pixel', 0));
+});
+
+test('the network overlay stays off once the user switched it back on', () => {
+  const panel = new TaktfahrplanPanel(RAIL_BUFFER, RAIL_STATIONS);
+  panel.onBackgroundChange(backgroundNamed('pixel'));
+  panel.layers.network = true;
+
+  panel.onBackgroundChange(backgroundNamed('swissview'));
+  assert.equal(panel.layers.network, false);
+});
+
+test('an adopted interchange sounds its rail and bus stops as one place', () => {
+  const panel = new TaktfahrplanPanel(RAIL_BUFFER, RAIL_STATIONS);
+  panel.init(context);
+  const railOnly = panel.stationSoundEvents(
+    panel.stationCatalog().matching('bahnhof')[0],
+  );
+
+  panel.adoptSchedule(ROAD_BUFFER, ROAD_STATIONS);
+  const merged = panel.stationSoundEvents(
+    panel.stationCatalog().matching('bahnhof')[0],
+  );
+
+  assert.ok(merged.length > railOnly.length);
+  assert.deepEqual(
+    merged.map((event) => event.time),
+    [...merged.map((event) => event.time)].sort((a, b) => a - b),
+  );
+});
+
+test('a station is picked only while the stops are shown', () => {
+  const panel = new TaktfahrplanPanel(RAIL_BUFFER, RAIL_STATIONS);
+  const camera = new Camera(800, 600);
+  panel.init({ camera });
+  const target = panel.stationCatalog().entryOf(1);
+  camera.centerOn(target.east, target.north);
+
+  assert.equal(
+    panel.railStationNear(400, 300),
+    null,
+    'the stops are hidden, so there is nothing to hover',
+  );
+
+  panel.layers.stops = true;
+
+  assert.equal(panel.railStationNear(400, 300), target);
+});
+
+test('a stop whose own layer is switched off is not picked', () => {
+  const panel = new TaktfahrplanPanel(RAIL_BUFFER, RAIL_STATIONS);
+  panel.adoptSchedule(ROAD_BUFFER, ROAD_STATIONS);
+  const camera = new Camera(800, 600);
+  panel.init({ camera });
+  panel.layers.stops = true;
+  const busStop = panel.stationCatalog().entryOf(11);
+  camera.centerOn(busStop.east, busStop.north);
+
+  assert.equal(panel.minorStationNear(400, 300), busStop);
+
+  panel.layers.bus = false;
+
+  assert.equal(panel.minorStationNear(400, 300), null);
+});
+
+test('the chosen station is marked even once the stops are hidden', () => {
+  const panel = new TaktfahrplanPanel(RAIL_BUFFER, RAIL_STATIONS);
+  const chosen = panel.stationCatalog().entryOf(1);
+
+  panel.revealStation(chosen);
+  panel.layers.stops = false;
+
+  assert.equal(panel.chosenStation, chosen);
+});
+
+test('giving the station up takes its mark away', () => {
+  const panel = new TaktfahrplanPanel(RAIL_BUFFER, RAIL_STATIONS);
+  panel.revealStation(panel.stationCatalog().entryOf(1));
+
+  panel.forgetStation();
+
+  assert.equal(panel.chosenStation, null);
+});
+
+test('the sound options are told apart by value, not by name', () => {
+  const namesake = Instrumentation.fromDocument({
+    instrumentation: INSTRUMENTATIONS[0].name,
+    sound: 'snare',
+  });
+
+  assert.equal(
+    instrumentationForOptionValue(CUSTOM_OPTION_VALUE, namesake),
+    namesake,
+  );
+  assert.equal(
+    instrumentationForOptionValue(presetOptionValue(0), namesake),
+    INSTRUMENTATIONS[0],
+  );
+  assert.equal(
+    instrumentationForOptionValue(SILENT_OPTION_VALUE, namesake),
+    null,
+  );
+});

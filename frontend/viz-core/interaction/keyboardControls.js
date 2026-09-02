@@ -33,12 +33,9 @@ export function normalizedBindingKey(key) {
 }
 
 // Document-level keyboard shortcuts for the camera and, where a view plays at
-// all, for playback, plus the bindings a shell supplies (key -> handler) for
-// what a view or a dock tile answers to. Bound to a target (window) so they work
-// regardless of focus; modifier combinations are left to the browser. Nothing
-// claims the keyboard for itself -- a card standing open over the picture is not
-// a dialogue that must be answered first. Reserved for later: n (network
-// toggle), l (labels layer).
+// all, for playback, plus the bindings a shell supplies (key -> handler). Bound
+// to a target (window) so they work regardless of focus; modifier combinations
+// are left to the browser.
 export class KeyboardControls {
   constructor(target, { togglePlay, camera, bindings = {} }) {
     this.togglePlay = togglePlay;

@@ -67,8 +67,7 @@ export class StationCatalog {
 
   // Merges a published station set in by didok, unioning the modes each side
   // reports. A didok already present keeps the coordinate it came with, so the
-  // rail set added first wins the network node over its bus stop. Sets may
-  // arrive at any time -- the road blob is adopted after the first picture.
+  // rail set added first wins the network node over its bus stop.
   addPublished(stations, points) {
     this.#absorb(
       stations.flatMap((station, index) => {

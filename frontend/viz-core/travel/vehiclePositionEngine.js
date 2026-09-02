@@ -181,10 +181,8 @@ export class VehiclePositionEngine {
     );
 
     let pathCursor = 0;
-    // Returns List of Trips
     return Array.from({ length: count }, (_, trip) => {
       const first = eventStart[trip];
-      // Events: Station-Index, Arrival, Departure + Edges of outgoing Leg
       const events = Array.from({ length: eventLen[trip] }, (_, offset) => {
         const eventIndex = first + offset;
         const legEdges = Array.from(
@@ -198,7 +196,6 @@ export class VehiclePositionEngine {
           legEdges,
         };
       });
-      // Trip: Category, Events, and Distances to every stop
       return {
         category: category[trip],
         events,
@@ -339,6 +336,30 @@ export class VehiclePositionEngine {
     return tripDistancesToEvents[tripDistancesToEvents.length - 1];
   }
 
+  // The ground a trip covers between one stop and the next, as the vehicle runs
+  // it: the routed edges end to end, or the straight line a leg without edges
+  // takes. The last stop of a trip leads nowhere, so it has no line.
+  legPolyline(tripIndex, eventIndex) {
+    const { events } = this.trips[tripIndex];
+    const departure = events[eventIndex];
+    const arrival = events[eventIndex + 1];
+    if (arrival === undefined) {
+      return [];
+    }
+    if (departure.legEdges.length === 0) {
+      return [this.stations[departure.station], this.stations[arrival.station]];
+    }
+    return departure.legEdges.flatMap((signedEdge) =>
+      this.#pointsAlongEdge(signedEdge),
+    );
+  }
+
+  // A negative edge is the same line run against its stored direction.
+  #pointsAlongEdge(signedEdge) {
+    const polyline = this.edges[Math.abs(signedEdge) - 1];
+    return signedEdge < 0 ? [...polyline].reverse() : polyline;
+  }
+
   tripEndpoints(tripIndex) {
     const { events } = this.trips[tripIndex];
     return {
@@ -347,8 +368,7 @@ export class VehiclePositionEngine {
     };
   }
 
-  // A selected vehicle's live position, recomputed each frame so a popover can
-  // follow it; null once the trip is no longer running (so the caller drops it).
+  // Null once the trip is no longer running, so the caller drops it.
   positionAt(tripIndex, t) {
     const trip = this.trips[tripIndex];
     const firstDep = trip.events[0].dep;
@@ -363,10 +383,8 @@ export class VehiclePositionEngine {
     return { east, north };
   }
 
-  // The same trip at receding schedule times — the smear a moving vehicle drags
-  // behind it. Ordered head first and cut short where the trip had not yet
-  // departed, so a just-started trip carries a short trail rather than a stub at
-  // its origin.
+  // The same trip at receding schedule times, head first and cut short where
+  // the trip had not yet departed.
   trailPositions(tripIndex, t, sampleCount, spacingSeconds) {
     const samples = Array.from({ length: sampleCount }, (_, sample) =>
       this.positionAt(tripIndex, t - sample * spacingSeconds),

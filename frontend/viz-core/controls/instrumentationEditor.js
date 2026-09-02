@@ -9,8 +9,8 @@ const KIND_LABELS = {
   percussive: 'Klangfarben zum Schlagen',
 };
 
-// The gist of the format, as far as it is needed while writing; the full account
-// is the README next to the delivered documents.
+// The gist of the format; the full account is the README next to the delivered
+// documents.
 const FORMAT_NOTES = [
   [
     'Aufbau',
@@ -53,12 +53,11 @@ const soundNameRows = () =>
       .join(', '),
   ]);
 
-// A drawer opposite the dock in which a listener writes an instrumentation
-// document and hears it at once. Every keystroke is checked: a document that
-// plays is kept and handed on, a faulty one only names its mistake, so a
-// half-written state never breaks off the sound. The drawer keeps no state of
-// its own -- the text lives in the store it was given, which is why closing and
-// reopening, or reloading the page, finds the same document.
+// A drawer in which a listener writes an instrumentation document and hears it
+// at once. Every keystroke is checked: a document that plays is kept and handed
+// on, a faulty one only names its mistake, so a half-written state never breaks
+// off the sound. The drawer keeps no state of its own -- the text lives in the
+// store it was given, so reopening it or reloading the page finds it again.
 export class InstrumentationEditor {
   // `onInstrumentationChanged` is called with every version that plays,
   // including the one the drawer opens with; `onInstrumentationDiscarded` when
@@ -86,9 +85,8 @@ export class InstrumentationEditor {
     this.#setOpen(false);
   }
 
-  // The one way in and out: whoever opened the drawer closes it again with the
-  // same button. `templateDocument` is what a first document is seeded from and
-  // is ignored once one has been written.
+  // `templateDocument` seeds a first document and is ignored once one has been
+  // written.
   toggle(templateDocument) {
     if (this.isOpen) {
       this.#close();
@@ -170,8 +168,6 @@ export class InstrumentationEditor {
     return reference;
   }
 
-  // Throwing the document away is what makes the next "Selber vertonen" start
-  // from a delivered instrumentation again instead of from this one.
   #discard() {
     this.store.clear();
     this.#close();
@@ -189,8 +185,7 @@ export class InstrumentationEditor {
   }
 
   // The document never leaves the browser, so it is handed out from memory
-  // rather than fetched; the button is off while the text is faulty, which is
-  // what makes the field's own content the last version that played.
+  // rather than fetched.
   #download() {
     const url = URL.createObjectURL(
       new Blob([this.textArea.value], { type: 'application/json' }),

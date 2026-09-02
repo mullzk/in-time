@@ -16,14 +16,16 @@ const sectionIdsOf = (tiles) =>
 test('sections are grouped into the tiles that carry them', () => {
   const tiles = tilesToHang([
     section('sound'),
-    section('zoom'),
+    section('departure'),
     section('views'),
     section('background'),
+    section('tempo'),
   ]);
-  assert.deepEqual(idsOf(tiles), ['sound', 'map', 'views']);
+  assert.deepEqual(idsOf(tiles), ['sound', 'map', 'time', 'views']);
   assert.deepEqual(sectionIdsOf(tiles), [
     ['sound'],
-    ['background', 'zoom'],
+    ['background'],
+    ['tempo', 'departure'],
     ['views'],
   ]);
 });
@@ -39,7 +41,7 @@ test('a tile keeps its own order, whatever order it was handed', () => {
 
 test('the exhibition hangs only what survives it', () => {
   const tiles = tilesToHang(
-    [section('views'), section('zoom', true), section('info', true)],
+    [section('views'), section('background', true), section('info', true)],
     { exhibition: true },
   );
   assert.deepEqual(idsOf(tiles), ['map', 'info']);
@@ -51,7 +53,10 @@ test('the info text is a tile like any other', () => {
 });
 
 test('sections are rejected when two of them share an id', () => {
-  assert.throws(() => tilesToHang([section('zoom'), section('zoom')]), /zoom/);
+  assert.throws(
+    () => tilesToHang([section('background'), section('background')]),
+    /background/,
+  );
 });
 
 test('a section no tile carries is rejected', () => {

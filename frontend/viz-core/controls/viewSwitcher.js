@@ -1,13 +1,9 @@
 import { VIEWS } from '../session/views.js';
 import { element } from './dom.js';
 
-// The gallery in the app tile's card: every view under the other, the one on
-// screen filled in. It wears the choice list's face but is built of links,
-// because switching views is a page load -- they can be opened in a new tab, and
-// the current one is marked rather than made clickable to nowhere. Each link
-// carries the station on show, so the next view opens on the same place. Where
-// the switcher hangs is the caller's: it is handed the DOM rather than mounting
-// itself.
+// The view gallery in the app tile's card. It wears the choice list's face but
+// is built of links, since switching views is a page load; each link carries
+// the station on show, so the next view opens on the same place.
 export class ViewSwitcher {
   constructor(stationInUrl) {
     this.stationInUrl = stationInUrl;
@@ -16,8 +12,8 @@ export class ViewSwitcher {
     this.refreshLinks();
   }
 
-  // A station is chosen long after the links are written, so they are written
-  // again whenever the address gains one.
+  // A station is chosen after the links are written, so they are written again
+  // whenever the address gains one.
   refreshLinks() {
     this.root.replaceChildren(
       ...VIEWS.map((view) =>

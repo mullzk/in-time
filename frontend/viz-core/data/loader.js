@@ -1,8 +1,8 @@
 // Reads the two schedule blobs referenced by /api/config: the routed rail blob
-// (rail + tram) and the straight-line road blob (buses). The road blob is by far
-// the larger payload and nothing in the first picture depends on it, so it is
-// returned as a pending promise whose request starts only once everything the
-// first picture needs has arrived, instead of competing for the same bandwidth.
+// (rail + tram) and the straight-line road blob (buses). The road blob is much
+// the larger and nothing in the first picture depends on it, so it is returned
+// as a pending promise whose request starts only once the rest has arrived,
+// instead of competing for the same bandwidth.
 export async function loadSchedule(configUrl) {
   const configResponse = await fetch(configUrl);
   if (configResponse.status === 503) {

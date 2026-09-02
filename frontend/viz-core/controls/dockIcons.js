@@ -32,9 +32,6 @@ const icon = (...children) => {
   return svg;
 };
 
-// A stack of views, the one on top in full and the two behind it showing the
-// corner they stick out by: what the card offers is one of several pictures of
-// the same thing.
 const viewsIcon = () =>
   icon(
     svgElement('path', { d: 'M11 3h7.5a2.5 2.5 0 0 1 2.5 2.5V11' }),
@@ -54,8 +51,6 @@ const timeIcon = () =>
     svgElement('path', { d: 'M12 7v5.4l3.4 2' }),
   );
 
-// The layers this tile switches, each as its own colour: what the dots stand for
-// is what one is about to turn on and off.
 const LAYER_CATEGORIES = [
   CATEGORY_INTERCITY,
   CATEGORY_INTERREGIO,
@@ -86,12 +81,10 @@ const elementsIcon = () =>
     }),
   );
 
-// A coarse ring of the Swiss border in LV95, the same coordinates the app draws
-// in, fitted into the icon box -- so the silhouette stays right if it is ever
-// refined from real geometry.
+// A coarse ring of the Swiss border in LV95 kilometres, the coordinates the app
+// draws in, fitted into the icon box.
 const BORDER_LV95_KILOMETRES = [
-  // The Jura, north-east from the western tip at Geneva to the Ajoie salient
-  // and the corner at Basel.
+  // The Jura, from the western tip at Geneva to the corner at Basel.
   [2500, 1118],
   [2494, 1133],
   [2519, 1174],
@@ -101,8 +94,7 @@ const BORDER_LV95_KILOMETRES = [
   [2565, 1259],
   [2588, 1258],
   [2611, 1270],
-  // The Rhine, east along the northern edge over the bulge at Schaffhausen to
-  // the Bodensee.
+  // The Rhine, east over Schaffhausen to the Bodensee.
   [2640, 1267],
   [2676, 1272],
   [2687, 1290],
@@ -110,8 +102,7 @@ const BORDER_LV95_KILOMETRES = [
   [2728, 1279],
   [2748, 1268],
   [2764, 1252],
-  // The Rhine valley and Graubünden, south-east to the eastern tip at Müstair
-  // and the spur below Poschiavo.
+  // The Rhine valley and Graubünden, to the eastern tip at Müstair.
   [2757, 1230],
   [2758, 1213],
   [2772, 1201],
@@ -121,9 +112,7 @@ const BORDER_LV95_KILOMETRES = [
   [2818, 1150],
   [2807, 1123],
   [2785, 1131],
-  // Ticino: the wedge running far south to Chiasso, and the notch Italy pushes
-  // north into above Domodossola -- the two marks that tell the southern edge
-  // apart from a plain line.
+  // Ticino, down to Chiasso and back over Domodossola.
   [2761, 1136],
   [2745, 1118],
   [2740, 1103],
@@ -134,8 +123,7 @@ const BORDER_LV95_KILOMETRES = [
   [2683, 1122],
   [2673, 1146],
   [2657, 1125],
-  // The Valais, west along the Alpine crest to the southern tip at the Great St
-  // Bernard, then back along the middle of Lake Geneva.
+  // The Valais, west to the Great St Bernard and back along Lake Geneva.
   [2640, 1100],
   [2624, 1092],
   [2600, 1084],
@@ -152,7 +140,7 @@ const boundsOf = (ring) => ({
   northMax: Math.max(...ring.map(([, north]) => north)),
 });
 
-const outlinePath = (ring, padding = 1.5) => {
+const outlinePath = (ring, padding) => {
   const { eastMin, eastMax, northMin, northMax } = boundsOf(ring);
   const box = ICON_SIZE - 2 * padding;
   const scale = Math.min(
@@ -170,15 +158,12 @@ const outlinePath = (ring, padding = 1.5) => {
     .join(' ')} Z`;
 };
 
-// Filled rather than drawn: at the size a tile leaves it, a stroked border
-// closes its own notches and the country turns into a blob. The silhouette keeps
-// the marks that name it -- the wedge down to Chiasso, the tip at Geneva.
+const MAP_PADDING = 2;
+
 const mapIcon = () =>
   icon(
     svgElement('path', {
-      d: outlinePath(BORDER_LV95_KILOMETRES),
-      fill: 'currentColor',
-      stroke: 'none',
+      d: outlinePath(BORDER_LV95_KILOMETRES, MAP_PADDING),
     }),
   );
 
@@ -190,15 +175,8 @@ const soundIcon = () =>
     svgElement('circle', { cx: 14.4, cy: 14.6, r: 2.6 }),
   );
 
-// The two faces of the play tile: what pressing it will do next.
 const playIcon = () =>
-  icon(
-    svgElement('path', {
-      d: 'M8.5 5.6 18 12l-9.5 6.4V5.6Z',
-      fill: 'currentColor',
-      'stroke-linejoin': 'round',
-    }),
-  );
+  icon(svgElement('path', { d: 'M8.5 5.6 18 12l-9.5 6.4V5.6Z' }));
 
 const pauseIcon = () =>
   icon(

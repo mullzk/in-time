@@ -1,0 +1,127 @@
+/* SMACSS Module: the welcome — what a first-time visitor reads over the running
+   picture. It covers everything, the dock included, and names the tiles worth
+   finding by showing them. */
+.welcome {
+  position: fixed;
+  inset: 0;
+  /* Bound to the screen, not to the page: a browser that widens its layout for
+     something overflowing elsewhere would otherwise carry the welcome out with
+     it. The width wins over the right inset, which is over-constrained. */
+  width: 100svw;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-m);
+  /* Sheer enough for the standing picture to show through underneath. The
+     whole welcome fades, card and all, not just the ground behind it. */
+  background: rgba(10, 12, 17, 0.55);
+  backdrop-filter: blur(3px);
+  opacity: 0.8;
+}
+
+.welcome[hidden] {
+  display: none;
+}
+
+/* Measured against the screen rather than against what stands around it, so it
+   cannot be widened by anything the picture underneath does. */
+.welcome-card {
+  width: min(560px, calc(100svw - 2 * var(--space-m)));
+  max-width: 100%;
+  min-width: 0;
+  max-height: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-m);
+  padding: var(--space-l);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 13px;
+}
+
+.welcome-title {
+  margin: 0;
+  font-size: 20px;
+}
+
+.welcome-lead {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.welcome-place {
+  margin: 0;
+}
+
+.welcome-place-narrow {
+  display: none;
+}
+
+.welcome-hints {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-m);
+}
+
+.welcome-hint {
+  display: flex;
+  align-items: center;
+  gap: var(--space-m);
+}
+
+/* The tile is shown, not offered: it takes no pointer and no tab stop. It also
+   keeps its full size here, where the dock's own tiles give width away. */
+.welcome-hint .dock-tile-button {
+  flex: none;
+  width: var(--dock-tile);
+  height: var(--dock-tile);
+  aspect-ratio: auto;
+  pointer-events: none;
+}
+
+.welcome-hint-words {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.welcome-hint-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-control-text);
+}
+
+.welcome-hint-text {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.welcome-dismiss {
+  align-self: flex-start;
+  height: var(--control-height);
+  padding: 0 var(--space-m);
+}
+
+/* The dock lies along the foot of a narrow screen, so the other sentence holds
+   there. */
+@media (max-width: 640px) {
+  .welcome-card {
+    padding: var(--space-m);
+  }
+
+  .welcome-place-wide {
+    display: none;
+  }
+
+  .welcome-place-narrow {
+    display: inline;
+  }
+}

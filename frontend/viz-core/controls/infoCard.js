@@ -1,12 +1,11 @@
 import { element } from './dom.js';
 
-// What the info tile's card holds: the project described, its keyboard
-// shortcuts listed. The content (title, intro, shortcuts) is supplied by the
-// caller so the shell stays panel-agnostic. An intro paragraph is a list of
-// parts: a string is plain text, an object of label and href becomes a link. It
-// owns only its DOM; where it hangs is the dock's business.
+// What the info tile's card holds. The content (title, intro, shortcuts) is
+// supplied by the caller so the shell stays panel-agnostic. An intro paragraph
+// is a list of parts: a string is plain text, an object of label and href
+// becomes a link. Actions (label and handler) are offered as buttons under it.
 export class InfoCard {
-  constructor(content) {
+  constructor(content, actions = []) {
     this.root = element('div', 'info-card');
 
     const title = element('h3', 'info-card-title');
@@ -17,6 +16,17 @@ export class InfoCard {
       this.root.appendChild(this.#paragraph(paragraph));
     });
     this.root.appendChild(this.#shortcutSection(content.shortcuts));
+    actions.forEach((action) => {
+      this.root.appendChild(this.#action(action));
+    });
+  }
+
+  #action({ label, onActivate }) {
+    const button = element('button', 'control-button');
+    button.type = 'button';
+    button.textContent = label;
+    button.addEventListener('click', onActivate);
+    return button;
   }
 
   #paragraph(parts) {
@@ -31,8 +41,6 @@ export class InfoCard {
     return text;
   }
 
-  // The links leave the app, so they open in a new tab: a running visualisation
-  // is a place the user should not lose by reading its credits.
   #link({ label, href }) {
     const anchor = element('a', 'info-card-link');
     anchor.textContent = label;

@@ -1,5 +1,6 @@
 import { Attribution } from './controls/attribution.js';
 import { ChoiceList } from './controls/choiceList.js';
+import { Clock } from './controls/clock.js';
 import { Dock } from './controls/dock.js';
 import { tilesToHang } from './controls/dockTiles.js';
 import { element } from './controls/dom.js';
@@ -9,12 +10,7 @@ import { InstrumentationEditor } from './controls/instrumentationEditor.js';
 import { StationSearch } from './controls/stationSearch.js';
 import { TransportControls } from './controls/transportControls.js';
 import { ViewSwitcher } from './controls/viewSwitcher.js';
-import {
-  ZOOM_STEPS,
-  zoomFractionForPosition,
-  zoomSliderPosition,
-} from './controls/zoomSlider.js';
-import { wgs84ToLv95 } from './data/projection.js';
+import { NoWelcome, WelcomeOverlay } from './controls/welcomeOverlay.js';
 import { KeyboardControls } from './interaction/keyboardControls.js';
 import { MapSelection } from './interaction/mapSelection.js';
 import { PanelContext } from './panelContext.js';
@@ -24,6 +20,7 @@ import { BACKGROUNDS } from './render/tiles/tileSource.js';
 import { VizCore } from './render/vizCore.js';
 import { localStorageOrForgetful } from './session/browserStorage.js';
 import { StationInUrl, stationMatchingSlug } from './session/stationInUrl.js';
+import { WelcomeVisit } from './session/welcomeVisit.js';
 import { AudioBridge } from './sonification/audioBridge.js';
 import { CustomInstrumentationStore } from './sonification/customInstrumentation.js';
 import { Sonifier } from './sonification/sonifier.js';
@@ -40,11 +37,9 @@ const sectionWhen = (isOffered, section) => (isOffered ? [section] : []);
 
 const NAME_A_STATION = 'Gib den Namen einer Haltestelle ein';
 
-// The frame every panel runs in: it owns the camera, the render core and all
+// The frame every panel runs in: it owns the camera, the render core and the
 // global controls (views, transport, background, zoom, info, search), and hangs
-// them, together with the sections the panel supplies, in the dock at the left
-// edge. The panel is asked for its own controls, its key bindings and its info
-// text, and is told when a global choice has a consequence only it can decide.
+// them, together with the sections the panel supplies, in the dock.
 export class PanelShell {
   constructor(root, panel, time, stationInUrl = new StationInUrl()) {
     this.root = root;
@@ -57,16 +52,17 @@ export class PanelShell {
     this.everyScheduleHasArrived = false;
     this.soundIsWaitedOn = false;
     this.invitationShown = false;
-    // A panel that draws no map has no use for a ground under it: it gets the
-    // black one and no chooser, rather than a relief nobody can see. A panel
-    // that draws one may name the ground it reads best on; otherwise the first.
+    this.welcome = new NoWelcome();
+    this.welcomeContent = null;
+    this.playbackAwaitsTheWelcome = false;
+    // A panel that draws no map gets the black ground and no chooser; one that
+    // does may name the background it opens on.
     this.background = panel.capabilities.mapBackground
       ? (backgroundById(panel.initialBackgroundId?.()) ?? BACKGROUNDS[0])
       : BLACK_BACKGROUND;
     this.camera = new Camera(root.clientWidth, root.clientHeight);
     this.context = new PanelContext({
       camera: this.camera,
-      projection: wgs84ToLv95,
       time,
       tileLayer: new TileLayer(this.background.source),
     });
@@ -88,44 +84,34 @@ export class PanelShell {
     }
 
     this.transport = new TransportControls(this.panel, this.time);
-    // The exhibition shows one view, so there is nowhere to switch to.
     this.viewSwitcher = this.exhibition
       ? null
       : new ViewSwitcher(this.stationInUrl);
-    this.infoCard = new InfoCard(this.panel.infoContent());
+    this.#buildWelcome();
+    this.infoCard = new InfoCard(this.panel.infoContent(), this.#infoActions());
     this.dock = new Dock(this.root, this.#tiles());
-    // After the dock: what is offered goes into the sound control the tiles
-    // have just built.
+    // After the dock, since the offer goes into the sound control it built.
     if (this.sonifier) {
       this.#offerStoredInstrumentation();
     }
     this.stationSearch = this.panel.capabilities.stationSearch
       ? new StationSearch(this.topBar, this.panel.stationCatalog(), {
           onSelect: (station) => this.#chooseStation(station),
-          // A view that draws its whole picture from one station cannot be left
-          // without one, so there the empty field says nothing.
-          onClear: this.panel.capabilities.needsAStation
-            ? () => {}
-            : () => this.#forgetStation(),
+          stationMayBeGivenUp: !this.panel.capabilities.needsAStation,
+          onClear: () => this.#forgetStation(),
+          onDismiss: () => this.#turnDownTheAsk(),
         })
       : null;
-    // Picking on the canvas needs a map to pick on: only a panel drawing one
-    // gets tap, hover and their popovers. Elsewhere a station is chosen by name.
     this.selection = this.panel.capabilities.stationPicking
       ? new MapSelection(this.root, this.panel, this.context, {
           onStationChosen: (station) => this.#adoptStation(station),
+          onNothingTapped: () => this.#turnDownTheAsk(),
         })
       : null;
-    // A panel that has a question to put over its picture gets the writing; the
-    // rest of the views carry none.
-    this.headline = this.panel.headline
-      ? new Headline(this.root, {
-          besideAClock: this.panel.capabilities.stationClock,
-        })
-      : null;
+    this.headline = this.panel.headline ? new Headline(this.root) : null;
+    this.clock = this.panel.capabilities.clock ? new Clock(this.topBar) : null;
 
     new KeyboardControls(window, {
-      // Space plays; a view that does not play does not answer to it.
       togglePlay: this.panel.capabilities.simulationSpeed
         ? () => this.time.togglePlay()
         : null,
@@ -139,8 +125,7 @@ export class PanelShell {
   }
 
   // A panel drawing something other than a map picks on the canvas itself, in
-  // its own coordinates. It is handed the canvas and the one way in that keeps
-  // the search field and the sound in step with what it chose.
+  // its own coordinates; chooseStation keeps search field and sound in step.
   #onCanvasReady(canvasElement) {
     this.selection?.attachTo(canvasElement);
     this.panel.attachToCanvas?.(canvasElement, {
@@ -150,11 +135,9 @@ export class PanelShell {
     this.#openOnTheStationNamedInTheUrl();
   }
 
-  // A view is linked to with a station in its address, and opens on that one
-  // rather than on whatever the panel would have picked itself. The panel is
-  // handed the name before it works anything out, so it usually sets off from
-  // that station already: then the station is only marked as chosen, since
-  // working the same picture out again would send it back to its beginning.
+  // The panel is handed the addressed station before it works anything out, so
+  // it usually starts from it already; then it is only marked as chosen, since
+  // computing the same picture again would send it back to its beginning.
   #openOnTheStationNamedInTheUrl() {
     if (this.stationChosen || this.stationInUrl.slug === null) {
       return;
@@ -181,8 +164,8 @@ export class PanelShell {
     this.#adoptStation(station);
   }
 
-  // Choosing by name goes the same way as choosing on the map, so a panel is
-  // told once, however the station was reached.
+  // Choosing by name takes the same path as choosing on the map, so the panel
+  // is told once however the station was reached.
   #chooseStation(station) {
     if (this.selection) {
       this.selection.revealStation(station);
@@ -193,8 +176,7 @@ export class PanelShell {
   }
 
   // Whichever way a station was reached -- searched, tapped, linked to -- it is
-  // the one the address names from here on, so the picture can be handed on and
-  // the other views open on it too.
+  // the one the address names from here on.
   #adoptStation(station) {
     this.stationChosen = true;
     this.sonifier?.setStation(station);
@@ -203,21 +185,72 @@ export class PanelShell {
     this.viewSwitcher?.refreshLinks();
   }
 
-  // The station is given up again: nothing is marked on the map, nothing sounds,
-  // the address names the view alone, and the camera pulls back to the whole
-  // picture -- the view one starts from, now that no place is being looked at.
+  // The chosen sound is given up with the station: left standing, it would ask
+  // for a station again at once.
   #forgetStation() {
     this.stationChosen = false;
     this.selection?.clear();
+    this.panel.forgetStation?.();
     this.sonifier?.forgetStation();
+    this.#setInstrumentation(this.panel.silenceTheSound?.() ?? null);
     this.stationInUrl.forget();
     this.viewSwitcher?.refreshLinks();
     this.camera.fit();
   }
 
-  // An own instrumentation outlives the page it was written on, so it is offered
-  // again on every visit -- in the exhibition too, which is how one reaches a
-  // kiosk that has no editor.
+  // Only a view that offers a welcome has one, and only outside the exhibition,
+  // where nobody would dismiss it. Whether it is shown is the visit's to say.
+  #buildWelcome() {
+    const content = this.exhibition ? undefined : this.panel.welcomeContent?.();
+    if (content === undefined) {
+      return;
+    }
+    this.welcomeContent = content;
+    this.welcomeVisit = new WelcomeVisit();
+    this.welcome = new WelcomeOverlay(this.root, content, {
+      onDismiss: () => this.#onWelcomeDismissed(),
+    });
+    if (this.welcomeVisit.isDue()) {
+      this.welcome.show();
+    }
+  }
+
+  // Whoever wants the welcome again finds it under the info tile.
+  #infoActions() {
+    if (this.welcomeContent === null) {
+      return [];
+    }
+    return [
+      {
+        label: this.welcomeContent.replayLabel,
+        onActivate: () => {
+          this.dock.close();
+          this.welcome.show();
+        },
+      },
+    ];
+  }
+
+  #onWelcomeDismissed() {
+    this.welcomeVisit.recordDismissal();
+    if (this.playbackAwaitsTheWelcome) {
+      this.playbackAwaitsTheWelcome = false;
+      this.time.play();
+    }
+  }
+
+  // The clock waits behind the welcome: the schedule loads and the picture
+  // stands, but nothing moves until the visitor has read it.
+  startPlayback() {
+    if (this.welcome.isOpen) {
+      this.playbackAwaitsTheWelcome = true;
+      return;
+    }
+    this.time.play();
+  }
+
+  // An own instrumentation outlives the page it was written on, so it is
+  // offered again on every visit, the exhibition included.
   #offerStoredInstrumentation() {
     const stored = this.customInstrumentationStore.read();
     if (stored !== null) {
@@ -225,8 +258,6 @@ export class PanelShell {
     }
   }
 
-  // Writing an instrumentation is for the regular app; the exhibition shows only
-  // what is finished, so the drawer is not built there at all.
   #mountInstrumentationEditor() {
     if (this.exhibition) {
       return;
@@ -242,8 +273,8 @@ export class PanelShell {
     );
   }
 
-  // The panel is handed the way in rather than told about the mode: without one
-  // there is no button, which is what keeps the exhibition clear of it.
+  // The panel is handed the toggle rather than told about the mode: without one
+  // it builds no button.
   #instrumentationEditorToggle() {
     return this.exhibition
       ? null
@@ -251,8 +282,8 @@ export class PanelShell {
           this.instrumentationEditor.toggle(templateDocument);
   }
 
-  // An instrument that has nobody to listen to voices nothing, so choosing one
-  // is the moment the view has to know which station it is meant to sound.
+  // An instrumentation without a station voices nothing, so choosing one is
+  // when the view has to ask for a station.
   #setInstrumentation(instrumentation) {
     this.soundIsWaitedOn = instrumentation !== null;
     this.sonifier?.setInstrumentation(instrumentation);
@@ -270,12 +301,11 @@ export class PanelShell {
   }
 
   // Derived state the panel handed out earlier goes stale when it gains data
-  // after the first picture (the road blob), so whoever adopts it says so.
+  // after the first picture (the road blob).
   onPanelDataChanged() {
     this.everyScheduleHasArrived = true;
     this.sonifier?.refreshStation();
-    // A linked-to bus stop is in no catalog until the road stations arrive, so
-    // the address is read again once they have.
+    // A linked-to bus stop is in no catalog until the road stations arrive.
     if (this.canvasReady) {
       this.#openOnTheStationNamedInTheUrl();
     }
@@ -294,16 +324,15 @@ export class PanelShell {
 
   #onFrameRendered() {
     this.headline?.show(this.panel.headline());
+    this.clock?.show(this.time.current);
     this.transport.sync();
     this.dock.showFaces();
     this.selection?.onFrameRendered();
     this.sonifier?.onFrameRendered();
-    this.#syncZoomSlider();
     this.#syncStationInvitation();
   }
 
-  // Nobody is there to answer an exhibition, so what the ask offers as a button
-  // it does for itself and gets on with the picture.
+  // Nobody is there to answer in the exhibition, so it picks a station itself.
   #syncStationInvitation() {
     const awaited = this.#aStationIsAwaited();
     if (awaited && this.exhibition) {
@@ -323,11 +352,8 @@ export class PanelShell {
     this.stationSearch.endInvitation();
   }
 
-  // A view whose picture is drawn from one station has nothing to show until it
-  // has one, and a sound voices one station or none; either way the ask belongs
-  // in the middle of what would otherwise be an empty stage. While the address
-  // still names a stop that a schedule on its way may yet know, asking would
-  // only have to be taken back a moment later.
+  // While the address still names a stop a schedule on its way may yet know,
+  // asking would only have to be taken back a moment later.
   #aStationIsAwaited() {
     if (this.stationSearch === null || this.stationChosen) {
       return false;
@@ -338,6 +364,15 @@ export class PanelShell {
     return this.panel.capabilities.needsAStation || this.soundIsWaitedOn;
   }
 
+  // Only the ask a chosen sound puts can be turned down; a view that cannot
+  // draw without a station has nothing to fall back to.
+  #turnDownTheAsk() {
+    if (!this.invitationShown || this.panel.capabilities.needsAStation) {
+      return;
+    }
+    this.#setInstrumentation(this.panel.silenceTheSound?.() ?? null);
+  }
+
   #chooseDrawnStation() {
     const drawn = this.panel.drawStation?.() ?? null;
     if (drawn !== null) {
@@ -346,7 +381,7 @@ export class PanelShell {
   }
 
   // Which controls there are is decided here; which tile each one opens under
-  // is decided once for every view in dockTiles.
+  // is decided for every view in dockTiles.
   #tiles() {
     const panelSections = this.panel.controlSections({
       setInstrumentation: (instrumentation) =>
@@ -356,7 +391,7 @@ export class PanelShell {
     const globalSections = [
       ...sectionWhen(this.viewSwitcher !== null, {
         id: 'views',
-        title: 'Ansicht',
+        title: 'Ansichten',
         element: this.viewSwitcher?.root,
         keepInExhibition: false,
       }),
@@ -365,12 +400,6 @@ export class PanelShell {
         id: 'background',
         title: 'Hintergrund',
         element: this.#backgroundControl(),
-        keepInExhibition: true,
-      }),
-      ...sectionWhen(this.panel.capabilities.zoomSlider, {
-        id: 'zoom',
-        title: 'Zoom',
-        element: this.#zoomControl(),
         keepInExhibition: true,
       }),
       {
@@ -400,38 +429,5 @@ export class PanelShell {
     this.context.setBackground(background.source);
     this.attribution.set(background.attribution);
     this.panel.onBackgroundChange?.(background);
-  }
-
-  #zoomControl() {
-    const group = element('div', 'control-options');
-    const slider = element('input', 'control-slider');
-    slider.type = 'range';
-    slider.min = '0';
-    slider.max = String(ZOOM_STEPS - 1);
-    slider.step = '1';
-    slider.value = String(zoomSliderPosition(this.camera.zoomFraction()));
-    slider.addEventListener('input', () => {
-      this.zoomScrubbing = true;
-      this.camera.setZoomFraction(
-        zoomFractionForPosition(Number(slider.value)),
-      );
-    });
-    slider.addEventListener('change', () => {
-      this.zoomScrubbing = false;
-    });
-    this.zoomSlider = slider;
-    group.appendChild(slider);
-    return group;
-  }
-
-  // The camera also moves by wheel, pinch and keyboard, so the slider follows
-  // the camera rather than the other way round -- except while it is being
-  // dragged, when it would fight the hand holding it.
-  #syncZoomSlider() {
-    if (this.zoomSlider && !this.zoomScrubbing) {
-      this.zoomSlider.value = String(
-        zoomSliderPosition(this.camera.zoomFraction()),
-      );
-    }
   }
 }

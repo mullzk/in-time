@@ -1,5 +1,29 @@
 /* SMACSS Base: element defaults, reset and design tokens. Tokens are the single
    source of colour and spacing; modules reference them, never raw values. */
+@font-face {
+  font-family: "Arimo";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../vendor/fonts/arimo-latin-400-normal.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Arimo";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("../vendor/fonts/arimo-latin-500-normal.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Arimo";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("../vendor/fonts/arimo-latin-600-normal.woff2") format("woff2");
+}
+
 :root {
   --color-background: #10121a;
   --color-surface: rgba(20, 24, 33, 0.82);
@@ -8,7 +32,7 @@
   --color-control: #2b3140;
   --color-control-hover: #3a4255;
   --color-control-text: #eef0f5;
-  --color-border: rgba(201, 204, 214, 0.16);
+  --color-border: rgba(201, 204, 214, 0.9);
   --color-warning: #e8a33d;
   --space-s: 6px;
   --space-m: 12px;
@@ -18,7 +42,7 @@
   --topbar-height: var(--control-height);
   --dock-tile: 44px;
   /* How far the dock stands off the edge of the picture, and how far it reaches
-     into it -- the second is what anything standing clear of the dock needs. */
+     into it -- the second is what anything standing clear of the dock reads. */
   --dock-inset: var(--space-m);
   --dock-outset: calc(
     var(--dock-inset) +
@@ -27,20 +51,15 @@
     var(--space-s) +
     var(--space-m)
   );
-  /* The station clock is painted into the top right corner of the picture by
-     the canvas, where nothing in the DOM holds room for it; this is how far it
-     reaches in -- the margin and the dial that stationClock.js gives it. */
-  --station-clock-outset: calc(var(--space-m) + clamp(56px, 11vmin, 104px));
   --transition-panel: 0.25s ease;
+  --font-ui: "Arimo", "Helvetica Neue", system-ui, sans-serif;
 }
 
-/* On a narrow screen the controls lose a little height to keep the picture the
-   larger part of the screen. */
 @media (max-width: 640px) {
   :root {
     --control-height: 32px;
-    /* The dock lies along the foot of the picture there, and the map credit
-       hangs in the corner beneath it, so it stands further off the edge. */
+    /* The dock lies along the foot of the picture here, over the map credit in
+       the corner, so it stands further off the edge. */
     --dock-inset: calc(var(--space-m) + var(--space-l));
   }
 }
@@ -60,8 +79,6 @@ body {
 body {
   background: var(--color-background);
   color: var(--color-text);
-  font:
-    14px system-ui,
-    sans-serif;
+  font: 14px var(--font-ui);
   overflow: hidden;
 }

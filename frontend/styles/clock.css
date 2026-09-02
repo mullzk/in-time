@@ -1,0 +1,17 @@
+/* SMACSS Module: the clock at the right end of the top bar. The figures are set
+   on one width, so they do not shift under one another as the minutes run. */
+.panel-clock {
+  grid-column: 3;
+  justify-self: end;
+  padding: 0 var(--space-m);
+  height: var(--control-height);
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  backdrop-filter: blur(6px);
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  pointer-events: none;
+}

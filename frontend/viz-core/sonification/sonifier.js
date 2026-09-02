@@ -28,8 +28,6 @@ import {
 // schedule the whole backlog at once.
 const STALL_RESYNC_SECONDS = 0.5;
 
-// A fixed master level (no slider); the per-sound gains and the density damping
-// do the balancing, system volume does the rest.
 const MASTER_GAIN = 0.9;
 const DEFAULT_GAIN = 0.3;
 
@@ -50,11 +48,14 @@ export class Sonifier {
     this.dwellVoices = [];
   }
 
+  // Picking an instrumentation is a user gesture, and so the audio's second
+  // chance to start: a station taken from the address was chosen without one,
+  // and a context the autoplay policy held back then is still silent.
   setInstrumentation(instrumentation) {
     this.instrumentation = instrumentation;
     this.dwellVoices = [];
-    if (instrumentation && this.audioBridge.started) {
-      this.audioBridge.warmUp(this.#sources());
+    if (instrumentation !== null) {
+      this.#ensureAudio();
     }
   }
 
@@ -65,8 +66,6 @@ export class Sonifier {
     this.#ensureAudio();
   }
 
-  // Nobody is listening to a place any more: the events are dropped rather than
-  // asked of a station that is no longer there.
   forgetStation() {
     this.station = null;
     this.events = [];

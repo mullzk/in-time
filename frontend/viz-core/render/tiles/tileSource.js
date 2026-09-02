@@ -24,10 +24,20 @@ export const SWISSVIEW_TILE_SOURCE = tileSource(
   'jpeg',
 );
 
+// The two Landeskarten are one background: grey over the overview, colour from
+// this level on. The level is swisstopo's own, so the switch follows the map's
+// detail rather than the size of the window.
+const COLOUR_FROM_LEVEL = 18;
+
+export const LANDESKARTE_TILE_SOURCE = {
+  urlFor: (z, x, y) =>
+    z >= COLOUR_FROM_LEVEL
+      ? PIXELKARTE_COLOR_TILE_SOURCE.urlFor(z, x, y)
+      : PIXELKARTE_GREY_TILE_SOURCE.urlFor(z, x, y),
+};
+
 // swisstopo's terms of use require a visible source credit wherever their maps
 // are shown; every raster background carries it, the black one (no raster) none.
-// The credit names the map layer, not the app, so it does not read as a
-// copyright over the whole page — only the source name links out.
 const SWISSTOPO_ATTRIBUTION = {
   prefix: 'Karten-Layer: ',
   label: 'swisstopo',
@@ -36,9 +46,8 @@ const SWISSTOPO_ATTRIBUTION = {
 
 // A null source means no raster: the dark canvas clear shows through as the
 // black background. The first entry is the default the panel opens with.
-// `showsRailwayLines` marks rasters that already draw the rail network (and its
-// labels) once zoomed in, so a panel can suppress its own network overlay there
-// and keep it only on the label-free overview.
+// `showsRailwayLines` marks rasters that already draw the rail network once
+// zoomed in, so a panel can suppress its own network overlay there.
 export const BACKGROUNDS = [
   {
     id: 'relief',
@@ -47,16 +56,9 @@ export const BACKGROUNDS = [
     attribution: SWISSTOPO_ATTRIBUTION,
   },
   {
-    id: 'pixel-color',
-    label: 'Landeskarte farbig',
-    source: PIXELKARTE_COLOR_TILE_SOURCE,
-    showsRailwayLines: true,
-    attribution: SWISSTOPO_ATTRIBUTION,
-  },
-  {
-    id: 'pixel-grey',
-    label: 'Landeskarte grau',
-    source: PIXELKARTE_GREY_TILE_SOURCE,
+    id: 'pixel',
+    label: 'Landeskarte',
+    source: LANDESKARTE_TILE_SOURCE,
     showsRailwayLines: true,
     attribution: SWISSTOPO_ATTRIBUTION,
   },

@@ -8,7 +8,6 @@ const NODE_SMALL_DIAMETER_PIXELS = 3;
 const NODE_LARGE_DIAMETER_PIXELS = 5;
 
 // Small dots up to the second-largest of the seven zoom steps, larger beyond.
-// Whether nodes show at all is the stops layer's decision, not the zoom's.
 export function nodeDiameterPixels(zoomFraction) {
   return zoomFraction < NODE_LARGE_FROM_FRACTION
     ? NODE_SMALL_DIAMETER_PIXELS
@@ -26,9 +25,8 @@ export function dominantStationMode(modes) {
 // A generous tap target so small nodes stay hittable on touch.
 export const STATION_HIT_RADIUS_PIXELS = 12;
 
-// Zoomed out, a pick of that reach would swallow every click and the hover label
-// would never rest, so it shrinks towards this floor as the view pulls back,
-// leaving room to aim at a vehicle.
+// Zoomed out, a pick of that reach would swallow every click, so it shrinks
+// towards this floor and leaves room to aim at a vehicle.
 const STATION_HIT_RADIUS_FLOOR_PIXELS = 5;
 
 export function stationPickRadiusPixels(zoomFraction) {
