@@ -5,7 +5,7 @@ import {
   secondsOfDayInZurich,
 } from '../viz-core/time/openingTime.js';
 import { SECONDS_PER_DAY, TimeModel } from '../viz-core/time/timeModel.js';
-import { TaktPanel } from './panel.js';
+import { TaktfahrplanPanel } from './panel.js';
 
 // A service day's trips span more than 24 h (trains running past midnight). We
 // loop a fixed 24-hour window whose seam sits in the pre-dawn lull (~03:00,
@@ -32,7 +32,7 @@ async function bootstrap() {
     }),
   );
 
-  const panel = new TaktPanel(result.railBuffer, result.railStations);
+  const panel = new TaktfahrplanPanel(result.railBuffer, result.railStations);
   const shell = new PanelShell(root, panel, time);
   shell.start();
   shell.startPlayback();

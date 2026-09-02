@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
-import { ReisezeitPanel } from './panel.js';
+import { ZeitkartePanel } from './panel.js';
 
 // The golden rail fixture: three stations, a trip calling at all three (10:00 →
 // 10:10, on again at 10:11 → 10:21) and a second trip from the middle station at
@@ -23,7 +23,7 @@ const STATIONS = [
 ];
 
 const panelFrom = (startTimeSeconds) => {
-  const panel = new ReisezeitPanel(railBuffer(), STATIONS, startTimeSeconds);
+  const panel = new ZeitkartePanel(railBuffer(), STATIONS, startTimeSeconds);
   panel.revealStation(panel.stationCatalog().entryOf(8_500_001));
   return panel;
 };
@@ -147,7 +147,7 @@ test('the stops of an interchange share one place in the picture', () => {
       cluster: 8_500_002,
     },
   ];
-  const panel = new ReisezeitPanel(railBuffer(), interchange, 10 * 3600);
+  const panel = new ZeitkartePanel(railBuffer(), interchange, 10 * 3600);
   panel.revealStation(panel.stationCatalog().entryOf(8_500_001));
 
   assert.equal(
@@ -159,14 +159,14 @@ test('the stops of an interchange share one place in the picture', () => {
 });
 
 test('a panel nobody chose a station for waits at none', () => {
-  const panel = new ReisezeitPanel(railBuffer(), STATIONS, 10 * 3600);
+  const panel = new ZeitkartePanel(railBuffer(), STATIONS, 10 * 3600);
 
   assert.equal(panel.startStation, null);
   assert.equal(panel.places.length, 0, 'and shows nothing');
 });
 
 test('the station a panel draws is one it can travel from', () => {
-  const panel = new ReisezeitPanel(railBuffer(), STATIONS, 10 * 3600);
+  const panel = new ZeitkartePanel(railBuffer(), STATIONS, 10 * 3600);
 
   panel.revealStation(panel.drawStation());
 
@@ -304,10 +304,10 @@ test('a new departure redraws the tree from that time', () => {
   assert.equal(panel.places.length, 1, 'half an hour later nothing leaves');
 });
 
-test('the headline names the departure one chose', () => {
+test('the headline names the station the picture is drawn from', () => {
   const panel = panelFrom(10 * 3600);
 
-  panel.setStartTime(11 * 3600);
+  panel.revealStation(panel.stationCatalog().entryOf(8_500_002));
 
-  assert.match(panel.headline(), /um 11:00/);
+  assert.match(panel.headline(), /von Mitte aus/);
 });

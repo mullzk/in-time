@@ -7,11 +7,11 @@ of the Swiss clock-face timetable (Taktfahrplan). See https://all-in-time.ch
 
 Three views on the same day, one page each, switched by a page load:
 
-- **`/takt`** — the day's timetable as pulsing motion; sonified.
-- **`/ausbreitung`** — reachability spreading from a station over time.
-- **`/reisezeit`** — a radial still image of travel times from a station.
+- **`/taktfahrplan`** — the day's timetable as pulsing motion; sonified.
+- **`/reisefaecher`** — reachability spreading from a station over time.
+- **`/zeitkarte`** — a radial still image of travel times from a station.
 
-Each takes an optional station in the path (`/takt/zürich-hb`).
+Each takes an optional station in the path (`/taktfahrplan/zürich-hb`).
 `?mode=exhibition` is the unattended kiosk variant: no view switcher, no
 instrumentation editor, and a view awaiting a station picks one itself instead
 of asking.
@@ -95,8 +95,8 @@ skipped rather than rebuilt.
 
 Everything else the client needs comes from the reverse proxy.
 
-- `/takt`, `/ausbreitung`, `/reisezeit`: simple html-pages loading js and css
-  and providing the canvas.
+- `/taktfahrplan`, `/reisefaecher`, `/zeitkarte`: simple html-pages loading js
+  and css and providing the canvas.
 - `/api/config`: returns a dict with the serviceDate and the urls to the
   scheduleBlobs and stationCatalogs; `503` when nothing is published.
 - `/api/stations-rail`, `/api/stations-road`: station catalog per network
@@ -132,10 +132,10 @@ dependency-management (dependabot), CI checks consistency with
   browser shows:
   - `VehiclePositionEngine` reads a blob and answers `activeAt(t)`: every trip
     running at that moment with its position interpolated along the route
-    geometry. That is the pulse the takt view animates.
+    geometry. That is the pulse the taktfahrplan view animates.
   - `ConnectionList` (every leg of the day in departure order, one shared
     station directory) plus `ConnectionScan` (one pass, earliest arrival per
-    station) yield the reachability tree the ausbreitung and reisezeit views
+    station) yield the reachability tree the reisefaecher and zeitkarte views
     draw — ~2.3 million legs in milliseconds.
 - The background is a swisstopo tile layer under the drawing: `TileLayer`
   fetches and caches what the camera sees on the LV95 tile grid

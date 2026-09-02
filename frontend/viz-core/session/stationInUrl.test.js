@@ -64,66 +64,72 @@ test('the first station of that name wins, so a link always opens the same one',
 });
 
 test('the station in the path is the one the view opens on', () => {
-  assert.equal(stationInUrlAt('/takt/bern').slug, 'bern');
-  assert.equal(stationInUrlAt('/takt/z%C3%BCrich-hb').slug, 'zürich-hb');
+  assert.equal(stationInUrlAt('/taktfahrplan/bern').slug, 'bern');
+  assert.equal(
+    stationInUrlAt('/taktfahrplan/z%C3%BCrich-hb').slug,
+    'zürich-hb',
+  );
 });
 
 test('a view without a station in its path names none', () => {
-  assert.equal(stationInUrlAt('/takt').slug, null);
-  assert.equal(stationInUrlAt('/takt/').slug, null);
+  assert.equal(stationInUrlAt('/taktfahrplan').slug, null);
+  assert.equal(stationInUrlAt('/taktfahrplan/').slug, null);
 });
 
 test('the address knows which view it belongs to', () => {
-  assert.equal(stationInUrlAt('/reisezeit/bern').view.label, 'Reisezeit');
+  assert.equal(stationInUrlAt('/zeitkarte/bern').view.label, 'Zeitkarte');
   assert.equal(stationInUrlAt('/api/config').view, null);
 });
 
 test('a chosen station is written into the address', () => {
-  const stationInUrl = stationInUrlAt('/takt');
+  const stationInUrl = stationInUrlAt('/taktfahrplan');
 
   stationInUrl.show({ name: 'Bern, Bümpliz Nord' });
 
   assert.equal(stationInUrl.slug, 'bern-bümpliz-nord');
   assert.equal(
     stationInUrl.history.written.at(-1),
-    '/takt/bern-b%C3%BCmpliz-nord',
+    '/taktfahrplan/bern-b%C3%BCmpliz-nord',
   );
 });
 
 test('choosing another station replaces the one in the address', () => {
-  const stationInUrl = stationInUrlAt('/takt/bern');
+  const stationInUrl = stationInUrlAt('/taktfahrplan/bern');
 
   stationInUrl.show({ name: 'Chur' });
 
-  assert.equal(stationInUrl.history.written.at(-1), '/takt/chur');
+  assert.equal(stationInUrl.history.written.at(-1), '/taktfahrplan/chur');
 });
 
 test('what else the address carries survives naming a station', () => {
-  const stationInUrl = stationInUrlAt('/takt', '?mode=exhibition');
+  const stationInUrl = stationInUrlAt('/taktfahrplan', '?mode=exhibition');
 
   stationInUrl.show({ name: 'Bern' });
 
   assert.equal(
     stationInUrl.history.written.at(-1),
-    '/takt/bern?mode=exhibition',
+    '/taktfahrplan/bern?mode=exhibition',
   );
 });
 
 test('giving the station up leaves the view alone in the address', () => {
-  const stationInUrl = stationInUrlAt('/takt/bern');
+  const stationInUrl = stationInUrlAt('/taktfahrplan/bern');
 
   stationInUrl.forget();
 
   assert.equal(stationInUrl.slug, null);
-  assert.equal(stationInUrl.history.written.at(-1), '/takt');
+  assert.equal(stationInUrl.history.written.at(-1), '/taktfahrplan');
 });
 
 test('what else the address carries survives giving the station up', () => {
-  const stationInUrl = stationInUrlAt('/takt/bern', '?mode=exhibition');
+  const stationInUrl = stationInUrlAt('/taktfahrplan/bern', '?mode=exhibition');
 
   stationInUrl.forget();
 
-  assert.equal(stationInUrl.history.written.at(-1), '/takt?mode=exhibition');
+  assert.equal(
+    stationInUrl.history.written.at(-1),
+    '/taktfahrplan?mode=exhibition',
+  );
 });
 
 test('a page outside the gallery is left alone', () => {
@@ -135,24 +141,24 @@ test('a page outside the gallery is left alone', () => {
 });
 
 test('the other views are linked to with the same station', () => {
-  const stationInUrl = stationInUrlAt('/takt/bern');
+  const stationInUrl = stationInUrlAt('/taktfahrplan/bern');
 
-  assert.equal(stationInUrl.linkTo('/reisezeit'), '/reisezeit/bern');
+  assert.equal(stationInUrl.linkTo('/zeitkarte'), '/zeitkarte/bern');
 });
 
 test('without a station the other views are linked to plainly', () => {
-  const stationInUrl = stationInUrlAt('/takt', '?mode=exhibition');
+  const stationInUrl = stationInUrlAt('/taktfahrplan', '?mode=exhibition');
 
-  assert.equal(stationInUrl.linkTo('/reisezeit'), '/reisezeit?mode=exhibition');
+  assert.equal(stationInUrl.linkTo('/zeitkarte'), '/zeitkarte?mode=exhibition');
 });
 
 test('a link to another view carries the station chosen since the page loaded', () => {
-  const stationInUrl = stationInUrlAt('/takt');
+  const stationInUrl = stationInUrlAt('/taktfahrplan');
 
   stationInUrl.show({ name: 'Zürich HB' });
 
   assert.equal(
-    stationInUrl.linkTo('/ausbreitung'),
-    '/ausbreitung/z%C3%BCrich-hb',
+    stationInUrl.linkTo('/reisefaecher'),
+    '/reisefaecher/z%C3%BCrich-hb',
   );
 });

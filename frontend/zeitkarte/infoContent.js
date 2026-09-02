@@ -1,4 +1,4 @@
-// The Reisezeit panel's info-modal content.
+// The Zeitkarte panel's info-modal content.
 
 const link = (label, href) => ({ label, href });
 
@@ -29,10 +29,11 @@ export function buildInfoContent() {
         '.',
       ],
       [
-        'Die Reisezeit-Karte zeichnet die Schweiz nicht nach Kilometer, ' +
+        'Die Zeitkarte zeichnet die Schweiz nicht nach Kilometer, ' +
           'sondern nach Fahrtzeit: Vom Ausgangsort gesehen liegt jede Station ' +
           'in der Richtung, in der sie wirklich liegt — aber so weit ' +
-          'entfernt, wie die Fahrt dorthin dauert.',
+          'entfernt, wie die Fahrt dorthin dauert. Die Umsteigepunkte werden ' +
+          'hervorgehoben.',
       ],
     ],
     shortcuts: [

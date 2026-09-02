@@ -80,7 +80,7 @@ const nodeSizeFactor = (category) =>
     ? START_NODE_SIZE_FACTOR
     : (NODE_SIZE_FACTORS.get(category) ?? REGIONAL_NODE_SIZE_FACTOR);
 
-export class AusbreitungPanel extends Panel {
+export class ReisefaecherPanel extends Panel {
   capabilities = {
     simulationSpeed: true,
     stationSearch: true,
@@ -178,7 +178,7 @@ export class AusbreitungPanel extends Panel {
       return HEADLINE_WHILE_LOADING;
     }
     const { station, departureSeconds } = this.spreadOnScreen;
-    return `Wenn ich um ${formatTimeOfDay(departureSeconds)} in ${station.name} losfahre, welche Orte erreiche ich um welche Zeit?`;
+    return `Wenn ich um ${formatTimeOfDay(departureSeconds)} in ${station.name} losfahre, und immer optimal umsteige, welche Orte erreiche ich um welche Zeit?`;
   }
 
   drawStation() {

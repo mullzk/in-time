@@ -124,7 +124,7 @@ const labelSize = (p, lines) => ({
   height: lines.length * LABEL_LINE_HEIGHT_PIXELS + LABEL_PADDING_PIXELS * 2,
 });
 
-export class ReisezeitPanel extends Panel {
+export class ZeitkartePanel extends Panel {
   capabilities = {
     stationSearch: true,
     needsAStation: true,
@@ -638,7 +638,7 @@ export class ReisezeitPanel extends Panel {
     if (this.startStation === null) {
       return HEADLINE_WHILE_LOADING;
     }
-    return `Wenn ich um ${formatTimeOfDay(this.startTimeSeconds)} in ${this.startStation.name} losfahre, wo komme ich heute noch hin?`;
+    return `Jeder Ort in der Richtung, in der er von ${this.startStation.name} aus liegt, die Distanz aber in Reisezeit statt in Kilometern.`;
   }
 
   // Zoomed far out the rings crowd together, so a ring too close to the last

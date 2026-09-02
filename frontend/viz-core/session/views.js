@@ -1,9 +1,9 @@
 // Every view the application offers, in the order it is shown. Each is its own
 // web address, and switching to one is a page load.
 export const VIEWS = [
-  { path: '/takt', label: 'Takt' },
-  { path: '/ausbreitung', label: 'Ausbreitung' },
-  { path: '/reisezeit', label: 'Reisezeit' },
+  { path: '/taktfahrplan', label: 'Taktfahrplan' },
+  { path: '/reisefaecher', label: 'Reisefächer' },
+  { path: '/zeitkarte', label: 'Zeitkarte' },
 ];
 
 // A view's name is the head of the address; what follows is the station.

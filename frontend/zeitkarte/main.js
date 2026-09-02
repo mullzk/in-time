@@ -6,7 +6,7 @@ import {
   secondsOfDayInZurich,
 } from '../viz-core/time/openingTime.js';
 import { StoppedTimeModel } from '../viz-core/time/stoppedTimeModel.js';
-import { ReisezeitPanel } from './panel.js';
+import { ZeitkartePanel } from './panel.js';
 
 const root = document.getElementById('viz-root');
 
@@ -22,7 +22,7 @@ async function bootstrap() {
   // The address is read before the first tree is worked out, so the picture is
   // drawn from the station it names instead of being computed twice.
   const stationInUrl = new StationInUrl();
-  const panel = new ReisezeitPanel(
+  const panel = new ZeitkartePanel(
     result.railBuffer,
     result.railStations,
     departure,

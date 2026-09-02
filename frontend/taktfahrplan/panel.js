@@ -155,7 +155,7 @@ export function instrumentationForOptionValue(value, customInstrumentation) {
   );
 }
 
-export class TaktPanel extends Panel {
+export class TaktfahrplanPanel extends Panel {
   capabilities = {
     simulationSpeed: true,
     timeScrubber: true,
