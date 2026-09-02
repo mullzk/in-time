@@ -58,8 +58,8 @@ const VEHICLE_HIT_RADIUS_PIXELS = 10;
 // The line is drawn against the ground it lies on: white on the black one, and
 // laid on in black wherever the map itself is light. Thin and half see-through,
 // so it traces the journey without covering the places it runs past.
-const JOURNEY_ON_BLACK = [255, 255, 255, 150];
-const JOURNEY_ON_RASTER = [0, 0, 0, 150];
+const JOURNEY_ON_BLACK = [255, 255, 255, 255];
+const JOURNEY_ON_RASTER = [0, 0, 0, 220];
 const JOURNEY_WIDTH_PIXELS = 1.625;
 const INTERCHANGE_WIDTH_PIXELS = 1.5;
 const INTERCHANGE_DIAMETER_PIXELS = 9;
