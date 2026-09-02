@@ -32,7 +32,7 @@
   --color-control: #2b3140;
   --color-control-hover: #3a4255;
   --color-control-text: #eef0f5;
-  --color-border: rgba(201, 204, 214, 0.16);
+  --color-border: rgba(201, 204, 214, 0.9);
   --color-warning: #e8a33d;
   --space-s: 6px;
   --space-m: 12px;
@@ -42,7 +42,7 @@
   --topbar-height: var(--control-height);
   --dock-tile: 44px;
   /* How far the dock stands off the edge of the picture, and how far it reaches
-     into it -- the second is what anything standing clear of the dock needs. */
+     into it -- the second is what anything standing clear of the dock reads. */
   --dock-inset: var(--space-m);
   --dock-outset: calc(
     var(--dock-inset) +
@@ -55,13 +55,11 @@
   --font-ui: "Arimo", "Helvetica Neue", system-ui, sans-serif;
 }
 
-/* On a narrow screen the controls lose a little height to keep the picture the
-   larger part of the screen. */
 @media (max-width: 640px) {
   :root {
     --control-height: 32px;
-    /* The dock lies along the foot of the picture there, and the map credit
-       hangs in the corner beneath it, so it stands further off the edge. */
+    /* The dock lies along the foot of the picture here, over the map credit in
+       the corner, so it stands further off the edge. */
     --dock-inset: calc(var(--space-m) + var(--space-l));
   }
 }

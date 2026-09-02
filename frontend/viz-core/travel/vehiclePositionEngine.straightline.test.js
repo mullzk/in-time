@@ -54,3 +54,10 @@ test('a dwelling bus sits exactly on the intermediate station', () => {
 test('the bus trip reports its bus category', () => {
   assert.equal(positionAt(36_300).category, 6);
 });
+
+test('a leg without edges is drawn straight between its stations', () => {
+  assert.deepEqual(engine.legPolyline(0, 0), [
+    engine.stations[0],
+    engine.stations[1],
+  ]);
+});

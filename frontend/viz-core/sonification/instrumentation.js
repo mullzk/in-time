@@ -132,8 +132,7 @@ export class Instrumentation {
     };
   }
 
-  // Every sound the document can reach, so the audio bridge can stream each one
-  // before its first audible hit.
+  // Every sound the document can reach, for the audio bridge to warm up.
   sources() {
     const sources = TRANSPORT_GROUPS.flatMap((group) =>
       EVENT_KINDS.map((eventKind) => this.#soundFor(group, eventKind).base.s),
@@ -192,8 +191,7 @@ export class Instrumentation {
     );
   }
 
-  // A repeating figure without a gap between its hits would schedule endlessly,
-  // so it is refused at the door rather than at the first standing train.
+  // A repeating figure without a gap between its hits would schedule endlessly.
   #checkEveryGroupPlays() {
     TRANSPORT_GROUPS.forEach((group) => {
       if (this.#dwellTypeFor(group) !== 'repeat') {

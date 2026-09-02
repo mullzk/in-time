@@ -1,14 +1,12 @@
-// A place in a picture is not a stop but an interchange: the platform, the bus
-// bay in front of it and the tram stop across the road are one dot with one
-// name. Without that, a station reached by train would be reached again by every
-// bus around it -- once as a light in the spread, once as a line of its own in
-// the travel-time picture.
+// A place in a picture is an interchange, not a single stop: the platform, the
+// bus bay in front of it and the tram stop across the road are one dot with one
+// name, so a station is not reached again by every bus around it.
 
 const keyOfStation = (connections, station) =>
   connections.clusterOf(station) ?? connections.didokOf(station);
 
-// The interchange answers to its own name -- the didok the catalog names it by.
-// Only where that stop is not itself reached does another member speak for it.
+// The interchange answers to its own didok; only where that stop is not itself
+// reached does another member speak for it.
 const principalStopOf = (connections, key, members) => {
   const principal = connections.stationOf(key);
   return principal !== undefined && members.includes(principal)
@@ -28,8 +26,8 @@ const membersPerPlace = (tree, connections, catalog) => {
   return members;
 };
 
-// The places a tree reaches: each with the stop that speaks for it and all the
-// stops it gathers, so a panel can ask both what to call it and how one got in.
+// The places a tree reaches, each with the stop that speaks for it and all the
+// stops it gathers.
 export function placesOfReachedStations(tree, connections, catalog) {
   return [...membersPerPlace(tree, connections, catalog).entries()].map(
     ([key, members]) => ({

@@ -3,19 +3,15 @@ import { applyCameraTransform } from '../viz-core/render/cameraTransform.js';
 const NO_RUN = -1;
 const FROM_THE_BEGINNING = 0;
 
-// The places that have settled are a picture that only grows, so it is painted
-// once into a layer of its own and added to as further places settle. A frame
-// then draws one image instead of twenty thousand dots -- which the browser
-// rasterises even when the drawing itself costs nothing: measured on a full day,
-// 33 ms a frame before, 8 ms after. The layer holds screen pixels, so a moved
-// camera, a spread run backwards or a new spread means painting it anew.
+// The settled places only ever grow, so they are painted once into a layer of
+// their own and added to as further places settle: a frame draws one image
+// instead of twenty thousand dots (33 ms a frame before, 8 ms after, on a full
+// day). The layer holds screen pixels, so a moved camera, a spread run
+// backwards or a new spread means painting it anew.
 //
-// What is added to it must not carry the order of the arrivals into a picture
-// that is about the ranks: a bus stop reached late would else lie over the
-// station it stands at. Whatever is drawn over a run that has just been added to
-// is therefore painted anew, whole. That is the smaller half of the picture --
-// the traffic outranking the buses -- and it costs, measured on a spread over
-// the whole country, 0.9 ms a frame before and 1.3 ms after.
+// Adding to a run may bury places of a higher-ranking run, so everything drawn
+// over the run added to is repainted whole (0.9 ms a frame before, 1.3 ms
+// after, on a spread over the whole country).
 export class SettledLayer {
   constructor(p, colorOf) {
     this.graphics = p.createGraphics(p.width, p.height);
@@ -32,10 +28,9 @@ export class SettledLayer {
     return this.graphics.width === width && this.graphics.height === height;
   }
 
-  // The runs come in the order they are drawn, the highest-ranking traffic last.
-  // The lowest one with places to add decides the work: it is added to, whatever
-  // lies over it is painted anew -- its new places may have buried some of it --
-  // and what lies under it has nothing new and stays as it is.
+  // The runs come in the order they are drawn, the highest-ranking last. The
+  // lowest one with new places decides the work: it is added to, everything
+  // over it is repainted, everything under it stays as it is.
   paint(camera, runs, diameterOf) {
     this.#startOverIfStale(camera, runs);
     const lowestRunWithNewPlaces = runs.findIndex((run) =>
@@ -88,12 +83,10 @@ export class SettledLayer {
     graphics.push();
     graphics.resetMatrix();
     applyCameraTransform(graphics, camera);
-    // Every place of a run goes into one path that is filled once, which is what
-    // keeps a full repaint affordable. Drawn through the raw canvas context
-    // rather than through p5: p5 renders a POINTS vertex as a line 1e-5 long
-    // and leans on a round cap to make it a dot, and at this camera scale that
-    // segment is a billionth of a pixel -- which WebKit drops and the other
-    // engines still paint.
+    // Every place of a run goes into one path that is filled once, which keeps
+    // a full repaint affordable. Drawn through the raw canvas context rather
+    // than through p5: p5 renders a POINTS vertex as a line 1e-5 long with a
+    // round cap, and at this camera scale WebKit drops that segment.
     const context = graphics.drawingContext;
     const radius = diameter / 2;
     context.fillStyle = rgba(this.colorOf(run.category));

@@ -1,5 +1,4 @@
-// The Ausbreitung panel's info-modal content. Kept apart from the modal shell so
-// the copy lives in one place.
+// The Reisefächer panel's info-modal content.
 
 const link = (label, href) => ({ label, href });
 
@@ -30,7 +29,7 @@ export function buildInfoContent() {
         '.',
       ],
       [
-        'Die Ausbreitungs-Ansicht zeigt auf, wie sich von einem beliebigen ' +
+        'Der Reisefächer zeigt auf, wie sich von einem beliebigen ' +
           'Startpunkt aus die ganze Schweiz erreichen lässt.',
       ],
     ],

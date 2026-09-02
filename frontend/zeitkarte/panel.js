@@ -26,38 +26,33 @@ import { RadialTravelTimeLayout } from '../viz-core/travel/radialTravelTime.js';
 import { distanceToSegmentSquared } from '../viz-core/travel/segmentDistance.js';
 import { VehiclePositionEngine } from '../viz-core/travel/vehiclePositionEngine.js';
 import { buildInfoContent } from './infoContent.js';
-import { formatDuration, formatThroughRide, formatWait } from './labels.js';
+import { formatRideWithWait, formatTravelTimeFrom } from './labels.js';
 
 const SECONDS_PER_HOUR = 3600;
 
-const GROUND_COLOR = [250, 250, 248];
+// The ground the canvas is cleared to; labels back themselves with it.
+const GROUND_COLOR = [16, 18, 22];
 
-// Journeys are drawn in bands of half an hour, each band one shape rather than
-// thousands of coloured lines. The ramp runs from the green of the first minutes
-// through orange and red into a red so dark it is nearly black -- six hours out,
-// where the day is mostly spent travelling.
+// One colour per half hour of travel time; anything beyond the last band
+// carries its colour.
 const BAND_SECONDS = 1800;
 const BAND_COLORS = [
-  [40, 160, 90],
-  [95, 175, 70],
-  [145, 185, 60],
-  [195, 190, 55],
-  [230, 170, 50],
-  [240, 140, 45],
-  [235, 110, 45],
-  [220, 75, 45],
-  [190, 45, 45],
-  [150, 30, 40],
-  [100, 22, 32],
-  [45, 12, 18],
+  [70, 220, 130],
+  [125, 230, 105],
+  [175, 232, 90],
+  [220, 226, 85],
+  [244, 196, 72],
+  [250, 160, 66],
+  [250, 124, 70],
+  [244, 94, 86],
+  [232, 76, 116],
+  [208, 70, 148],
+  [174, 72, 172],
+  [140, 82, 190],
 ];
 
-// The lines are the skeleton and nothing more: one fine dark blue for all of
-// them. What kind of traffic runs where, and how far out it lies, is told by the
-// nodes alone -- the long-distance interchanges as the largest dots, the bus
-// stops as the smallest. Given in pixels and turned into world units at the
-// current zoom, so the picture keeps its look however close the view is.
-const LEG_COLOR = [32, 54, 104, 150];
+// Given in pixels and turned into world units at the current zoom.
+const LEG_COLOR = [92, 106, 132, 180];
 const LEG_WIDTH_PIXELS = 0.5;
 const NODE_DIAMETERS = new Map([
   [CATEGORY_INTERCITY, 8],
@@ -70,22 +65,26 @@ const REGIONAL_NODE_DIAMETER = 4;
 const nodeDiameterOfCategory = (category) =>
   NODE_DIAMETERS.get(category) ?? REGIONAL_NODE_DIAMETER;
 
-// Small dots first, so a bus stop is not left sitting on top of the interchange
-// it belongs to.
 const bySmallestNodeFirst = (first, second) =>
   nodeDiameterOfCategory(first.category) -
   nodeDiameterOfCategory(second.category);
 
-const RING_COLOR = [214, 214, 210];
-const RING_LABEL_COLOR = [140, 142, 145];
-const CENTRE_COLOR = [20, 22, 26];
-const LABEL_BACKGROUND = [28, 30, 34, 235];
+const RING_COLOR = [56, 60, 70];
+const RING_LABEL_COLOR = [126, 130, 140];
+const CENTRE_COLOR = [245, 246, 248];
+const LABEL_BACKGROUND = [46, 50, 60, 240];
 const LABEL_TEXT_COLOR = [245, 246, 248];
-const HIGHLIGHT_COLOR = [20, 22, 26];
+const HIGHLIGHT_COLOR = [255, 255, 255];
+
+const INTERCHANGE_LABEL_COLOR = [176, 182, 194];
 
 const CENTRE_DIAMETER_PIXELS = 9;
 const HIGHLIGHT_WIDTH_PIXELS = 1.5;
 const HIGHLIGHT_LEG_WIDTH_PIXELS = 2.5;
+const INTERCHANGE_WIDTH_PIXELS = 1;
+const INTERCHANGE_DIAMETER_PIXELS = 9;
+const INTERCHANGE_LABEL_TEXT_SIZE = 10;
+const INTERCHANGE_LABEL_GAP_PIXELS = 8;
 const NODE_PICK_RADIUS_PIXELS = 7;
 const LEG_PICK_RADIUS_PIXELS = 5;
 const LABEL_PADDING_PIXELS = 8;
@@ -99,16 +98,11 @@ const bandOf = (travelTimeSeconds) =>
     BAND_COLORS.length - 1,
   );
 
-// Places are grouped by how far out they lie and by the vehicle one arrives on,
-// so a frame sets one fill per group instead of one per dot.
+// Grouping places by band and category lets a frame set one fill per group
+// instead of one per dot.
 const groupKey = (band, category) => `${band}:${category}`;
 
 const NO_PLACE = -1;
-
-// A single valley served once a day reaches hours beyond the rest, and opening
-// on the whole tree would shrink everything else around it. The view therefore
-// starts a little way in; one key (F) pulls it back to all of it.
-const INITIAL_ZOOM_FRACTION = 0.11;
 
 const sameTarget = (first, second) =>
   first.kind === second.kind && first.index === second.index;
@@ -130,7 +124,7 @@ const labelSize = (p, lines) => ({
   height: lines.length * LABEL_LINE_HEIGHT_PIXELS + LABEL_PADDING_PIXELS * 2,
 });
 
-export class ReisezeitPanel extends Panel {
+export class ZeitkartePanel extends Panel {
   capabilities = {
     stationSearch: true,
     needsAStation: true,
@@ -165,23 +159,18 @@ export class ReisezeitPanel extends Panel {
     this.adoptSchedule(railBuffer, railStations);
   }
 
-  groundColor() {
-    return GROUND_COLOR;
-  }
-
   stationCatalog() {
     return this.catalog;
   }
 
-  // Which place in the picture a stop ended up in -- its own, or the interchange
-  // it belongs to.
+  // The place a stop ended up in: its own, or the interchange it belongs to.
   placeOfDidok(didok) {
     const station = this.connections.stationOf(didok);
     return station === undefined ? NO_PLACE : this.placeOfStation[station];
   }
 
-  // The picture drawn from the station the panel picked itself stands before
-  // there is a camera to show it on, so the view is opened once there is one.
+  // The first picture is laid out before there is a camera, so the view is
+  // opened once there is one.
   init(context) {
     this.context = context;
     this.#letTheViewReachThePicture(this.tree !== null);
@@ -207,8 +196,8 @@ export class ReisezeitPanel extends Panel {
     });
   }
 
-  // The road blob arrives after the first picture already stands, so the whole
-  // connection list is rebuilt around it.
+  // The road blob arrives after the first picture stands, so the connection
+  // list is rebuilt around it.
   adoptSchedule(buffer, stations) {
     this.catalog.addPublished(stations, readStationPoints(buffer));
     this.networks.push({
@@ -218,18 +207,16 @@ export class ReisezeitPanel extends Panel {
     this.connections = buildConnectionList(this.networks);
     this.scan = new ConnectionScan(this.connections);
     this.#settleOnAStartStation();
-    // Someone is already looking, so the view stays where it was put -- unless
-    // it is still the panel's own starting point, which nobody has framed yet,
-    // or there was no picture to look at at all.
+    // A view someone has framed stays where it is; the panel's own starting
+    // point has not been framed by anyone.
     this.#rescan({
       openTheView:
         this.startStationChoice.drawnByThePanel || !this.viewHasReachedAPicture,
     });
   }
 
-  // Nothing more is on its way, so a stop the address names that no schedule
-  // knows is not going to turn up: the picture stops waiting for it and is drawn
-  // from a stop of the panel's own.
+  // A stop the address names that no loaded schedule knows will not turn up any
+  // more, so the picture falls back to a station of its own.
   noFurtherScheduleIsComing() {
     this.startStationChoice.noFurtherScheduleIsComing();
     if (this.startStation !== null) {
@@ -277,9 +264,8 @@ export class ReisezeitPanel extends Panel {
     this.hovered = null;
   }
 
-  // A finger has no hover to read the label with, so its first tap on a target
-  // only names it and its second one travels from it. The mouse, which has
-  // hovered the target already, travels on the first click.
+  // A finger has no hover, so its first tap on a target only names it and the
+  // second one travels from it; a mouse has hovered it already.
   #awaitsAnotherTap(target, pointerType) {
     return (
       pointerType !== 'mouse' &&
@@ -316,8 +302,7 @@ export class ReisezeitPanel extends Panel {
     this.#letTheViewReachThePicture(openTheView);
   }
 
-  // Everything a frame needs is worked out once here, so drawing only reads what
-  // it draws.
+  // Everything a frame needs is worked out once here, so drawing only reads it.
   #layOutReachedStations() {
     this.places = this.#placesOfReachedStations();
     this.positions = this.#positionsOfPlaces();
@@ -338,8 +323,8 @@ export class ReisezeitPanel extends Panel {
     return positions;
   }
 
-  // The places of the picture, each remembering which stops it gathers, so a leg
-  // can be traced back from any of them to the place it left.
+  // Each place remembers the stops it gathers, so a leg can be traced back from
+  // any of them to the place it left.
   #placesOfReachedStations() {
     this.placeOfStation = new Int32Array(this.connections.stationCount).fill(
       NO_PLACE,
@@ -360,9 +345,7 @@ export class ReisezeitPanel extends Panel {
     });
   }
 
-  // Where the vehicle really pulled in: the leg into the place is drawn from
-  // there, so it carries the right kind of traffic. The place one starts at has
-  // none.
+  // The stop the vehicle actually pulled in at; the starting place has none.
   #stopTheVehicleCalledAt(members) {
     return (
       members.find((station) => {
@@ -401,9 +384,8 @@ export class ReisezeitPanel extends Panel {
       .filter((place) => this.#hasALegOfItsOwn(place));
   }
 
-  // A leg is drawn when it leads from one place to another. It is not when the
-  // stop it left has no place of its own, and not when it stays inside one --
-  // crossing an interchange on foot is not a journey.
+  // A leg counts only when it leads from one place to another one: not when the
+  // stop it left has no place of its own, and not when it stays inside one.
   #hasALegOfItsOwn(place) {
     const leg = this.#legIntoPlace(place);
     if (leg === null) {
@@ -417,15 +399,45 @@ export class ReisezeitPanel extends Panel {
     return this.placeOfStation[leg.fromStation];
   }
 
-  // The vehicle's own last stretch, so a line follows the stops it calls at.
+  // The places from the starting point to this one, walked backwards along the
+  // leg into each place until nothing leads any further.
+  placesOnPathTo(place) {
+    const reversed = [];
+    let step = place;
+    while (this.#hasALegOfItsOwn(step)) {
+      reversed.push(step);
+      step = this.#placeLeftBehind(this.#legIntoPlace(step));
+    }
+    reversed.push(step);
+    return reversed.reverse();
+  }
+
+  // The places on the path arrived at on one trip and left on another; the
+  // starting point and the destination are not interchanges.
+  interchangesOnPathTo(place) {
+    const path = this.placesOnPathTo(place);
+    return path.filter(
+      (step, index) =>
+        index > 0 &&
+        index < path.length - 1 &&
+        this.#tripIntoPlace(step) !== this.#tripIntoPlace(path[index + 1]),
+    );
+  }
+
+  #tripIntoPlace(place) {
+    return this.#legIntoPlace(place).trip;
+  }
+
   #legIntoPlace(place) {
     const { servedStation } = this.places[place];
     return servedStation === null ? null : this.tree.legInto(servedStation);
   }
 
-  #rideIntoPlace(place) {
+  #waitBeforeLegIntoPlace(place) {
     const { servedStation } = this.places[place];
-    return servedStation === null ? null : this.tree.rideInto(servedStation);
+    return servedStation === null
+      ? 0
+      : this.tree.waitBeforeLegInto(servedStation);
   }
 
   #longestTravelTime() {
@@ -435,10 +447,8 @@ export class ReisezeitPanel extends Panel {
     );
   }
 
-  // Zoomed all the way out, everything reachable must be in view -- including
-  // the outermost hour ring, which reaches past the last place. The camera
-  // therefore learns how big this picture is; on a new starting point it also
-  // opens on it.
+  // The camera bounds have to hold the outermost hour ring, which reaches past
+  // the last place.
   #letTheViewReachThePicture(openTheView) {
     const camera = this.context?.camera;
     if (camera === undefined || this.tree === null) {
@@ -453,10 +463,41 @@ export class ReisezeitPanel extends Panel {
       northMax: this.startStation.north + radius,
     });
     if (openTheView) {
-      // Fit first, which is what centres the view on the starting point.
-      camera.fit();
-      camera.setZoomFraction(INITIAL_ZOOM_FRACTION);
+      camera.frameOn(this.#pictureBounds());
     }
+  }
+
+  // How far the picture reaches in each direction, so a tall viewport zooms out
+  // as far as its narrow side needs instead of cropping the picture sideways.
+  // The starting point stays the centre, and the first hour ring is always in
+  // view even when everything reached lies close by.
+  #pictureBounds() {
+    const smallestReach = this.#ringRadius(1);
+    const reach = this.#reachOfPlaces();
+    const eastReach = Math.max(smallestReach, reach.east);
+    const northReach = Math.max(smallestReach, reach.north);
+    return {
+      eastMin: this.startStation.east - eastReach,
+      eastMax: this.startStation.east + eastReach,
+      northMin: this.startStation.north - northReach,
+      northMax: this.startStation.north + northReach,
+    };
+  }
+
+  #reachOfPlaces() {
+    return this.places.reduce(
+      (reach, _, index) => ({
+        east: Math.max(
+          reach.east,
+          Math.abs(this.positions[index * 2] - this.startStation.east),
+        ),
+        north: Math.max(
+          reach.north,
+          Math.abs(this.positions[index * 2 + 1] - this.startStation.north),
+        ),
+      }),
+      { east: 0, north: 0 },
+    );
   }
 
   drawWorld(p, context) {
@@ -464,8 +505,6 @@ export class ReisezeitPanel extends Panel {
       return;
     }
     this.#drawHourRings(p, context);
-    // The whole skeleton first, then the places on top of it: the nodes carry
-    // the colour and the kind of traffic, and nothing may bury them.
     this.#drawLegs(p, context);
     this.placeGroups.forEach((group) => {
       this.#drawNodesOfGroup(p, context, group);
@@ -495,8 +534,6 @@ export class ReisezeitPanel extends Panel {
     p.endShape();
   }
 
-  // A place wears the vehicle one arrives on, so an interchange a long-distance
-  // train calls at reads larger than the bus stop beside it.
   #drawNodesOfGroup(p, context, { band, category, places }) {
     const diameter =
       nodeDiameterOfCategory(category) * context.camera.worldPerPixel();
@@ -507,8 +544,7 @@ export class ReisezeitPanel extends Panel {
     });
   }
 
-  // The rings say what the picture measures: one hour of travel per ring,
-  // whichever way one is heading.
+  // One ring per hour of travel time.
   #drawHourRings(p, context) {
     p.noFill();
     p.stroke(...RING_COLOR);
@@ -531,11 +567,41 @@ export class ReisezeitPanel extends Panel {
       return;
     }
     const worldPerPixel = context.camera.worldPerPixel();
-    if (this.hovered.kind === 'place') {
-      this.#drawHighlightedPlace(p, this.hovered.index, worldPerPixel);
-      return;
-    }
-    this.#drawHighlightedLeg(p, this.hovered.index, worldPerPixel);
+    // A leg is named by the place it arrives at, so both kinds of target
+    // highlight the same journey.
+    this.#drawHighlightedPath(p, this.hovered.index, worldPerPixel);
+    this.#drawHighlightedInterchanges(p, worldPerPixel);
+    this.#drawHighlightedPlace(p, this.hovered.index, worldPerPixel);
+  }
+
+  #interchangesOnTheHoveredPath() {
+    return this.hovered === null
+      ? []
+      : this.interchangesOnPathTo(this.hovered.index);
+  }
+
+  #drawHighlightedInterchanges(p, worldPerPixel) {
+    p.noFill();
+    p.stroke(...HIGHLIGHT_COLOR);
+    p.strokeWeight(INTERCHANGE_WIDTH_PIXELS * worldPerPixel);
+    this.#interchangesOnTheHoveredPath().forEach((place) => {
+      p.circle(
+        this.#eastOf(place),
+        this.#northOf(place),
+        INTERCHANGE_DIAMETER_PIXELS * worldPerPixel,
+      );
+    });
+  }
+
+  #drawHighlightedPath(p, place, worldPerPixel) {
+    p.noFill();
+    p.stroke(...HIGHLIGHT_COLOR);
+    p.strokeWeight(HIGHLIGHT_LEG_WIDTH_PIXELS * worldPerPixel);
+    p.beginShape();
+    this.placesOnPathTo(place).forEach((step) => {
+      p.vertex(this.#eastOf(step), this.#northOf(step));
+    });
+    p.endShape();
   }
 
   #drawHighlightedPlace(p, place, worldPerPixel) {
@@ -546,18 +612,6 @@ export class ReisezeitPanel extends Panel {
       this.#eastOf(place),
       this.#northOf(place),
       NODE_PICK_RADIUS_PIXELS * 2 * worldPerPixel,
-    );
-  }
-
-  #drawHighlightedLeg(p, place, worldPerPixel) {
-    const from = this.#placeLeftBehind(this.#legIntoPlace(place));
-    p.stroke(...HIGHLIGHT_COLOR);
-    p.strokeWeight(HIGHLIGHT_LEG_WIDTH_PIXELS * worldPerPixel);
-    p.line(
-      this.#eastOf(from),
-      this.#northOf(from),
-      this.#eastOf(place),
-      this.#northOf(place),
     );
   }
 
@@ -576,6 +630,7 @@ export class ReisezeitPanel extends Panel {
       return;
     }
     this.#drawRingLabels(p, context);
+    this.#drawInterchangeLabels(p, context);
     this.#drawHoverLabel(p);
   }
 
@@ -583,11 +638,11 @@ export class ReisezeitPanel extends Panel {
     if (this.startStation === null) {
       return HEADLINE_WHILE_LOADING;
     }
-    return `Wenn ich um ${formatTimeOfDay(this.startTimeSeconds)} in ${this.startStation.name} losfahre, wo komme ich heute noch hin?`;
+    return `Jeder Ort in der Richtung, in der er von ${this.startStation.name} aus liegt, die Distanz aber in Reisezeit statt in Kilometern.`;
   }
 
-  // Zoomed far out the rings crowd together, and their labels would smear into
-  // one another; a ring too close to the last labelled one goes unnamed.
+  // Zoomed far out the rings crowd together, so a ring too close to the last
+  // labelled one goes unnamed.
   #drawRingLabels(p, context) {
     p.noStroke();
     p.fill(...RING_LABEL_COLOR);
@@ -607,14 +662,35 @@ export class ReisezeitPanel extends Panel {
     }, Number.NEGATIVE_INFINITY);
   }
 
-  // The inner rings fall where the tree is densest, so a label carries a little
-  // of the ground with it rather than sitting on the lines.
-  #drawRingLabel(p, text, x, y) {
+  #drawLabelOnGround(p, text, x, y, color) {
     const width = p.textWidth(text);
     p.fill(...GROUND_COLOR, 220);
     p.rect(x - 3, y - 8, width + 6, 16, 3);
-    p.fill(...RING_LABEL_COLOR);
+    p.fill(...color);
     p.text(text, x, y);
+  }
+
+  #drawRingLabel(p, text, x, y) {
+    this.#drawLabelOnGround(p, text, x, y, RING_LABEL_COLOR);
+  }
+
+  #drawInterchangeLabels(p, context) {
+    p.noStroke();
+    p.textAlign(p.LEFT, p.CENTER);
+    p.textSize(INTERCHANGE_LABEL_TEXT_SIZE);
+    this.#interchangesOnTheHoveredPath().forEach((place) => {
+      const [x, y] = context.camera.worldToScreen(
+        this.#eastOf(place),
+        this.#northOf(place),
+      );
+      this.#drawLabelOnGround(
+        p,
+        this.#nameOfPlace(place),
+        x + INTERCHANGE_LABEL_GAP_PIXELS,
+        y,
+        INTERCHANGE_LABEL_COLOR,
+      );
+    });
   }
 
   #drawHoverLabel(p) {
@@ -639,8 +715,8 @@ export class ReisezeitPanel extends Panel {
     });
   }
 
-  // The label follows the pointer but stays on the canvas, flipping to the other
-  // side rather than running off the edge.
+  // The label flips to the other side of the pointer rather than running off
+  // the edge of the canvas.
   #labelCorner(p, width, height) {
     const [pointerX, pointerY] = this.pointer;
     const x =
@@ -652,9 +728,6 @@ export class ReisezeitPanel extends Panel {
     return [x, y];
   }
 
-  // What the picture says about what the pointer is on: a place with its travel
-  // time, or a leg with where it goes, what runs it, how long it takes and how
-  // long one waits for it.
   describeTarget({ kind, index }) {
     return kind === 'place'
       ? this.#describePlace(index)
@@ -676,7 +749,7 @@ export class ReisezeitPanel extends Panel {
       this.#nameOfPlace(place),
       travelTime === 0
         ? 'Ausgangspunkt'
-        : `${formatDuration(travelTime)} Reisezeit`,
+        : formatTravelTimeFrom(travelTime, this.startStation.name),
     ];
   }
 
@@ -684,20 +757,11 @@ export class ReisezeitPanel extends Panel {
     const leg = this.#legIntoPlace(place);
     return [
       `${this.#nameOfPlace(this.#placeLeftBehind(leg))} → ${this.#nameOfPlace(place)}`,
-      `${categoryLabel(this.connections.categoryOfTrip(leg.trip))}, ${formatDuration(
+      `${categoryLabel(this.connections.categoryOfTrip(leg.trip))}, ${formatRideWithWait(
         leg.arrivalTime - leg.departureTime,
+        this.#waitBeforeLegIntoPlace(place),
       )}`,
-      this.#describeBoarding(place, leg),
     ];
-  }
-
-  // Whether one got in here -- then the wait counts -- or is riding through,
-  // which is worth saying: it explains why one passes without waiting.
-  #describeBoarding(place, leg) {
-    const ride = this.#rideIntoPlace(place);
-    return ride.fromStation === leg.fromStation
-      ? formatWait(ride.waitSeconds)
-      : formatThroughRide(this.#nameOfStation(ride.fromStation));
   }
 
   #pick(screenX, screenY) {
@@ -744,9 +808,8 @@ export class ReisezeitPanel extends Panel {
     );
   }
 
-  // A tree is worked out for one departure, so choosing another one draws the
-  // picture again -- from the same station and, since only the reach changes,
-  // without taking the view back to where it started.
+  // A tree holds for one departure, so another one needs a fresh scan; the
+  // station is unchanged, so the view stays where it is.
   setStartTime(seconds) {
     this.startTimeSeconds = seconds;
     this.#dropPreview();
@@ -764,8 +827,8 @@ export class ReisezeitPanel extends Panel {
     ];
   }
 
-  // The tree follows only once the slider is let go: every step of a drag would
-  // be a whole connection scan, and the picture would rearrange under the hand.
+  // The scan runs only once the slider is let go; every step of a drag would be
+  // a whole connection scan.
   #departureControl() {
     const group = element('div', 'control-options');
     const slider = this.#departureSlider();

@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { formatDuration, formatWait } from './labels.js';
+import {
+  formatDuration,
+  formatRideWithWait,
+  formatTravelTimeFrom,
+} from './labels.js';
 
 test('minutes stay minutes while they read as minutes', () => {
   assert.equal(formatDuration(58 * 60), '58 min');
@@ -17,13 +21,23 @@ test('a journey shorter than a minute is still called a minute', () => {
   assert.equal(formatDuration(20), '1 min');
 });
 
-test('a wait is named, and its absence too', () => {
-  assert.equal(formatWait(0), 'ohne Wartezeit');
-  assert.equal(formatWait(59), 'ohne Wartezeit');
-  assert.equal(formatWait(4 * 60), '4 min warten');
+test('a travel time names where it was counted from', () => {
+  assert.equal(formatTravelTimeFrom(21 * 60, 'Anfang'), '21 min ab Anfang');
+});
+
+test('a ride carries the wait it cost', () => {
   assert.equal(
-    formatWait(418 * 60),
-    '6 h 58 min warten',
+    formatRideWithWait(10 * 60, 4 * 60),
+    '10 min (+4 min Wartezeit)',
+  );
+  assert.equal(
+    formatRideWithWait(10 * 60, 418 * 60),
+    '10 min (+6 h 58 min Wartezeit)',
     'a wait long enough to read as hours is told in hours',
   );
+});
+
+test('a ride nobody waited for says nothing about waiting', () => {
+  assert.equal(formatRideWithWait(10 * 60, 0), '10 min');
+  assert.equal(formatRideWithWait(10 * 60, 59), '10 min');
 });

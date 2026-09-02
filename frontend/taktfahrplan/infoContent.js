@@ -1,9 +1,21 @@
-// The Reisezeit panel's info-modal content. Kept apart from the modal shell so
-// the copy lives in one place.
+// The Taktfahrplan panel's info-modal content.
 
 const link = (label, href) => ({ label, href });
 
 export function buildInfoContent() {
+  // The card sets the list in two columns, filled row by row, so every second
+  // entry lands in the second column.
+  const shortcuts = [
+    { keys: 'Leertaste', description: 'Wiedergabe starten und pausieren' },
+    { keys: 'H', description: 'Haltestellen ein- und ausblenden' },
+    { keys: '+', description: 'Hineinzoomen' },
+    { keys: 'N', description: 'Streckennetz ein- und ausblenden' },
+    { keys: '−', description: 'Herauszoomen' },
+    { keys: 'G', description: 'Stationssuche öffnen' },
+    { keys: 'F', description: 'Ganze Schweiz einpassen' },
+    { keys: 'I', description: 'Diese Information öffnen und schließen' },
+  ];
+
   return {
     title: 'All in Time',
     intro: [
@@ -30,18 +42,12 @@ export function buildInfoContent() {
         '.',
       ],
       [
-        'Die Reisezeit-Karte zeichnet die Schweiz nicht nach Kilometer, ' +
-          'sondern nach Fahrtzeit: Vom Ausgangsort gesehen liegt jede Station ' +
-          'in der Richtung, in der sie wirklich liegt — aber so weit ' +
-          'entfernt, wie die Fahrt dorthin dauert.',
+        'Wenn eine Vertonung ausgewählt ist, wird jedes Ereignis an der',
+        ' Haltestelle durch einen Ton repräsentiert - abgestuft nach',
+        ' Verkehrsträger, Ankunft, Abfahrt und Aufenthalt. So lässt sich der',
+        ' Takt des Taktfahrplans auch als Rhythmus erfahren.',
       ],
     ],
-    shortcuts: [
-      { keys: '+', description: 'Hineinzoomen' },
-      { keys: '−', description: 'Herauszoomen' },
-      { keys: 'F', description: 'Ganzes Bild einpassen' },
-      { keys: 'G', description: 'Stationssuche öffnen' },
-      { keys: 'I', description: 'Diese Information öffnen und schließen' },
-    ],
+    shortcuts,
   };
 }

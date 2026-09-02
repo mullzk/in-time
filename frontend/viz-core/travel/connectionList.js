@@ -210,8 +210,7 @@ export class ConnectionList {
     return this._tripInNetwork[trip];
   }
 
-  // Which kind of vehicle runs the trip, in the blob's categories: a drawing may
-  // tell an InterRegio from a bus without going back to the trips.
+  // Which kind of vehicle runs the trip, in the blob's categories.
   categoryOfTrip(trip) {
     return this._categoryOfTrip[trip];
   }
@@ -223,8 +222,7 @@ export class ConnectionList {
   }
 
   // The interchange a stop belongs to, named by its representative didok, or
-  // null for a stop that stands alone. Whoever shows an interchange as one place
-  // groups by this.
+  // null for a stop that stands alone.
   clusterOf(stationIndex) {
     return this._stationDirectory.clusterOfStation(stationIndex);
   }

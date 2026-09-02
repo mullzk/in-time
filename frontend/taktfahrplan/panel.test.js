@@ -10,7 +10,7 @@ import {
   instrumentationForOptionValue,
   presetOptionValue,
   SILENT_OPTION_VALUE,
-  TaktPanel,
+  TaktfahrplanPanel,
   trailShownOn,
 } from './panel.js';
 
@@ -55,7 +55,7 @@ const describeState = (panel) => ({
 });
 
 test('a panel without the road blob knows only the rail stations', () => {
-  const panel = new TaktPanel(RAIL_BUFFER, RAIL_STATIONS);
+  const panel = new TaktfahrplanPanel(RAIL_BUFFER, RAIL_STATIONS);
   panel.init(context);
 
   assert.equal(panel.positionEngines.length, 1);
@@ -64,11 +64,11 @@ test('a panel without the road blob knows only the rail stations', () => {
 });
 
 test('adopting the road schedule after init matches adopting it before', () => {
-  const afterInit = new TaktPanel(RAIL_BUFFER, RAIL_STATIONS);
+  const afterInit = new TaktfahrplanPanel(RAIL_BUFFER, RAIL_STATIONS);
   afterInit.init(context);
   afterInit.adoptSchedule(ROAD_BUFFER, ROAD_STATIONS);
 
-  const beforeInit = new TaktPanel(RAIL_BUFFER, RAIL_STATIONS);
+  const beforeInit = new TaktfahrplanPanel(RAIL_BUFFER, RAIL_STATIONS);
   beforeInit.adoptSchedule(ROAD_BUFFER, ROAD_STATIONS);
   beforeInit.init(context);
 
@@ -78,7 +78,7 @@ test('adopting the road schedule after init matches adopting it before', () => {
 });
 
 test('a searched bus stop brings the tram along with the buses', () => {
-  const panel = new TaktPanel(RAIL_BUFFER, RAIL_STATIONS);
+  const panel = new TaktfahrplanPanel(RAIL_BUFFER, RAIL_STATIONS);
   panel.adoptSchedule(ROAD_BUFFER, ROAD_STATIONS);
   panel.layers.tram = false;
   panel.layers.bus = false;
@@ -91,7 +91,7 @@ test('a searched bus stop brings the tram along with the buses', () => {
 });
 
 test('the station drawn to be sounded is one the trains call at', () => {
-  const panel = new TaktPanel(RAIL_BUFFER, RAIL_STATIONS);
+  const panel = new TaktfahrplanPanel(RAIL_BUFFER, RAIL_STATIONS);
   panel.adoptSchedule(ROAD_BUFFER, ROAD_STATIONS);
 
   const drawn = panel.drawStation();
@@ -108,7 +108,7 @@ const backgroundNamed = (id) => BACKGROUNDS.find((entry) => entry.id === id);
 // The view opens without the overlay, so these start by switching it on, the
 // way a user would before choosing a background.
 test('a raster drawing the rails itself switches the network overlay off', () => {
-  const panel = new TaktPanel(RAIL_BUFFER, RAIL_STATIONS);
+  const panel = new TaktfahrplanPanel(RAIL_BUFFER, RAIL_STATIONS);
   panel.layers.network = true;
 
   panel.onBackgroundChange(backgroundNamed('pixel'));
@@ -116,7 +116,7 @@ test('a raster drawing the rails itself switches the network overlay off', () =>
 });
 
 test('a background without rails leaves the network overlay alone', () => {
-  const panel = new TaktPanel(RAIL_BUFFER, RAIL_STATIONS);
+  const panel = new TaktfahrplanPanel(RAIL_BUFFER, RAIL_STATIONS);
   panel.layers.network = true;
 
   panel.onBackgroundChange(backgroundNamed('black'));
@@ -152,7 +152,7 @@ test('a drawn map never trails, not even fully zoomed out', () => {
 });
 
 test('the network overlay stays off once the user switched it back on', () => {
-  const panel = new TaktPanel(RAIL_BUFFER, RAIL_STATIONS);
+  const panel = new TaktfahrplanPanel(RAIL_BUFFER, RAIL_STATIONS);
   panel.onBackgroundChange(backgroundNamed('pixel'));
   panel.layers.network = true;
 
@@ -161,7 +161,7 @@ test('the network overlay stays off once the user switched it back on', () => {
 });
 
 test('an adopted interchange sounds its rail and bus stops as one place', () => {
-  const panel = new TaktPanel(RAIL_BUFFER, RAIL_STATIONS);
+  const panel = new TaktfahrplanPanel(RAIL_BUFFER, RAIL_STATIONS);
   panel.init(context);
   const railOnly = panel.stationSoundEvents(
     panel.stationCatalog().matching('bahnhof')[0],
@@ -180,7 +180,7 @@ test('an adopted interchange sounds its rail and bus stops as one place', () => 
 });
 
 test('a station is picked only while the stops are shown', () => {
-  const panel = new TaktPanel(RAIL_BUFFER, RAIL_STATIONS);
+  const panel = new TaktfahrplanPanel(RAIL_BUFFER, RAIL_STATIONS);
   const camera = new Camera(800, 600);
   panel.init({ camera });
   const target = panel.stationCatalog().entryOf(1);
@@ -198,7 +198,7 @@ test('a station is picked only while the stops are shown', () => {
 });
 
 test('a stop whose own layer is switched off is not picked', () => {
-  const panel = new TaktPanel(RAIL_BUFFER, RAIL_STATIONS);
+  const panel = new TaktfahrplanPanel(RAIL_BUFFER, RAIL_STATIONS);
   panel.adoptSchedule(ROAD_BUFFER, ROAD_STATIONS);
   const camera = new Camera(800, 600);
   panel.init({ camera });
@@ -211,6 +211,25 @@ test('a stop whose own layer is switched off is not picked', () => {
   panel.layers.bus = false;
 
   assert.equal(panel.minorStationNear(400, 300), null);
+});
+
+test('the chosen station is marked even once the stops are hidden', () => {
+  const panel = new TaktfahrplanPanel(RAIL_BUFFER, RAIL_STATIONS);
+  const chosen = panel.stationCatalog().entryOf(1);
+
+  panel.revealStation(chosen);
+  panel.layers.stops = false;
+
+  assert.equal(panel.chosenStation, chosen);
+});
+
+test('giving the station up takes its mark away', () => {
+  const panel = new TaktfahrplanPanel(RAIL_BUFFER, RAIL_STATIONS);
+  panel.revealStation(panel.stationCatalog().entryOf(1));
+
+  panel.forgetStation();
+
+  assert.equal(panel.chosenStation, null);
 });
 
 test('the sound options are told apart by value, not by name', () => {

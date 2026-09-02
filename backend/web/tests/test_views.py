@@ -143,8 +143,8 @@ def test_rail_and_road_stations_have_distinct_etags(
     assert rail_etag != road_etag
 
 
-def test_takt_serves_the_html_shell(client: Client, published: Path) -> None:
-    response = client.get("/takt")
+def test_taktfahrplan_serves_the_html_shell(client: Client, published: Path) -> None:
+    response = client.get("/taktfahrplan")
 
     assert response.status_code == 200
     assert response["Content-Type"].startswith("text/html")
@@ -153,30 +153,30 @@ def test_takt_serves_the_html_shell(client: Client, published: Path) -> None:
     assert "/static/" in markup
 
 
-def test_reisezeit_serves_its_own_shell(client: Client, published: Path) -> None:
-    response = client.get("/reisezeit")
+def test_zeitkarte_serves_its_own_shell(client: Client, published: Path) -> None:
+    response = client.get("/zeitkarte")
 
     assert response.status_code == 200
     markup = response.content.decode("utf-8")
     assert "/api/config" in markup
-    assert "reisezeit/main" in markup
+    assert "zeitkarte/main" in markup
 
 
-def test_ausbreitung_serves_its_own_shell(client: Client, published: Path) -> None:
-    response = client.get("/ausbreitung")
+def test_reisefaecher_serves_its_own_shell(client: Client, published: Path) -> None:
+    response = client.get("/reisefaecher")
 
     assert response.status_code == 200
     markup = response.content.decode("utf-8")
     assert "/api/config" in markup
-    assert "ausbreitung/main" in markup
+    assert "reisefaecher/main" in markup
 
 
 @pytest.mark.parametrize(
     ("address", "script"),
     [
-        ("/takt/bern", "takt/main"),
-        ("/reisezeit/bern-b%C3%BCmpliz-nord", "reisezeit/main"),
-        ("/ausbreitung/z%C3%BCrich-hb", "ausbreitung/main"),
+        ("/taktfahrplan/bern", "taktfahrplan/main"),
+        ("/zeitkarte/bern-b%C3%BCmpliz-nord", "zeitkarte/main"),
+        ("/reisefaecher/z%C3%BCrich-hb", "reisefaecher/main"),
     ],
 )
 def test_a_station_in_the_address_serves_the_same_shell(
@@ -186,3 +186,32 @@ def test_a_station_in_the_address_serves_the_same_shell(
 
     assert response.status_code == 200
     assert script in response.content.decode("utf-8")
+
+
+@pytest.mark.parametrize(
+    ("former_address", "current_address"),
+    [
+        ("/takt", "/taktfahrplan"),
+        ("/takt/", "/taktfahrplan"),
+        ("/ausbreitung", "/reisefaecher"),
+        ("/ausbreitung/", "/reisefaecher"),
+        ("/reisezeit", "/zeitkarte"),
+        ("/reisezeit/", "/zeitkarte"),
+        ("/takt/bern", "/taktfahrplan/bern"),
+        ("/ausbreitung/z%C3%BCrich-hb", "/reisefaecher/z%C3%BCrich-hb"),
+        ("/reisezeit/bern-b%C3%BCmpliz-nord", "/zeitkarte/bern-b%C3%BCmpliz-nord"),
+    ],
+)
+def test_a_former_view_name_is_permanently_moved(
+    client: Client, former_address: str, current_address: str
+) -> None:
+    response = client.get(former_address)
+
+    assert response.status_code == 301
+    assert response["Location"] == current_address
+
+
+def test_a_redirect_keeps_the_exhibition_mode(client: Client) -> None:
+    response = client.get("/takt/bern?mode=exhibition")
+
+    assert response["Location"] == "/taktfahrplan/bern?mode=exhibition"

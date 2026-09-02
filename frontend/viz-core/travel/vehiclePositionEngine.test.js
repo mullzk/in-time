@@ -151,6 +151,29 @@ test('tripEndpoints reports the first and last stop of a trip', () => {
   });
 });
 
+test('legPolyline runs an edge in the direction the leg takes it', () => {
+  assert.deepEqual(engine.legPolyline(0, 0), [
+    [2_600_000, 1_200_000],
+    [2_610_000, 1_200_000],
+  ]);
+  assert.deepEqual(engine.edges[0], [
+    [2_610_000, 1_200_000],
+    [2_600_000, 1_200_000],
+  ]);
+});
+
+test('legPolyline keeps the shape of a routed leg', () => {
+  assert.deepEqual(engine.legPolyline(0, 1), [
+    [2_610_000, 1_200_000],
+    [2_613_000, 1_205_000],
+    [2_610_000, 1_210_000],
+  ]);
+});
+
+test('the last stop of a trip leads nowhere, so it has no line', () => {
+  assert.deepEqual(engine.legPolyline(0, 2), []);
+});
+
 test('trailPositions samples the trip backwards in schedule time', () => {
   const trail = engine.trailPositions(0, 36_300, 3, 150);
   assert.equal(trail.length, 3);

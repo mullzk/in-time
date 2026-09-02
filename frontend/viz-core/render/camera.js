@@ -25,9 +25,8 @@ export class Camera {
     this.fit();
   }
 
-  // The extent the view may roam over and must be able to show whole. It is the
-  // country for a map, but a travel-time picture reaches far beyond it, so the
-  // panel drawing one says how far.
+  // The extent the view may roam over and must be able to show whole; a panel
+  // whose picture reaches beyond the country says how far.
   setWorldBounds(bounds) {
     this.bounds = bounds;
     this.scale = this.#clampScale(this.scale);
@@ -36,18 +35,29 @@ export class Camera {
 
   // Re-centre on the extent and zoom out so all of it fits.
   fit() {
-    this.centerEast = (this.bounds.eastMin + this.bounds.eastMax) / 2;
-    this.centerNorth = (this.bounds.northMin + this.bounds.northMax) / 2;
-    this.scale = this.#minScale();
+    this.frameOn(this.bounds);
   }
 
-  #minScale() {
-    const width = this.bounds.eastMax - this.bounds.eastMin;
-    const height = this.bounds.northMax - this.bounds.northMin;
+  // Re-centre on a part of the world and zoom so that part fits the viewport in
+  // both directions, whatever shape the viewport has.
+  frameOn(bounds) {
+    this.centerEast = (bounds.eastMin + bounds.eastMax) / 2;
+    this.centerNorth = (bounds.northMin + bounds.northMax) / 2;
+    this.scale = this.#clampScale(this.#scaleThatFits(bounds));
+    this.#clampCenter();
+  }
+
+  #scaleThatFits(bounds) {
+    const width = bounds.eastMax - bounds.eastMin;
+    const height = bounds.northMax - bounds.northMin;
     return Math.min(
       this.viewportWidth / (width * FIT_MARGIN),
       this.viewportHeight / (height * FIT_MARGIN),
     );
+  }
+
+  #minScale() {
+    return this.#scaleThatFits(this.bounds);
   }
 
   #clampScale(scale) {

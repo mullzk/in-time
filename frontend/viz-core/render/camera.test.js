@@ -204,3 +204,21 @@ test('narrowing the world pulls a centre outside it back in', () => {
   assert.ok(camera.centerEast >= CH_BOUNDS_LV95.eastMin);
   assert.ok(camera.centerNorth >= CH_BOUNDS_LV95.northMin);
 });
+
+test('frameOn fits a wide picture into a tall viewport by its wider side', () => {
+  const camera = new Camera(550, 660);
+  const picture = {
+    eastMin: 2_400_000,
+    eastMax: 2_800_000,
+    northMin: 1_100_000,
+    northMax: 1_500_000,
+  };
+  camera.setWorldBounds(picture);
+  camera.frameOn(picture);
+
+  const visible = camera.visibleWorldBounds();
+  assert.ok(visible.eastMin <= picture.eastMin);
+  assert.ok(visible.eastMax >= picture.eastMax);
+  assert.ok(visible.northMin <= picture.northMin);
+  assert.ok(visible.northMax >= picture.northMax);
+});

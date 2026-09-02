@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
-import { ReisezeitPanel } from './panel.js';
+import { ZeitkartePanel } from './panel.js';
 
 // The golden rail fixture: three stations, a trip calling at all three (10:00 →
 // 10:10, on again at 10:11 → 10:21) and a second trip from the middle station at
@@ -23,7 +23,7 @@ const STATIONS = [
 ];
 
 const panelFrom = (startTimeSeconds) => {
-  const panel = new ReisezeitPanel(railBuffer(), STATIONS, startTimeSeconds);
+  const panel = new ZeitkartePanel(railBuffer(), STATIONS, startTimeSeconds);
   panel.revealStation(panel.stationCatalog().entryOf(8_500_001));
   return panel;
 };
@@ -38,7 +38,7 @@ test('a place is described by its name and its travel time', () => {
       kind: 'place',
       index: placeIndex(panel, 8_500_002),
     }),
-    ['Mitte', '10 min Reisezeit'],
+    ['Mitte', '10 min ab Anfang'],
   );
 });
 
@@ -66,26 +66,74 @@ test('a leg says where it goes, what runs it and how long it takes', () => {
   assert.equal(vehicle, 'Fernverkehr, 10 min');
 });
 
-test('staying seated is a leg without a wait', () => {
+test('the path to a place runs from the starting point through every stop', () => {
   const panel = panelFrom(10 * 3600);
 
-  const [, , wait] = panel.describeTarget({
+  assert.deepEqual(panel.placesOnPathTo(placeIndex(panel, 8_500_003)), [
+    placeIndex(panel, 8_500_001),
+    placeIndex(panel, 8_500_002),
+    placeIndex(panel, 8_500_003),
+  ]);
+});
+
+test('the starting point is a path of its own', () => {
+  const panel = panelFrom(10 * 3600);
+  const start = placeIndex(panel, 8_500_001);
+
+  assert.deepEqual(panel.placesOnPathTo(start), [start]);
+});
+
+// A second network of the same fixture, named onto stations of its own: its
+// 11:06 trip sets off from Ende, so Weiter is reached by changing there.
+const ONWARD_STATIONS = [
+  { didok: 8_500_006, name: 'Fern', modes: ['rail'] },
+  { didok: 8_500_003, name: 'Ende', modes: ['rail'] },
+  { didok: 8_500_004, name: 'Weiter', modes: ['rail'] },
+];
+
+const panelWithAnOnwardTrip = () => {
+  const panel = panelFrom(10 * 3600);
+  panel.adoptSchedule(railBuffer(), ONWARD_STATIONS);
+  return panel;
+};
+
+test('the path names the place one changes vehicles at', () => {
+  const panel = panelWithAnOnwardTrip();
+
+  assert.deepEqual(panel.interchangesOnPathTo(placeIndex(panel, 8_500_004)), [
+    placeIndex(panel, 8_500_003),
+  ]);
+});
+
+test('a journey in one vehicle has nowhere to change', () => {
+  const panel = panelWithAnOnwardTrip();
+
+  assert.deepEqual(
+    panel.interchangesOnPathTo(placeIndex(panel, 8_500_003)),
+    [],
+  );
+});
+
+test('staying seated is a leg that says nothing about waiting', () => {
+  const panel = panelFrom(10 * 3600);
+
+  const lines = panel.describeTarget({
     kind: 'leg',
     index: placeIndex(panel, 8_500_003),
   });
 
-  assert.equal(wait, 'ohne Wartezeit');
+  assert.deepEqual(lines, ['Mitte → Ende', 'Fernverkehr, 10 min']);
 });
 
 test('a wait before the first departure is counted from the start time', () => {
   const panel = panelFrom(9 * 3600 + 45 * 60);
 
-  const [, , wait] = panel.describeTarget({
+  const [, vehicle] = panel.describeTarget({
     kind: 'leg',
     index: placeIndex(panel, 8_500_002),
   });
 
-  assert.equal(wait, '15 min warten');
+  assert.equal(vehicle, 'Fernverkehr, 10 min (+15 min Wartezeit)');
 });
 
 test('the stops of an interchange share one place in the picture', () => {
@@ -99,7 +147,7 @@ test('the stops of an interchange share one place in the picture', () => {
       cluster: 8_500_002,
     },
   ];
-  const panel = new ReisezeitPanel(railBuffer(), interchange, 10 * 3600);
+  const panel = new ZeitkartePanel(railBuffer(), interchange, 10 * 3600);
   panel.revealStation(panel.stationCatalog().entryOf(8_500_001));
 
   assert.equal(
@@ -111,14 +159,14 @@ test('the stops of an interchange share one place in the picture', () => {
 });
 
 test('a panel nobody chose a station for waits at none', () => {
-  const panel = new ReisezeitPanel(railBuffer(), STATIONS, 10 * 3600);
+  const panel = new ZeitkartePanel(railBuffer(), STATIONS, 10 * 3600);
 
   assert.equal(panel.startStation, null);
   assert.equal(panel.places.length, 0, 'and shows nothing');
 });
 
 test('the station a panel draws is one it can travel from', () => {
-  const panel = new ReisezeitPanel(railBuffer(), STATIONS, 10 * 3600);
+  const panel = new ZeitkartePanel(railBuffer(), STATIONS, 10 * 3600);
 
   panel.revealStation(panel.drawStation());
 
@@ -160,8 +208,7 @@ const attachedPanel = (startTimeSeconds) => {
           : [Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER],
       worldPerPixel: () => 1,
       setWorldBounds: () => {},
-      fit: () => {},
-      setZoomFraction: () => {},
+      frameOn: () => {},
     },
   });
   const canvas = fakeCanvas();
@@ -257,10 +304,10 @@ test('a new departure redraws the tree from that time', () => {
   assert.equal(panel.places.length, 1, 'half an hour later nothing leaves');
 });
 
-test('the headline names the departure one chose', () => {
+test('the headline names the station the picture is drawn from', () => {
   const panel = panelFrom(10 * 3600);
 
-  panel.setStartTime(11 * 3600);
+  panel.revealStation(panel.stationCatalog().entryOf(8_500_002));
 
-  assert.match(panel.headline(), /um 11:00/);
+  assert.match(panel.headline(), /von Mitte aus/);
 });

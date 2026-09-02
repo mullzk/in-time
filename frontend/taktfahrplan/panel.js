@@ -34,17 +34,15 @@ import { TRANSPORT_GROUPS } from '../viz-core/sonification/scheduling.js';
 import { SonificationEngine } from '../viz-core/sonification/sonificationEngine.js';
 import { VehiclePositionEngine } from '../viz-core/travel/vehiclePositionEngine.js';
 import { buildInfoContent } from './infoContent.js';
+import { buildWelcomeContent } from './welcomeContent.js';
 
-// Stacking order where points overlap: buses at the bottom, trams above,
-// trains on top, so the far more numerous buses never hide the trains.
+// Stacking order where points overlap: buses lowest, then trams, trains on top.
 const DRAW_PRIORITY_BY_CATEGORY = new Map([
   [CATEGORY_BUS, 0],
   [CATEGORY_TRAM, 1],
 ]);
 const drawPriority = (category) => DRAW_PRIORITY_BY_CATEGORY.get(category) ?? 2;
 
-// Trains read poorly against the colour pixel map, so draw them larger and the
-// far more numerous trams and buses smaller.
 const BASE_DIAMETER_PIXELS = 7;
 const DIAMETER_FACTOR_BY_CATEGORY = new Map([
   [CATEGORY_TRAM, 1],
@@ -53,16 +51,9 @@ const DIAMETER_FACTOR_BY_CATEGORY = new Map([
 const diameterFactor = (category) =>
   DIAMETER_FACTOR_BY_CATEGORY.get(category) ?? 1.5;
 
-// Whether a vehicle trails the stretch of schedule it has just covered follows
-// from the ground it draws on, so it needs no switch of its own: the busier the
-// texture underneath, the more the smear reads as mud rather than as movement.
-// So every ground names the zoom fraction it trails up to: empty ground all the
-// way, the textured ones as long as their own texture stays coarser than the
-// trail particles -- the aerial imagery far into the zoom, the relief only over
-// the overview, where its hillshade is still a broad wash -- and the drawn maps
-// not at all. The switch is abrupt on purpose: a half-faded trail behind a full
-// head reads as a tadpole, so a trail is either fully there with a small head or
-// gone with a full one.
+const INITIAL_BACKGROUND_ID = 'black';
+
+// Zoom fraction up to which each background still draws vehicle trails.
 const TRAIL_UNTIL_ZOOM_FRACTION_BY_BACKGROUND = new Map([
   ['black', Number.POSITIVE_INFINITY],
   ['swissview', 0.75],
@@ -72,17 +63,11 @@ const TRAIL_UNTIL_ZOOM_FRACTION_BY_BACKGROUND = new Map([
 export const trailShownOn = (background, zoomFraction) =>
   zoomFraction < TRAIL_UNTIL_ZOOM_FRACTION_BY_BACKGROUND.get(background.id);
 
-// The trail samples the vehicle's own trip backwards in schedule time, so its
-// length on screen is the distance actually covered: a fast train smears long,
-// a stopping one contracts to its head.
 const TRAIL_PARTICLE_PIXELS = 3.4;
 const TRAIL_HEAD_ALPHA = 230;
 const TRAIL_TAIL_ALPHA = 12;
 
-// How far back a service reaches beyond the plain schedule distance: the trail
-// length is the second thing after colour that tells the services apart. Only
-// trains trail -- tram and bus run too dense and too short for a smear to read
-// as movement.
+// Only the layers listed here trail; the factor scales the base length.
 const TRAIL_BASE_LENGTH_SECONDS = 84;
 const TRAIL_LENGTH_FACTOR_BY_LAYER = new Map([
   ['fernverkehr', 1.25],
@@ -92,11 +77,7 @@ const TRAIL_LENGTH_FACTOR_BY_LAYER = new Map([
 const trailedLayer = (category) =>
   TRAIL_LENGTH_FACTOR_BY_LAYER.has(layerOfCategory(category));
 
-// The gap between samples, in schedule seconds. Long-distance trains both reach
-// furthest and move fastest, so at close zoom the same gap tears their trail
-// into separate dots; they get the tightest one, the InterRegio a middling one.
-// The slower, shorter services read as a smear at the wide gap and would only
-// cost samples at a tighter one.
+// The gap between trail samples, in schedule seconds.
 const TRAIL_DEFAULT_SPACING_SECONDS = 7;
 const TRAIL_SPACING_SECONDS_BY_LAYER = new Map([
   ['fernverkehr', 3],
@@ -115,12 +96,7 @@ const trailSampleCount = (category) =>
 const trailAlpha = (sample, sampleCount) =>
   TRAIL_HEAD_ALPHA +
   ((TRAIL_TAIL_ALPHA - TRAIL_HEAD_ALPHA) * sample) / (sampleCount - 1);
-// Behind a trail the head only has to mark where the vehicle is, so it shrinks
-// -- and further still in the far view, where full-size heads would close into a
-// carpet of dots and swallow the trails they belong to. Tram and bus draw no
-// trail but shrink with the rest, so a background showing trails keeps one head
-// size and the untrailed vehicles do not tower over the trailed ones. Where no
-// trail is drawn the head carries the vehicle alone and keeps its full size.
+// How far the head shrinks while trails are drawn, interpolated over the zoom.
 const TRAIL_HEAD_FACTOR_NEAR = 0.55;
 const TRAIL_HEAD_FACTOR_FAR = 0.28;
 const trailHeadFactor = (zoomFraction) =>
@@ -134,30 +110,29 @@ const withinWorldBounds = (bounds, { east, north }) =>
   north <= bounds.northMax;
 
 const STATION_NODE_FILL = [255, 255, 255];
-// On the black ground the nodes carry no outline, so a white fill puts them at
-// the same weight as the vehicles and the net reads as dots rather than as the
-// stage the traffic moves on. A dark grey holds the places without competing.
 const STATION_NODE_FILL_ON_BLACK = [64, 64, 64];
-// Over a raster background a white node needs an outline; its colour marks the
-// station's mode, using the same hues the tram and bus vehicles carry (rail
-// keeps a plain black outline). On the black background nodes read on their own.
 const STATION_STROKE_BY_MODE = new Map([
   ['rail', [0, 0, 0]],
   ['tram', categoryColor(CATEGORY_TRAM)],
   ['bus', categoryColor(CATEGORY_BUS)],
 ]);
 const STATION_STROKE_WIDTH_PIXELS = 1;
-// Vehicles are smaller and denser than station nodes, so keep their tap target
-// tighter to avoid grabbing a neighbour.
+
+// The ring around the chosen station. It is laid on a darker one of its own, so
+// that it reads on the black ground and over a light map alike, without having
+// to know which of the two lies underneath.
+const CHOSEN_STATION_RING_DIAMETER_PIXELS = 14;
+const CHOSEN_STATION_RING_COLOR = [255, 255, 255];
+const CHOSEN_STATION_RING_WIDTH_PIXELS = 2;
+const CHOSEN_STATION_HALO_COLOR = [0, 0, 0, 140];
+const CHOSEN_STATION_HALO_WIDTH_PIXELS = 4;
+
 const VEHICLE_HIT_RADIUS_PIXELS = 10;
 
 // Zoom fraction at and above which the stops layer switches itself on; below it,
-// switches off. A manual toggle persists until the next crossing.
+// off. A manual toggle persists until the next crossing.
 const STOPS_ZOOM_THRESHOLD = 0.5;
 
-// The traffic first, each layer under the colour it is drawn in, and the ground
-// it moves over after it -- the two are read as different kinds of thing, so the
-// card keeps them apart.
 const TRAFFIC_LAYERS = [
   ['fernverkehr', 'Fernverkehr', CATEGORY_INTERCITY],
   ['interregio', 'InterRegio', CATEGORY_INTERREGIO],
@@ -174,8 +149,8 @@ const GROUND_LAYERS = [
 const didokToIndex = (stations) =>
   new Map(stations.map((station, index) => [station.didok, index]));
 
-// The sound list is keyed by option value, not by name: an own instrumentation may
-// carry the name of a delivered one, and then only the value tells them apart.
+// Keyed by option value, not by name: an own instrumentation may carry the name
+// of a delivered one, and then only the value tells them apart.
 export const SILENT_OPTION_VALUE = '';
 export const CUSTOM_OPTION_VALUE = 'custom';
 export const presetOptionValue = (index) => `preset-${index}`;
@@ -190,11 +165,10 @@ export function instrumentationForOptionValue(value, customInstrumentation) {
   );
 }
 
-export class TaktPanel extends Panel {
+export class TaktfahrplanPanel extends Panel {
   capabilities = {
     simulationSpeed: true,
     timeScrubber: true,
-    timeSeeking: true,
     stationSearch: true,
     stationPicking: true,
     mapBackground: true,
@@ -221,10 +195,13 @@ export class TaktPanel extends Panel {
     this.currentTimeSeconds = 0;
     this.customInstrumentation = null;
     this.customOption = null;
-    this.background = BACKGROUNDS[0];
+    this.background = BACKGROUNDS.find(
+      ({ id }) => id === INITIAL_BACKGROUND_ID,
+    );
     this.previousZoomFraction = null;
     this.layerOptions = {};
     this.camera = null;
+    this.chosenStation = null;
     this.adoptSchedule(railBuffer, railStations);
   }
 
@@ -232,18 +209,18 @@ export class TaktPanel extends Panel {
     return this.catalog;
   }
 
+  initialBackgroundId() {
+    return INITIAL_BACKGROUND_ID;
+  }
+
   init(context) {
     this.camera = context.camera;
   }
 
-  // Takes a further schedule blob into the running panel: its stations join the
-  // catalog, its trips gain an engine and, for sonification, a station-indexed
-  // sound engine. The road blob arrives this way after the first picture.
   adoptSchedule(buffer, stations) {
     const points = readStationPoints(buffer);
     this.catalog.addPublished(stations, points);
-    // Each engine is paired with the station names its trips index into, so a
-    // clicked vehicle resolves to its origin and destination stop names.
+    // Trips index into their own blob's station list, so each engine keeps it.
     const engine = new VehiclePositionEngine(buffer);
     this.positionEngines.push({ engine, stations });
     this.soundEngines.push({
@@ -267,10 +244,8 @@ export class TaktPanel extends Panel {
     });
   }
 
-  // The merged, time-sorted sound events for a chosen station across the blobs
-  // that serve it -- the input the sonifier voices when it is the "ear". A
-  // station that belongs to an interchange voices its whole cluster, so a rail
-  // stop and its neighbouring tram/bus stops are heard as one place.
+  // Merged and time-sorted across the blobs that serve the station; a station
+  // belonging to an interchange contributes its whole cluster.
   stationSoundEvents(station) {
     const didoks = this.#clusterDidoks(station);
     return this.soundEngines
@@ -290,8 +265,7 @@ export class TaktPanel extends Panel {
     return this.clusterToDidoks.get(station.cluster) ?? [station.didok];
   }
 
-  // Display toggles double as sound mutes, so a hidden transport group is also
-  // silenced.
+  // Display toggles double as sound mutes.
   hiddenTransportGroups() {
     return TRANSPORT_GROUPS.filter((group) => !this.layers[group]);
   }
@@ -321,6 +295,7 @@ export class TaktPanel extends Panel {
       });
     }
     this.#drawStationNodes(p, context);
+    this.#drawChosenStation(p, context);
     this.#drawVehicles(p, context);
   }
 
@@ -363,11 +338,8 @@ export class TaktPanel extends Panel {
     });
   }
 
-  // Plain alpha, not additive light: additive clips channel by channel, so where
-  // a trail's own particles overlap -- densest in the far view, where its whole
-  // length falls on a few pixels -- the strongest channel saturates first and the
-  // colour drifts to white. Blended, the overlap converges on the vehicle's own
-  // colour instead.
+  // Plain alpha, not additive light: additive clips channel by channel, so
+  // overlapping particles saturate the strongest channel and drift to white.
   #drawVehicleTrails(p, context, vehicles) {
     const size = TRAIL_PARTICLE_PIXELS * context.camera.worldPerPixel();
     vehicles.forEach((vehicle) => {
@@ -421,9 +393,12 @@ export class TaktPanel extends Panel {
     return buildInfoContent();
   }
 
-  // The shell owns the background chooser; switching one has a consequence only
-  // the panel can decide: the pixel maps draw the rail network themselves, so
-  // the overlay would only double it.
+  welcomeContent() {
+    return buildWelcomeContent();
+  }
+
+  // The pixel maps draw the rail network themselves, so the overlay would
+  // double it.
   onBackgroundChange(background) {
     this.background = background;
     if (background.showsRailwayLines) {
@@ -431,12 +406,6 @@ export class TaktPanel extends Panel {
     }
   }
 
-  // The instrumentations stand open, "Kein Sound" among them as silence. An own
-  // instrumentation joins the list only once one has been written, and the way
-  // to write one sits under it -- it is a further way to choose a sound, not a
-  // topic of its own. Without a way to reach the drawer the button stays away,
-  // which is how the exhibition does without it. The sonified station, tempo and
-  // per-group mutes come from the existing controls.
   #soundControl(setInstrumentation, toggleInstrumentationEditor) {
     const group = element('div', 'control-options');
     this.soundChoices = new ChoiceList(
@@ -459,8 +428,6 @@ export class TaktPanel extends Panel {
     return group;
   }
 
-  // The pencil says it: the way to write an instrumentation of one's own stands
-  // beside the choice of a delivered one, not under a sentence of its own.
   #ownSoundButton(toggleInstrumentationEditor) {
     const button = element('button', 'instrumentation-editor-open');
     button.type = 'button';
@@ -473,8 +440,6 @@ export class TaktPanel extends Panel {
     return button;
   }
 
-  // What a new own instrumentation starts from: what is being listened to right
-  // now, or the first delivered one while nothing sounds.
   #templateDocument() {
     return (this.#selectedInstrumentation() ?? INSTRUMENTATIONS[0]).document;
   }
@@ -486,8 +451,6 @@ export class TaktPanel extends Panel {
     );
   }
 
-  // The editor announces every version that plays; the list carries it under its
-  // current name, so renaming it in the document renames it here.
   offerCustomInstrumentation(instrumentation) {
     this.customInstrumentation = instrumentation;
     this.soundChoices.offer({
@@ -496,17 +459,12 @@ export class TaktPanel extends Panel {
     });
   }
 
-  // While the drawer is open, its document is what is being listened to --
-  // otherwise writing it would say nothing about how it sounds.
   useCustomInstrumentation(instrumentation) {
     this.offerCustomInstrumentation(instrumentation);
     this.soundChoices.show(CUSTOM_OPTION_VALUE);
   }
 
-  // The discarded document leaves the list with it. Whoever was listening to it
-  // falls back to silence, while a listener who had meanwhile picked a delivered
-  // instrumentation keeps hearing it -- hence the answer of what plays now rather
-  // than a fixed one.
+  // Returns what plays afterwards: silence if the discarded one was chosen.
   forgetCustomInstrumentation() {
     if (this.soundChoices.chosen === CUSTOM_OPTION_VALUE) {
       this.soundChoices.show(SILENT_OPTION_VALUE);
@@ -516,18 +474,11 @@ export class TaktPanel extends Panel {
     return this.#selectedInstrumentation();
   }
 
-  // The ask that a chosen sound puts was turned down, so the list falls back to
-  // silence and says what plays now -- nothing.
   silenceTheSound() {
     this.soundChoices.show(SILENT_OPTION_VALUE);
     return this.#selectedInstrumentation();
   }
 
-  // A stop nothing calls at would stay as silent as no stop at all, so the drawn
-  // one has to have something to sound. Only railway stations are drawn: a
-  // station voices its whole interchange, so a drawn one carries the tram and bus
-  // stops around it as well, where a bus stop drawn out of the country sounds a
-  // few times an hour. Searching for one by name reaches every stop as before.
   drawStation() {
     return drawnStationThatTravels(
       this.catalog.entries.filter(
@@ -541,8 +492,6 @@ export class TaktPanel extends Panel {
     return this.layers[layerOfCategory(category)];
   }
 
-  // Zooming past the threshold switches the stops layer for the user; a manual
-  // toggle then persists until the next crossing.
   #syncStopsOnZoomCross() {
     if (!this.camera) {
       return;
@@ -561,15 +510,19 @@ export class TaktPanel extends Panel {
     this.previousZoomFraction = fraction;
   }
 
-  // A searched station may serve a mode whose vehicle layer is off (a bus or
-  // tram stop under the rail defaults); switch that layer on before the stops
-  // layer so its node draws and stays tappable.
+  // A searched station may serve a mode whose vehicle layer is off; that layer
+  // has to come on before the stops layer for its node to draw.
   revealStation(station) {
     const layer = layerToRevealStation(station.modes, this.layers);
     if (layer) {
       this.#showLayer(layer);
     }
     this.#setStops(true);
+    this.chosenStation = station;
+  }
+
+  forgetStation() {
+    this.chosenStation = null;
   }
 
   #showLayer(layer) {
@@ -585,8 +538,7 @@ export class TaktPanel extends Panel {
     }
   }
 
-  // Stops with every vehicle layer off would draw nothing, so switching them on
-  // pulls the trains in too.
+  // Stops with every vehicle layer off would draw nothing.
   #ensureVisibleMode() {
     const fallback = fallbackLayerForStops(this.layers);
     if (fallback) {
@@ -594,8 +546,8 @@ export class TaktPanel extends Panel {
     }
   }
 
-  // Layers flip on their own too (background choice, zoom crossing, a search
-  // selection), so their checkboxes track the layer state, not the other way.
+  // Layers also flip without their checkbox (background choice, zoom crossing,
+  // search selection), so the checkboxes track the layer state.
   #syncLayerOptions() {
     Object.entries(this.layerOptions).forEach(([key, input]) => {
       input.checked = this.layers[key];
@@ -636,6 +588,24 @@ export class TaktPanel extends Panel {
     });
   }
 
+  // Drawn past the stops layer and past the mode layers: the ring says which
+  // station is sounding, which holds however little else is shown.
+  #drawChosenStation(p, context) {
+    if (this.chosenStation === null) {
+      return;
+    }
+    const { east, north } = this.chosenStation;
+    const worldPerPixel = context.camera.worldPerPixel();
+    const diameter = CHOSEN_STATION_RING_DIAMETER_PIXELS * worldPerPixel;
+    p.noFill();
+    p.stroke(...CHOSEN_STATION_HALO_COLOR);
+    p.strokeWeight(CHOSEN_STATION_HALO_WIDTH_PIXELS * worldPerPixel);
+    p.circle(east, north, diameter);
+    p.stroke(...CHOSEN_STATION_RING_COLOR);
+    p.strokeWeight(CHOSEN_STATION_RING_WIDTH_PIXELS * worldPerPixel);
+    p.circle(east, north, diameter);
+  }
+
   railStationNear(screenX, screenY) {
     return this.#nearestCatalogStation(
       screenX,
@@ -652,9 +622,6 @@ export class TaktPanel extends Panel {
     );
   }
 
-  // Only a station that is drawn can be picked: hovering a node that is not
-  // there would name a place the picture does not show, and zoomed out, where
-  // the stops are hidden, it would swallow the vehicles one can still aim at.
   #nearestCatalogStation(screenX, screenY, accept) {
     if (this.camera === null) {
       return null;
@@ -666,8 +633,8 @@ export class TaktPanel extends Panel {
     return nearestStation(candidates, this.camera, screenX, screenY, radius);
   }
 
-  // Only vehicles whose layer is visible are pickable; nearestStation reads the
-  // same east/north an active vehicle carries, so it doubles as the picker.
+  // nearestStation reads the same east/north an active vehicle carries, so it
+  // doubles as the vehicle picker.
   vehicleAt(screenX, screenY) {
     if (this.camera === null) {
       return null;
@@ -750,8 +717,6 @@ export class TaktPanel extends Panel {
     return option;
   }
 
-  // Only the colour comes from here; what the dot made of it looks like is the
-  // stylesheet's. A layer that is not a kind of traffic carries none.
   #swatchFor(category) {
     if (category === undefined) {
       return [];

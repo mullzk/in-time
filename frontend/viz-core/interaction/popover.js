@@ -2,11 +2,9 @@ import { element } from '../controls/dom.js';
 
 const asColor = ([red, green, blue]) => `rgb(${red} ${green} ${blue})`;
 
-// A small floating label anchored above a screen point. It owns
-// only its own DOM and does not intercept pointer events, so a click that lands
-// on it still reaches the canvas underneath. A single line names a station; a
-// vehicle passes several lines (category and route) and is repositioned each
-// frame through moveTo as it travels.
+// A small floating label anchored above a screen point. It does not intercept
+// pointer events, so a click that lands on it still reaches the canvas
+// underneath. A moving target is repositioned each frame through moveTo.
 export class Popover {
   constructor(container, modifierClass = null) {
     this.root = element('div', 'popover');
@@ -22,8 +20,8 @@ export class Popover {
     this.showLines(screenX, screenY, [text]);
   }
 
-  // `accent` is a { ground, text } pair of [r, g, b] colours the label takes on
-  // -- a vehicle passes its category's; without one it keeps the surface colour.
+  // `accent` is a { ground, text } pair of [r, g, b] colours the label takes
+  // on; without one it keeps the surface colour.
   showLines(screenX, screenY, lines, accent = null) {
     this.root.replaceChildren(
       ...lines.map((line) => {
@@ -37,8 +35,6 @@ export class Popover {
     this.root.classList.add('is-visible');
   }
 
-  // Only the colours come from the script; what the label makes of them is the
-  // stylesheet's.
   #accent(accent) {
     if (accent === null) {
       this.root.classList.remove('is-accented');

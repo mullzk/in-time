@@ -303,12 +303,12 @@ test('the maximum wait can be set to another patience', () => {
 });
 
 // One boards a bus early on its run and stays seated. Further along it passes a
-// stop one could have been at hours ago by another route -- which is no wait,
+// stop one could have been at earlier by another route -- which is no wait,
 // because one is sitting in the bus. The leg must be told from where one boarded.
 const ridingThroughAStopReachedEarlier = () =>
   listOf(
     [
-      trip([stop(0, 36_000), stop(1, 36_600)]),
+      trip([stop(0, 36_000), stop(1, 41_000)]),
       trip([stop(0, 36_000), stop(2, 37_200)]),
       trip([
         stop(2, 37_800),
@@ -335,40 +335,19 @@ test('a leg is told from the stop before it, whoever reached that stop', () => {
   assert.equal(leg.arrivalTime, 47_400);
 });
 
-test('the ride says where one got in and how long one waited for it', () => {
+test('the wait is what one stands at the stop the leg sets off from', () => {
   const list = ridingThroughAStopReachedEarlier();
 
   const tree = scanOf(list).from(list.stationOf(100), 36_000);
-  const ride = tree.rideInto(list.stationOf(103));
 
   assert.equal(
-    ride.fromStation,
-    list.stationOf(102),
-    'one got on where one got on, not at the stop the bus last called at',
+    tree.waitBeforeLegInto(list.stationOf(103)),
+    47_100 - tree.arrivalAt(list.stationOf(101)),
+    'one is at that stop already and waits there for the vehicle',
   );
-  assert.equal(ride.departureTime, 37_800);
-  assert.equal(ride.arrivalTime, 47_400);
-  assert.equal(ride.waitSeconds, 600);
 });
 
-test('no ride of a tree waits longer than the maximum', () => {
-  const list = ridingThroughAStopReachedEarlier();
-
-  const tree = scanOf(list).from(list.stationOf(100), 36_000);
-
-  tree.reachedStations().forEach((station) => {
-    const ride = tree.rideInto(station);
-    if (ride === null) {
-      return;
-    }
-    assert.ok(
-      ride.waitSeconds <= MAXIMUM_WAIT_SECONDS,
-      `${station} waits ${ride.waitSeconds} s`,
-    );
-  });
-});
-
-test('a stop the vehicle stands at is no wait for whoever sits in it', () => {
+test('riding through a stop is no wait', () => {
   const list = listOf(
     [trip([stop(0, 36_000), stop(1, 36_600, 40_000), stop(2, 40_600)])],
     [station(100), station(101), station(102)],
@@ -376,12 +355,70 @@ test('a stop the vehicle stands at is no wait for whoever sits in it', () => {
 
   const tree = scanOf(list).from(list.stationOf(100), 36_000);
 
-  assert.equal(tree.rideInto(list.stationOf(102)).waitSeconds, 0);
   assert.equal(
-    tree.rideInto(list.stationOf(101)).waitSeconds,
+    tree.waitBeforeLegInto(list.stationOf(102)),
     0,
-    'boarding at the start is no wait either',
+    'the vehicle standing there is no wait for whoever sits in it',
   );
+});
+
+// The same ride, but the stop it passes was reached in the morning: the journey
+// the tree tells stands there past the maximum, however busily one fills the
+// hours by riding somewhere else and back.
+test('a stop behind an unbearable wait is not reached', () => {
+  const list = listOf(
+    [
+      trip([stop(0, 36_000), stop(1, 36_600)]),
+      trip([stop(0, 36_000), stop(2, 37_200)]),
+      trip([stop(2, 37_800), stop(1, 46_800, 47_100), stop(3, 47_400)]),
+    ],
+    [station(100), station(101), station(102), station(103)],
+  );
+
+  const tree = scanOf(list).from(list.stationOf(100), 36_000);
+
+  assert.ok(
+    47_100 - 36_600 > MAXIMUM_WAIT_SECONDS,
+    'the journey would stand at the stop for longer than anyone waits',
+  );
+  assert.equal(tree.isReached(list.stationOf(103)), false);
+  assert.equal(tree.legInto(list.stationOf(103)), null);
+  assert.equal(
+    tree.isReached(list.stationOf(101)),
+    true,
+    'the stop one really passes through is reached as it always was',
+  );
+});
+
+test('what lies behind a forgotten stop is forgotten with it', () => {
+  const list = listOf(
+    [
+      trip([stop(0, 36_000), stop(1, 36_600)]),
+      trip([stop(0, 36_000), stop(2, 37_200)]),
+      trip([stop(2, 37_800), stop(1, 46_800, 47_100), stop(3, 47_400)]),
+      trip([stop(3, 47_500), stop(4, 47_800)]),
+    ],
+    [station(100), station(101), station(102), station(103), station(104)],
+  );
+
+  const tree = scanOf(list).from(list.stationOf(100), 36_000);
+
+  assert.equal(tree.isReached(list.stationOf(104)), false);
+  assert.deepEqual(
+    tree.reachedStations().map((station) => list.didokOf(station)),
+    [100, 101, 102],
+  );
+});
+
+test('the wait before the first departure is counted from the start', () => {
+  const list = listOf(
+    [trip([stop(0, 36_600), stop(1, 37_200)])],
+    [station(100), station(101)],
+  );
+
+  const tree = scanOf(list).from(list.stationOf(100), 36_000);
+
+  assert.equal(tree.waitBeforeLegInto(list.stationOf(101)), 600);
 });
 
 test('a path back through the start interchange ends there', () => {

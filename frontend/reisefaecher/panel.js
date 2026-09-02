@@ -28,21 +28,18 @@ import { SECONDS_PER_DAY } from '../viz-core/time/timeModel.js';
 import { formatTimeOfDay } from '../viz-core/time/timeOfDay.js';
 import { buildConnectionList } from '../viz-core/travel/connectionList.js';
 import { ConnectionScan } from '../viz-core/travel/connectionScan.js';
+import { JourneyOnTheGround } from '../viz-core/travel/journeyOnTheGround.js';
 import { VehiclePositionEngine } from '../viz-core/travel/vehiclePositionEngine.js';
 import { buildInfoContent } from './infoContent.js';
 import { ReachedPlaces } from './reachedPlaces.js';
 import { SettledLayer } from './settledLayer.js';
 
-// A place lights up the moment one gets there and then settles into the node it
-// keeps: the flash says "just now", the node says "already been". The flash is
-// measured in schedule seconds, so it keeps its meaning whatever the tempo.
+// Measured in schedule seconds, so the flash keeps its length at any tempo.
 const FLASH_SECONDS = 480;
 const FLASH_EXTRA_DIAMETER_PIXELS = 6;
 const SETTLED_ALPHA = 210;
 
-// A node keeps the size the map layer gives it at this zoom, weighted by the
-// traffic that reaches it: an interchange a long-distance train calls at reads
-// larger than the bus stop beside it, and stays visible close up.
+// Weights the zoom-dependent node diameter by the traffic reaching the place.
 const NODE_SIZE_FACTORS = new Map([
   [CATEGORY_INTERCITY, 2.2],
   [CATEGORY_INTERREGIO, 1.8],
@@ -56,11 +53,21 @@ const VEHICLE_DIAMETER_PIXELS = 5;
 const START_COLOR = [255, 255, 255];
 const START_RING_WIDTH_PIXELS = 1.5;
 
-// Vehicles are smaller and denser than the places, so their tap target stays
-// tighter than a station's.
 const VEHICLE_HIT_RADIUS_PIXELS = 10;
 
-// The place one sets off from is reached by nothing, so it wears no traffic.
+// The line is drawn against the ground it lies on: white on the black one, and
+// laid on in black wherever the map itself is light. Thin and half see-through,
+// so it traces the journey without covering the places it runs past.
+const JOURNEY_ON_BLACK = [255, 255, 255, 255];
+const JOURNEY_ON_RASTER = [0, 0, 0, 220];
+const JOURNEY_WIDTH_PIXELS = 1.625;
+const INTERCHANGE_WIDTH_PIXELS = 1.5;
+const INTERCHANGE_DIAMETER_PIXELS = 9;
+
+// What is drawn while no reached place is pointed at.
+const NO_JOURNEY = { legs: [], interchanges: [] };
+
+// The place one sets off from is reached by no vehicle, so it has no category.
 const NO_CATEGORY = -1;
 
 const OPAQUE = 255;
@@ -73,10 +80,9 @@ const nodeSizeFactor = (category) =>
     ? START_NODE_SIZE_FACTOR
     : (NODE_SIZE_FACTORS.get(category) ?? REGIONAL_NODE_SIZE_FACTOR);
 
-export class AusbreitungPanel extends Panel {
+export class ReisefaecherPanel extends Panel {
   capabilities = {
     simulationSpeed: true,
-    timeScrubber: true,
     stationSearch: true,
     stationPicking: true,
     mapBackground: true,
@@ -103,6 +109,7 @@ export class AusbreitungPanel extends Panel {
     this.rides = [];
     this.places = new ReachedPlaces([]);
     this.activeVehicles = [];
+    this.journey = NO_JOURNEY;
     this.settled = null;
     this.currentTimeSeconds = startTimeSeconds;
     this.camera = null;
@@ -114,36 +121,35 @@ export class AusbreitungPanel extends Panel {
     return this.catalog;
   }
 
-  // The spread is light on dark ground: the aerial imagery is dark and low in
-  // contrast enough that the lit places read over it, and it says where they
-  // are. The chooser stays open for another ground.
   initialBackgroundId() {
-    return 'swissview';
+    return 'black';
   }
 
-  // The spread is computed before there is a clock to run it on, so the clock
-  // learns the stretch of day it covers as soon as there is one.
+  // The spread is computed before there is a clock, so it gets its range here.
   init(context) {
     this.camera = context.camera;
     this.time = context.time;
     this.#handTheClockItsRange();
   }
 
-  // The road blob arrives after the first picture already stands, so the whole
-  // connection list is rebuilt around it.
+  // The road blob arrives after the first picture stands, so the connection
+  // list is rebuilt around it.
   adoptSchedule(buffer, stations) {
     const engine = new VehiclePositionEngine(buffer);
     this.catalog.addPublished(stations, readStationPoints(buffer));
     this.networks.push({ engine, trips: engine.trips, stations });
     this.connections = buildConnectionList(this.networks);
     this.scan = new ConnectionScan(this.connections);
+    this.journeys = new JourneyOnTheGround(
+      this.connections,
+      this.networks.map((network) => network.engine),
+    );
     this.#settleOnAStartStation();
     this.#rescan();
   }
 
-  // Nothing more is on its way, so a stop the address names that no schedule
-  // knows is not going to turn up: the spread stops waiting for it and sets off
-  // from a stop of the panel's own.
+  // A stop the address names that no loaded schedule knows will not turn up any
+  // more, so the spread falls back to a station of its own.
   noFurtherScheduleIsComing() {
     this.startStationChoice.noFurtherScheduleIsComing();
     if (this.startStation !== null) {
@@ -166,15 +172,13 @@ export class AusbreitungPanel extends Panel {
     return this.startStation;
   }
 
-  // Of the spread on screen, not of the departure just chosen: until it is
-  // restarted, one is watching the journey one set off on. The hour it left at
-  // stands here, the hour it has got to is on the clock in the picture.
+  // Names the spread on screen, not the departure chosen for the next restart.
   headline() {
     if (this.spreadOnScreen === null) {
       return HEADLINE_WHILE_LOADING;
     }
     const { station, departureSeconds } = this.spreadOnScreen;
-    return `Wenn ich um ${formatTimeOfDay(departureSeconds)} in ${station.name} losfahre, welche Orte erreiche ich um welche Zeit?`;
+    return `Wenn ich um ${formatTimeOfDay(departureSeconds)} in ${station.name} losfahre, und immer optimal umsteige, welche Orte erreiche ich um welche Zeit?`;
   }
 
   drawStation() {
@@ -191,22 +195,15 @@ export class AusbreitungPanel extends Panel {
     this.#rescan();
   }
 
-  // A spread is a picture of the whole country, so a new starting point pulls
-  // the view back to all of it rather than moving in on the place itself.
   frameStation(context) {
     context.camera.fit();
   }
 
-  // Only the departure to set off from next: a spread already running keeps
-  // running, since recomputing it under the viewer would take away the picture
-  // being watched. It is the restart that sets off from the new time.
+  // Only the departure for the next restart; a running spread keeps running.
   setStartTime(seconds) {
     this.startTimeSeconds = seconds;
   }
 
-  // Whatever is on screen is given up for a spread from the departure now
-  // chosen, played from its first minute -- even where that is the spread
-  // already shown, since asking for it again is asking to see it again.
   restart() {
     this.#rescan({ againFromTheBeginning: true });
   }
@@ -222,6 +219,7 @@ export class AusbreitungPanel extends Panel {
     this.tree = this.scan.from(start, this.startTimeSeconds);
     this.rides = this.#ridesOfTree();
     this.places = new ReachedPlaces(this.#placesOfTree());
+    this.journey = NO_JOURNEY;
     this.settled?.forget();
     this.spreadOnScreen = {
       station: this.startStation,
@@ -232,9 +230,6 @@ export class AusbreitungPanel extends Panel {
     });
   }
 
-  // A spread that gains the buses it was missing is the one already on screen,
-  // carried on rather than begun again; another starting point or another
-  // departure makes a spread of its own.
   #carriesOnTheSpreadOnScreen() {
     return (
       this.spreadOnScreen !== null &&
@@ -247,13 +242,12 @@ export class AusbreitungPanel extends Panel {
     this.tree = null;
     this.rides = [];
     this.places = new ReachedPlaces([]);
+    this.journey = NO_JOURNEY;
     this.settled?.forget();
     this.spreadOnScreen = null;
     this.#handTheClockItsRange();
   }
 
-  // Every vehicle of the tree with what it takes to draw it and to name it in a
-  // popover: which blob carries it and which trip of that blob it is.
   #ridesOfTree() {
     return this.tree.rides().map((ride) => ({
       ...ride,
@@ -288,8 +282,7 @@ export class AusbreitungPanel extends Panel {
     };
   }
 
-  // A place is worth as much as the best vehicle that reaches it: an interchange
-  // an InterCity calls at is no bus stop, however many buses also pull in.
+  // Categories are ranked, so the lowest one is the best vehicle reaching here.
   #bestCategoryReaching(members) {
     const categories = members
       .map((station) => this.tree.arrivedOn(station))
@@ -300,10 +293,8 @@ export class AusbreitungPanel extends Panel {
     return categories.length === 0 ? NO_CATEGORY : Math.min(...categories);
   }
 
-  // The spread has a beginning and an end of its own: it starts when one sets
-  // off and is over when the last vehicle has landed. A fresh one runs from its
-  // beginning, whether or not the last had come to rest; while there is no
-  // spread to show, the clock has nothing to count and stands.
+  // The spread runs from the departure to the last arrival; without a tree the
+  // clock has nothing to count and stands.
   #handTheClockItsRange({ fromTheBeginning = true } = {}) {
     if (this.time === null) {
       return;
@@ -338,8 +329,6 @@ export class AusbreitungPanel extends Panel {
     this.activeVehicles = this.#vehiclesRunningAt(currentTimeSeconds);
   }
 
-  // The vehicles as the map deals with them: where they are on the ground, on
-  // top of what the ride already says about them.
   #vehiclesRunningAt(seconds) {
     return this.ridesRunningAt(seconds)
       .flatMap((ride) => {
@@ -355,6 +344,7 @@ export class AusbreitungPanel extends Panel {
       return;
     }
     this.#drawReachedPlaces(p, context);
+    this.#drawJourney(p, context);
     this.#drawVehicles(p, context);
     this.#drawStart(p, context);
   }
@@ -375,8 +365,8 @@ export class AusbreitungPanel extends Panel {
     return (category) => nodeDiameter * nodeSizeFactor(category);
   }
 
-  // The settled places carry the picture and never differ from one another, so
-  // they are painted into a layer of their own rather than redrawn every frame.
+  // Settled places no longer change, so they are painted into a layer of their
+  // own rather than redrawn every frame.
   #drawSettledPlaces(p, camera, runs, diameterOf) {
     this.#settledLayer(p).paint(camera, runs, diameterOf);
     this.settled.drawOnto(p);
@@ -393,8 +383,7 @@ export class AusbreitungPanel extends Panel {
     return this.settled;
   }
 
-  // Each flashing place burns at its own rate, so they are drawn one by one --
-  // there are only ever a handful of them.
+  // Each flashing place burns at its own rate, so they are drawn one by one.
   #drawFlashingPlaces(p, run, diameter, worldPerPixel) {
     const [red, green, blue] = this.#placeColor(run.category);
     p.noStroke();
@@ -412,8 +401,7 @@ export class AusbreitungPanel extends Panel {
       });
   }
 
-  // How recently one got here: one right at the arrival, nothing once the flash
-  // has burnt down.
+  // One right at the arrival, zero once the flash has burnt down.
   #freshness(arrivalTime) {
     return Math.max(
       0,
@@ -425,6 +413,82 @@ export class AusbreitungPanel extends Panel {
     return category === NO_CATEGORY ? START_COLOR : categoryColor(category);
   }
 
+  // A place wears the time it is reached at, which is what the spread is about;
+  // a place no journey leads to is only named.
+  describeStation(station) {
+    const arrival = this.#arrivalAt(station);
+    return arrival === null
+      ? [station.name]
+      : [`${formatTimeOfDay(arrival)} ${station.name}`];
+  }
+
+  // The place one sets off from is reached the moment one leaves it, which is a
+  // departure and not an arrival.
+  #arrivalAt(station) {
+    const reached = this.connections.stationOf(station.didok);
+    if (this.spreadOnScreen === null || reached === undefined) {
+      return null;
+    }
+    return this.tree.travelTimeTo(reached) === 0
+      ? null
+      : this.tree.arrivalAt(reached);
+  }
+
+  // The journey to the place under the pointer, worked out once here rather
+  // than in every frame that draws it. Its interchanges are handed back, since
+  // they are named on the map rather than drawn.
+  previewJourneyTo(station) {
+    this.journey = station === null ? NO_JOURNEY : this.#journeyTo(station);
+    return this.journey.interchanges;
+  }
+
+  #journeyTo(station) {
+    const reached = this.connections.stationOf(station.didok);
+    if (
+      this.tree === null ||
+      reached === undefined ||
+      !this.tree.isReached(reached)
+    ) {
+      return NO_JOURNEY;
+    }
+    const { legs, interchangeStations } = this.journeys.to(this.tree, reached);
+    return {
+      legs,
+      interchanges: this.#interchangePlacesOf(interchangeStations),
+    };
+  }
+
+  #interchangePlacesOf(stations) {
+    return stations.flatMap((station) => {
+      const entry = this.catalog.entryOf(this.connections.didokOf(station));
+      return entry === null ? [] : [entry];
+    });
+  }
+
+  // Each leg is a line of its own, so the step across an interchange stays open
+  // rather than being drawn as a ride.
+  #drawJourney(p, context) {
+    const worldPerPixel = context.camera.worldPerPixel();
+    p.noFill();
+    p.stroke(...(context.tilesVisible ? JOURNEY_ON_RASTER : JOURNEY_ON_BLACK));
+    p.strokeWeight(JOURNEY_WIDTH_PIXELS * worldPerPixel);
+    this.journey.legs.forEach((polyline) => {
+      p.beginShape();
+      polyline.forEach(([east, north]) => {
+        p.vertex(east, north);
+      });
+      p.endShape();
+    });
+    p.strokeWeight(INTERCHANGE_WIDTH_PIXELS * worldPerPixel);
+    this.journey.interchanges.forEach((place) => {
+      p.circle(
+        place.east,
+        place.north,
+        INTERCHANGE_DIAMETER_PIXELS * worldPerPixel,
+      );
+    });
+  }
+
   #drawVehicles(p, context) {
     const diameter = VEHICLE_DIAMETER_PIXELS * context.camera.worldPerPixel();
     p.noStroke();
@@ -434,8 +498,6 @@ export class AusbreitungPanel extends Panel {
     });
   }
 
-  // A ring twice the size of the node it encloses, so where one set off stays
-  // recognisable however full the picture gets.
   #drawStart(p, context) {
     const ringDiameter = 2 * this.#placeDiameter(context.camera)(NO_CATEGORY);
     p.noFill();
@@ -460,8 +522,6 @@ export class AusbreitungPanel extends Panel {
     );
   }
 
-  // Only what is already lit can be picked: the picture answers for where one
-  // has got to, not for where one will be later.
   #nearestReachedPlace(screenX, screenY, accept) {
     if (this.camera === null) {
       return null;

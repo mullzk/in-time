@@ -8,8 +8,7 @@
   min-width: 0;
 }
 
-/* The scrubber gets a line to itself: play and clock beside each other leave it
-   too little of the card's width to be worth dragging. */
+/* The scrubber takes a line to itself. */
 .transport-scrubber {
   flex: 1 0 100%;
   min-width: 0;

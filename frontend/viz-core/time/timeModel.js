@@ -6,8 +6,7 @@ export const SECONDS_PER_DAY = 24 * 3600;
 const clamp = (value, low, high) => Math.min(Math.max(value, low), high);
 
 export class TimeModel {
-  // A day loops -- it has no end one could arrive at. A spread does: once the
-  // last vehicle has landed it is over, and the clock comes to rest there.
+  // A day loops; a spread ends with its last arrival, where the clock rests.
   constructor(rangeStart, rangeEnd, { repeats = true } = {}) {
     this.rangeStart = rangeStart;
     this.rangeEnd = rangeEnd;
@@ -24,26 +23,23 @@ export class TimeModel {
     return this.rangeEnd - this.rangeStart;
   }
 
-  // The stretch of day a panel shows can change under it: a spread from another
-  // starting point runs from another moment to another end, and the clock starts
-  // over at its beginning.
+  // Takes a new range and starts over at its beginning.
   setRange(rangeStart, rangeEnd) {
     this.rangeStart = rangeStart;
     this.rangeEnd = rangeEnd;
     this.seekToTime(rangeStart);
   }
 
-  // A spread that gains the vehicles it was still missing stays the spread one
-  // is watching: it may end later than it did, but the clock keeps its place in
-  // it rather than sending the picture back to the beginning.
+  // For a range that grows under a picture already running: the clock keeps its
+  // place instead of starting over.
   setRangeKeepingTime(rangeStart, rangeEnd) {
     this.rangeStart = rangeStart;
     this.rangeEnd = rangeEnd;
     this.current = clamp(this.current, rangeStart, rangeEnd);
   }
 
-  // A spread that has run out is played again by running it again: there is
-  // nowhere left to go from its end, so the clock returns to the beginning.
+  // A range that has run out has nowhere to go from its end, so playing it
+  // returns to the beginning.
   play() {
     if (this.#hasRunOut()) {
       this.seekToTime(this.rangeStart);
@@ -85,8 +81,7 @@ export class TimeModel {
     this.current = this.rangeStart + (elapsed % this.#span());
   }
 
-  // A spread that reaches nowhere begins and ends at the same moment; it has
-  // not come any of the way, rather than an undefined part of it.
+  // An empty range begins and ends at the same moment: no part of it is done.
   scrubberPosition() {
     return this.#span() === 0
       ? 0

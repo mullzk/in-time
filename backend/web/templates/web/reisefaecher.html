@@ -1,7 +1,7 @@
 {% extends "web/base.html" %}
 {% load static %}
 
-{% block title %}Takt — All in Time{% endblock %}
+{% block title %}Reisefächer — All in Time{% endblock %}
 
 {% block styles %}
   <link rel="stylesheet" href="{% static 'styles/dock.css' %}" />
@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="{% static 'styles/attribution.css' %}" />
   <link rel="stylesheet" href="{% static 'styles/infoCard.css' %}" />
   <link rel="stylesheet" href="{% static 'styles/choiceList.css' %}" />
-  <link rel="stylesheet" href="{% static 'styles/instrumentationEditor.css' %}" />
+  <link rel="stylesheet" href="{% static 'styles/headline.css' %}" />
 {% endblock %}
 
 {% block content %}
@@ -20,5 +20,5 @@
 {% endblock %}
 
 {% block scripts %}
-  <script type="module" src="{% static 'takt/main.js' %}"></script>
+  <script type="module" src="{% static 'reisefaecher/main.js' %}"></script>
 {% endblock %}

@@ -6,7 +6,6 @@
   z-index: 10;
   transform: translate(-50%, calc(-100% - 8px));
   padding: 6px 10px;
-  border-radius: var(--radius-m);
   background: var(--color-surface);
   backdrop-filter: blur(6px);
   color: var(--color-text);
@@ -19,22 +18,26 @@
   display: block;
 }
 
-/* A vehicle popover takes its category's colour as its ground, so the label
-   names the service twice: in words and in the colour it is drawn in on the map.
-   The colour is used as it is: darkening it would have to leave the sRGB gamut
-   for six of the seven categories, and a dark yellow is a brown whatever the
-   colour space. Both colours are supplied by the script. */
+/* A vehicle popover takes its category's colour as its ground, used as it is:
+   darkening it would have to leave the sRGB gamut for six of the seven
+   categories. Both colours are supplied by the script. */
 .popover.is-accented {
   background: var(--popover-accent);
   color: var(--popover-accent-text);
 }
 
-/* The hover preview reads quieter than a committed selection and sits beneath it,
-   so the two never compete when both point at the same place. It is held back by
-   its ground alone: element opacity is inherited and would take the text with it,
-   which a name has to be read at any weight. */
+/* The hover preview sits beneath a committed selection and is held back by its
+   ground alone: element opacity is inherited and would take the text with it. */
 .popover-hover {
   z-index: 9;
+}
+
+/* Nothing one has settled on is set this small: a preview and the interchanges
+   it names are read in passing. */
+.popover-hover,
+.popover-interchange {
+  padding: 3px 7px;
+  font-size: 11px;
 }
 
 .popover-hover:not(.is-accented) {
@@ -45,9 +48,17 @@
   background: color-mix(in srgb, var(--popover-accent) 40%, transparent);
 }
 
-/* A vehicle popover stacks several lines; its leading line (category) reads as a
-   muted caption above the route. A single-line station popover is unaffected. */
+/* Only a multi-line vehicle popover has a leading line to set apart. */
 .popover-line:not(:last-child) {
   font-size: 11px;
   opacity: 0.7;
+}
+
+/* An interchange on a previewed journey is only named in passing: it stands
+   under both the selection and the hover preview and speaks more quietly, text
+   and ground together -- unlike the preview, whose wording is the point. */
+.popover-interchange {
+  z-index: 8;
+  background: var(--color-surface-translucent);
+  opacity: 0.75;
 }

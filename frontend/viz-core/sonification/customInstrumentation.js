@@ -1,6 +1,6 @@
 // The listener's own instrumentation: the boundary where typed text becomes a
-// checked document, and the browser-local place it is kept. It lives in the
-// browser alone -- nothing about it reaches the server.
+// checked document, and the browser-local place it is kept. Nothing about it
+// reaches the server.
 
 import { Instrumentation } from './instrumentation.js';
 
@@ -34,8 +34,7 @@ export function instrumentationFromText(text) {
 }
 
 // A delivered instrumentation becomes the listener's own by taking the one name
-// reserved for it; there is only ever one, so it needs no further distinction
-// and seeding from an already seeded document changes nothing.
+// reserved for it, so seeding from an already seeded document changes nothing.
 export function seedTextFrom(document) {
   return JSON.stringify(
     { ...document, instrumentation: CUSTOM_INSTRUMENTATION_NAME },
@@ -45,8 +44,8 @@ export function seedTextFrom(document) {
 }
 
 export class CustomInstrumentationStore {
-  // `storage` is a Web Storage object; one that forgets is as good as one that
-  // keeps, and only the reach across reloads is then lost.
+  // `storage` is a Web Storage object; one that forgets everything works too,
+  // and only the reach across reloads is then lost.
   constructor(storage) {
     this.storage = storage;
   }
@@ -63,7 +62,7 @@ export class CustomInstrumentationStore {
   }
 
   // Only a document that plays is kept, so a half-written one never survives a
-  // reload and the last working version stays retrievable.
+  // reload.
   write(text) {
     const result = instrumentationFromText(text);
     if (result.instrumentation) {

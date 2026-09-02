@@ -29,10 +29,9 @@ export function stationMatchingSlug(entries, slug) {
   return entries.find((entry) => comparableSlug(entry.name) === wanted) ?? null;
 }
 
-// The station a view is showing, kept in the view's own address (/takt/bern):
-// what one sees can be linked to, opens again on the same station, and follows
-// along when the view is changed. Everything else the address carries -- the
-// exhibition mode -- is left untouched.
+// The station a view is showing, kept in the view's own address (/taktfahrplan/bern).
+// Everything else the address carries -- the exhibition mode -- is left
+// untouched.
 export class StationInUrl {
   constructor(location = window.location, history = window.history) {
     this.location = location;
@@ -41,9 +40,8 @@ export class StationInUrl {
     this.slug = this.#slugInPath();
   }
 
-  // Naming the station is a correction of the address, not a step of its own:
-  // going back should leave the view rather than walk through every station
-  // that was looked at.
+  // Replaces the address rather than pushing a step, so going back leaves the
+  // view instead of walking through every station that was looked at.
   show(station) {
     if (this.view === null) {
       return;
@@ -52,8 +50,7 @@ export class StationInUrl {
     this.history.replaceState(null, '', this.linkTo(this.view.path));
   }
 
-  // The station is given up again: the view's own address, and no step in the
-  // history for it either.
+  // Back to the view's own address, again without a step in the history.
   forget() {
     if (this.view === null) {
       return;
