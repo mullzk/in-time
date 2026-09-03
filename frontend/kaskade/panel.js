@@ -80,7 +80,7 @@ const nodeSizeFactor = (category) =>
     ? START_NODE_SIZE_FACTOR
     : (NODE_SIZE_FACTORS.get(category) ?? REGIONAL_NODE_SIZE_FACTOR);
 
-export class ReisefaecherPanel extends Panel {
+export class KaskadePanel extends Panel {
   capabilities = {
     simulationSpeed: true,
     stationSearch: true,

@@ -1,4 +1,4 @@
-// The Taktfahrplan panel's info-modal content.
+// The Takt panel's info-modal content.
 
 const link = (label, href) => ({ label, href });
 

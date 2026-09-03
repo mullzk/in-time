@@ -64,16 +64,13 @@ test('the first station of that name wins, so a link always opens the same one',
 });
 
 test('the station in the path is the one the view opens on', () => {
-  assert.equal(stationInUrlAt('/taktfahrplan/bern').slug, 'bern');
-  assert.equal(
-    stationInUrlAt('/taktfahrplan/z%C3%BCrich-hb').slug,
-    'zürich-hb',
-  );
+  assert.equal(stationInUrlAt('/takt/bern').slug, 'bern');
+  assert.equal(stationInUrlAt('/takt/z%C3%BCrich-hb').slug, 'zürich-hb');
 });
 
 test('a view without a station in its path names none', () => {
-  assert.equal(stationInUrlAt('/taktfahrplan').slug, null);
-  assert.equal(stationInUrlAt('/taktfahrplan/').slug, null);
+  assert.equal(stationInUrlAt('/takt').slug, null);
+  assert.equal(stationInUrlAt('/takt/').slug, null);
 });
 
 test('the address knows which view it belongs to', () => {
@@ -82,54 +79,51 @@ test('the address knows which view it belongs to', () => {
 });
 
 test('a chosen station is written into the address', () => {
-  const stationInUrl = stationInUrlAt('/taktfahrplan');
+  const stationInUrl = stationInUrlAt('/takt');
 
   stationInUrl.show({ name: 'Bern, Bümpliz Nord' });
 
   assert.equal(stationInUrl.slug, 'bern-bümpliz-nord');
   assert.equal(
     stationInUrl.history.written.at(-1),
-    '/taktfahrplan/bern-b%C3%BCmpliz-nord',
+    '/takt/bern-b%C3%BCmpliz-nord',
   );
 });
 
 test('choosing another station replaces the one in the address', () => {
-  const stationInUrl = stationInUrlAt('/taktfahrplan/bern');
+  const stationInUrl = stationInUrlAt('/takt/bern');
 
   stationInUrl.show({ name: 'Chur' });
 
-  assert.equal(stationInUrl.history.written.at(-1), '/taktfahrplan/chur');
+  assert.equal(stationInUrl.history.written.at(-1), '/takt/chur');
 });
 
 test('what else the address carries survives naming a station', () => {
-  const stationInUrl = stationInUrlAt('/taktfahrplan', '?mode=exhibition');
+  const stationInUrl = stationInUrlAt('/takt', '?mode=exhibition');
 
   stationInUrl.show({ name: 'Bern' });
 
   assert.equal(
     stationInUrl.history.written.at(-1),
-    '/taktfahrplan/bern?mode=exhibition',
+    '/takt/bern?mode=exhibition',
   );
 });
 
 test('giving the station up leaves the view alone in the address', () => {
-  const stationInUrl = stationInUrlAt('/taktfahrplan/bern');
+  const stationInUrl = stationInUrlAt('/takt/bern');
 
   stationInUrl.forget();
 
   assert.equal(stationInUrl.slug, null);
-  assert.equal(stationInUrl.history.written.at(-1), '/taktfahrplan');
+  assert.equal(stationInUrl.history.written.at(-1), '/takt');
 });
 
 test('what else the address carries survives giving the station up', () => {
-  const stationInUrl = stationInUrlAt('/taktfahrplan/bern', '?mode=exhibition');
+  const stationInUrl = stationInUrlAt('/takt/bern', '?mode=exhibition');
 
   stationInUrl.forget();
 
-  assert.equal(
-    stationInUrl.history.written.at(-1),
-    '/taktfahrplan?mode=exhibition',
-  );
+  assert.equal(stationInUrl.history.written.at(-1), '/takt?mode=exhibition');
 });
 
 test('a page outside the gallery is left alone', () => {
@@ -141,24 +135,21 @@ test('a page outside the gallery is left alone', () => {
 });
 
 test('the other views are linked to with the same station', () => {
-  const stationInUrl = stationInUrlAt('/taktfahrplan/bern');
+  const stationInUrl = stationInUrlAt('/takt/bern');
 
   assert.equal(stationInUrl.linkTo('/zeitkarte'), '/zeitkarte/bern');
 });
 
 test('without a station the other views are linked to plainly', () => {
-  const stationInUrl = stationInUrlAt('/taktfahrplan', '?mode=exhibition');
+  const stationInUrl = stationInUrlAt('/takt', '?mode=exhibition');
 
   assert.equal(stationInUrl.linkTo('/zeitkarte'), '/zeitkarte?mode=exhibition');
 });
 
 test('a link to another view carries the station chosen since the page loaded', () => {
-  const stationInUrl = stationInUrlAt('/taktfahrplan');
+  const stationInUrl = stationInUrlAt('/takt');
 
   stationInUrl.show({ name: 'Zürich HB' });
 
-  assert.equal(
-    stationInUrl.linkTo('/reisefaecher'),
-    '/reisefaecher/z%C3%BCrich-hb',
-  );
+  assert.equal(stationInUrl.linkTo('/kaskade'), '/kaskade/z%C3%BCrich-hb');
 });

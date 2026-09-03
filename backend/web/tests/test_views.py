@@ -143,8 +143,8 @@ def test_rail_and_road_stations_have_distinct_etags(
     assert rail_etag != road_etag
 
 
-def test_taktfahrplan_serves_the_html_shell(client: Client, published: Path) -> None:
-    response = client.get("/taktfahrplan")
+def test_takt_serves_the_html_shell(client: Client, published: Path) -> None:
+    response = client.get("/takt")
 
     assert response.status_code == 200
     assert response["Content-Type"].startswith("text/html")
@@ -162,21 +162,21 @@ def test_zeitkarte_serves_its_own_shell(client: Client, published: Path) -> None
     assert "zeitkarte/main" in markup
 
 
-def test_reisefaecher_serves_its_own_shell(client: Client, published: Path) -> None:
-    response = client.get("/reisefaecher")
+def test_kaskade_serves_its_own_shell(client: Client, published: Path) -> None:
+    response = client.get("/kaskade")
 
     assert response.status_code == 200
     markup = response.content.decode("utf-8")
     assert "/api/config" in markup
-    assert "reisefaecher/main" in markup
+    assert "kaskade/main" in markup
 
 
 @pytest.mark.parametrize(
     ("address", "script"),
     [
-        ("/taktfahrplan/bern", "taktfahrplan/main"),
+        ("/takt/bern", "takt/main"),
         ("/zeitkarte/bern-b%C3%BCmpliz-nord", "zeitkarte/main"),
-        ("/reisefaecher/z%C3%BCrich-hb", "reisefaecher/main"),
+        ("/kaskade/z%C3%BCrich-hb", "kaskade/main"),
     ],
 )
 def test_a_station_in_the_address_serves_the_same_shell(
@@ -191,14 +191,17 @@ def test_a_station_in_the_address_serves_the_same_shell(
 @pytest.mark.parametrize(
     ("former_address", "current_address"),
     [
-        ("/takt", "/taktfahrplan"),
-        ("/takt/", "/taktfahrplan"),
-        ("/ausbreitung", "/reisefaecher"),
-        ("/ausbreitung/", "/reisefaecher"),
+        ("/taktfahrplan", "/takt"),
+        ("/taktfahrplan/", "/takt"),
+        ("/reisefaecher", "/kaskade"),
+        ("/reisefaecher/", "/kaskade"),
+        ("/ausbreitung", "/kaskade"),
+        ("/ausbreitung/", "/kaskade"),
         ("/reisezeit", "/zeitkarte"),
         ("/reisezeit/", "/zeitkarte"),
-        ("/takt/bern", "/taktfahrplan/bern"),
-        ("/ausbreitung/z%C3%BCrich-hb", "/reisefaecher/z%C3%BCrich-hb"),
+        ("/taktfahrplan/bern", "/takt/bern"),
+        ("/reisefaecher/z%C3%BCrich-hb", "/kaskade/z%C3%BCrich-hb"),
+        ("/ausbreitung/z%C3%BCrich-hb", "/kaskade/z%C3%BCrich-hb"),
         ("/reisezeit/bern-b%C3%BCmpliz-nord", "/zeitkarte/bern-b%C3%BCmpliz-nord"),
     ],
 )
@@ -212,6 +215,6 @@ def test_a_former_view_name_is_permanently_moved(
 
 
 def test_a_redirect_keeps_the_exhibition_mode(client: Client) -> None:
-    response = client.get("/takt/bern?mode=exhibition")
+    response = client.get("/taktfahrplan/bern?mode=exhibition")
 
-    assert response["Location"] == "/taktfahrplan/bern?mode=exhibition"
+    assert response["Location"] == "/takt/bern?mode=exhibition"

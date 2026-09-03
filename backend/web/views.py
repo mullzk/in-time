@@ -102,12 +102,12 @@ def stations_road(request: HttpRequest) -> HttpResponse:
 # A view carries the station it opens on in its own address, so that a picture
 # can be linked to. Which station that is only the client can tell, from the
 # catalog it loads; the server has to answer the address, nothing more.
-def taktfahrplan(request: HttpRequest, station: str = "") -> HttpResponse:
-    return render(request, "web/taktfahrplan.html")
+def takt(request: HttpRequest, station: str = "") -> HttpResponse:
+    return render(request, "web/takt.html")
 
 
-def reisefaecher(request: HttpRequest, station: str = "") -> HttpResponse:
-    return render(request, "web/reisefaecher.html")
+def kaskade(request: HttpRequest, station: str = "") -> HttpResponse:
+    return render(request, "web/kaskade.html")
 
 
 def zeitkarte(request: HttpRequest, station: str = "") -> HttpResponse:

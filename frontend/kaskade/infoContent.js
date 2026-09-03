@@ -1,4 +1,4 @@
-// The Reisefächer panel's info-modal content.
+// The Kaskade panel's info-modal content.
 
 const link = (label, href) => ({ label, href });
 
@@ -29,8 +29,9 @@ export function buildInfoContent() {
         '.',
       ],
       [
-        'Der Reisefächer zeigt auf, wie sich von einem beliebigen ' +
-          'Startpunkt aus die ganze Schweiz erreichen lässt.',
+        'Die Kaskade zeigt auf, wie sich über die Umsteigemöglichkeiten ' +
+          'von einem beliebigen Startpunkt aus die Anschlussverbindungen über ' +
+          'die ganze Schweiz entfalten.',
       ],
     ],
     shortcuts: [

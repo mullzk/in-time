@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import { HEADLINE_WHILE_LOADING } from '../viz-core/controls/headline.js';
 import { Camera } from '../viz-core/render/camera.js';
 import { TimeModel } from '../viz-core/time/timeModel.js';
-import { ReisefaecherPanel } from './panel.js';
+import { KaskadePanel } from './panel.js';
 
 // The golden rail fixture: three stations, a trip calling at all three (10:00 →
 // 10:10, on again at 10:11 → 10:21) and a second trip from the middle station at
@@ -26,7 +26,7 @@ const STATIONS = [
 ];
 
 const panelFrom = (startTimeSeconds) => {
-  const panel = new ReisefaecherPanel(railBuffer(), STATIONS, startTimeSeconds);
+  const panel = new KaskadePanel(railBuffer(), STATIONS, startTimeSeconds);
   panel.revealStation(panel.stationCatalog().entryOf(8_500_001));
   return panel;
 };
@@ -126,14 +126,14 @@ test('a restart plays the same spread again from its first minute', () => {
 });
 
 test('a panel nobody chose a station for waits at none', () => {
-  const panel = new ReisefaecherPanel(railBuffer(), STATIONS, 10 * 3600);
+  const panel = new KaskadePanel(railBuffer(), STATIONS, 10 * 3600);
 
   assert.equal(panel.startStation, null);
   assert.equal(panel.placesReachedAt(24 * 3600).length, 0, 'and shows nothing');
 });
 
 test('the station a panel draws is one it can travel from', () => {
-  const panel = new ReisefaecherPanel(railBuffer(), STATIONS, 10 * 3600);
+  const panel = new KaskadePanel(railBuffer(), STATIONS, 10 * 3600);
 
   panel.revealStation(panel.drawStation());
 
@@ -155,7 +155,7 @@ test('the stops of an interchange are one place in the picture', () => {
       cluster: 8_500_002,
     },
   ];
-  const panel = new ReisefaecherPanel(railBuffer(), interchange, 10 * 3600);
+  const panel = new KaskadePanel(railBuffer(), interchange, 10 * 3600);
   panel.revealStation(panel.stationCatalog().entryOf(8_500_001));
 
   assert.equal(
@@ -220,18 +220,13 @@ test('a new starting point pulls the view back to the whole country', () => {
 });
 
 test('a view linked to a station opens on it, without drawing another', () => {
-  const panel = new ReisefaecherPanel(
-    railBuffer(),
-    STATIONS,
-    10 * 3600,
-    'mitte',
-  );
+  const panel = new KaskadePanel(railBuffer(), STATIONS, 10 * 3600, 'mitte');
 
   assert.equal(panel.startsFrom().didok, 8_500_002);
 });
 
 test('a station no schedule on hand knows is waited for', () => {
-  const panel = new ReisefaecherPanel(
+  const panel = new KaskadePanel(
     railBuffer(),
     STATIONS,
     10 * 3600,
@@ -286,7 +281,7 @@ test('the headline keeps the departure until the spread is restarted', () => {
 });
 
 test('a panel with no spread yet asks no question', () => {
-  const panel = new ReisefaecherPanel(railBuffer(), STATIONS, 10 * 3600);
+  const panel = new KaskadePanel(railBuffer(), STATIONS, 10 * 3600);
 
   assert.equal(panel.headline(), HEADLINE_WHILE_LOADING);
 });

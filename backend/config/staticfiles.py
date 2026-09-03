@@ -33,6 +33,6 @@ class HashedStaticFilesStorage(ManifestStaticFilesStorage):
     )
     _our_module_patterns = (JSON_MODULE_IMPORT_PATTERN, *_module_import_patterns)
     patterns = ManifestStaticFilesStorage.patterns + (
-        ("taktfahrplan/*.js", _our_module_patterns),
+        ("takt/*.js", _our_module_patterns),
         ("viz-core/*.js", _our_module_patterns),
     )
