@@ -1,8 +1,8 @@
 // Every view the application offers, in the order it is shown. Each is its own
 // web address, and switching to one is a page load.
 export const VIEWS = [
-  { path: '/taktfahrplan', label: 'Taktfahrplan' },
-  { path: '/reisefaecher', label: 'Reisefächer' },
+  { path: '/takt', label: 'Takt' },
+  { path: '/kaskade', label: 'Kaskade' },
   { path: '/zeitkarte', label: 'Zeitkarte' },
 ];
 

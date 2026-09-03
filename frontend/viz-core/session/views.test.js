@@ -4,19 +4,16 @@ import { VIEWS, viewAt } from './views.js';
 
 test('a path names the view it belongs to', () => {
   assert.equal(viewAt('/zeitkarte').label, 'Zeitkarte');
-  assert.equal(viewAt('/taktfahrplan').label, 'Taktfahrplan');
+  assert.equal(viewAt('/takt').label, 'Takt');
 });
 
 test('a trailing slash names the same view', () => {
-  assert.equal(viewAt('/taktfahrplan/'), viewAt('/taktfahrplan'));
+  assert.equal(viewAt('/takt/'), viewAt('/takt'));
 });
 
 test('a station in the path names the same view', () => {
-  assert.equal(viewAt('/taktfahrplan/bern'), viewAt('/taktfahrplan'));
-  assert.equal(
-    viewAt('/reisefaecher/bern-b%C3%BCmpliz-nord').label,
-    'Reisefächer',
-  );
+  assert.equal(viewAt('/takt/bern'), viewAt('/takt'));
+  assert.equal(viewAt('/kaskade/bern-b%C3%BCmpliz-nord').label, 'Kaskade');
 });
 
 test('a path outside the gallery has no view', () => {
