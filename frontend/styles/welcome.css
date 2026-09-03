@@ -115,7 +115,7 @@
 @media (max-width: 640px) {
   .welcome-card {
     padding: var(--space-m);
-    hypen: auto;
+    hyphen: auto;
   }
 
   .welcome-place-wide {
