@@ -29,7 +29,7 @@ export function buildInfoContent() {
         '.',
       ],
       [
-        'Die Kaskade zeigt auf, wie sich über die Umsteigemöglichkeiten und ' +
+        'Die Kaskade zeigt auf, wie sich über die Umsteigemöglichkeiten ' +
           'von einem beliebigen Startpunkt aus die Anschlussverbindungen über ' +
           'die ganze Schweiz entfalten.',
       ],
