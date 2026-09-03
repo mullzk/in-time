@@ -111,8 +111,18 @@
     font-size var(--transition-panel);
 }
 
-/* Grown for the ask, at a size iOS does not zoom the page in for when the field
-   takes focus. */
+/* A phone browser zooms the page in when a field under 16px takes focus, and
+   does not take that zoom back when the keyboard goes -- which leaves the
+   picture standing too large, the dock off its corner and under the browser's
+   own bars. Held to the touch pointers this happens on, so a mouse keeps the
+   bar's own size. */
+@media (pointer: coarse) {
+  .station-search-input {
+    font-size: 16px;
+  }
+}
+
+/* Grown for the ask. */
 .station-search.is-inviting .station-search-input {
   height: calc(var(--control-height) + 12px);
   background: var(--color-background);
