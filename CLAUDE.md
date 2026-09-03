@@ -6,9 +6,8 @@ governs how we build it.
 
 ## Repository structure
 
-- `backend/` — the Django project. Built: `pipeline` (build jobs, `BuildRun`)
-  and `web` (pages + config/station endpoints). Deferred with the delay views:
-  `hotspots` (aggregation); routing needs no app of its own, since the
+- `backend/` — the Django project: `pipeline` (build jobs, `BuildRun`) and `web`
+  (pages + config/station endpoints). Routing needs no app of its own, since the
   connection scan runs in the browser. The browser-facing delivery app is `web`,
   not `frontend`, so its name does not collide with the `frontend/` client tree
   below.
@@ -26,26 +25,20 @@ governs how we build it.
   root, since they wire the folders together.
 - `tooling/` — the dev-time scripts: `check.sh` (format + lint), `test.sh` (both
   test suites), the vendoring scripts.
-- `docs/` — documentation that ships with the repo, e.g. `performance.md`.
+- `docs/` — documentation that ships with the repo: `architektur.md`,
+  `daten.md`, `coding-standards.md` (the reasoning behind this file) and
+  `performance.md`.
 - `data/` — the local data directory (git-ignored): source archives and the
   published day artifacts.
-- `plan/` — the build plan and per-step specifications, including `debt.md` for
-  consciously accepted debt. **Local only** (git-ignored); it is working
-  material, may be in German.
 
 ## Working model
 
-Work is organised into packages (P0–P6) across three phases; see
-**`plan/roadmap.md`** for build order, size and risk.
+The app serves three views: `/takt`, `/kaskade` and `/zeitkarte`.
+`docs/architektur.md` and `docs/daten.md` are the reference for how the whole
+thing hangs together — keep them true when a decision there changes.
 
-- **At the start of each phase**, work out the detailed specifications and
-  **spec tests** for that phase (deeper than what `plan/` currently holds), then
-  implement until the spec is met.
-- Each work step has a spec under `plan/phase-*/` (preconditions, what to do,
-  where it is expanded later). Background lives in `plan/referenz/`
-  (architecture, data, UI).
-- Phase 1 is a **vertical slice** (Takt panel, rail-only, visual) that proves
-  the whole stack early; Phase 2 broadens each package.
+- **Before a larger piece of work**, write the specification and its **spec
+  tests** first, then implement until they are green.
 
 ## Language
 
@@ -55,7 +48,9 @@ Work is organised into packages (P0–P6) across three phases; see
   modal. Follow the existing wording rather than translating anything.
 - **PRs and commit messages: always English.** GitHub issues may be German
   (English is fine too).
-- Only local-only, git-ignored material (`plan/`) may be German.
+- **Exception: the reference documents under `docs/` may be German** —
+  `architektur.md`, `daten.md` and `coding-standards.md` are reasoning material,
+  not code. `README.md`, `GLOSSARY.md` and `performance.md` stay English.
 
 ## Coding guidelines
 

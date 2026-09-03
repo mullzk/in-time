@@ -179,3 +179,10 @@ and systemd should be easily possible.
 
 - [`GLOSSARY.md`](GLOSSARY.md) — abbreviations and domain terms used across the
   code and docs.
+- [`docs/performance.md`](docs/performance.md) — what each pipeline stage costs
+  on real data: input size, processing time, output size.
+- [`docs/architektur.md`](docs/architektur.md), [`docs/daten.md`](docs/daten.md)
+  and [`docs/coding-standards.md`](docs/coding-standards.md) — the reference
+  behind the decisions above: how work splits between server and browser, where
+  the data comes from and what it costs to keep, and the project's conventions.
+  German, and the only part of the repo that is.
