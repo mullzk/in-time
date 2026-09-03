@@ -6,7 +6,7 @@ import {
   secondsOfDayInZurich,
 } from '../viz-core/time/openingTime.js';
 import { MAX_TEMPO, TimeModel } from '../viz-core/time/timeModel.js';
-import { ReisefaecherPanel } from './panel.js';
+import { KaskadePanel } from './panel.js';
 
 const root = document.getElementById('viz-root');
 
@@ -22,7 +22,7 @@ async function bootstrap() {
   // The address is read before the first spread is worked out, so the panel
   // starts from the station it names instead of computing one twice.
   const stationInUrl = new StationInUrl();
-  const panel = new ReisefaecherPanel(
+  const panel = new KaskadePanel(
     result.railBuffer,
     result.railStations,
     departure,

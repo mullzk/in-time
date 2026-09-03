@@ -29,7 +29,7 @@ export function stationMatchingSlug(entries, slug) {
   return entries.find((entry) => comparableSlug(entry.name) === wanted) ?? null;
 }
 
-// The station a view is showing, kept in the view's own address (/taktfahrplan/bern).
+// The station a view is showing, kept in the view's own address (/takt/bern).
 // Everything else the address carries -- the exhibition mode -- is left
 // untouched.
 export class StationInUrl {
