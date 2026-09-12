@@ -12,6 +12,11 @@ test('every intro link carries a label and an absolute href', () => {
   });
 });
 
+test('the key that switches to the colour-blind scheme is listed', () => {
+  const { shortcuts } = buildInfoContent();
+  assert.ok(shortcuts.some(({ keys }) => keys === 'C'));
+});
+
 test('every shortcut carries a key and a description', () => {
   const { shortcuts } = buildInfoContent();
   shortcuts.forEach(({ keys, description }) => {

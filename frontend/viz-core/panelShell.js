@@ -11,6 +11,7 @@ import { StationSearch } from './controls/stationSearch.js';
 import { TransportControls } from './controls/transportControls.js';
 import { ViewSwitcher } from './controls/viewSwitcher.js';
 import { NoWelcome, WelcomeOverlay } from './controls/welcomeOverlay.js';
+import { useColorBlindScheme } from './data/transportCategories.js';
 import { KeyboardControls } from './interaction/keyboardControls.js';
 import { MapSelection } from './interaction/mapSelection.js';
 import { PanelContext } from './panelContext.js';
@@ -19,6 +20,7 @@ import { TileLayer } from './render/tiles/tileLayer.js';
 import { BACKGROUNDS } from './render/tiles/tileSource.js';
 import { VizCore } from './render/vizCore.js';
 import { localStorageOrForgetful } from './session/browserStorage.js';
+import { ColorSchemePreference } from './session/colorSchemePreference.js';
 import { StationInUrl, stationMatchingSlug } from './session/stationInUrl.js';
 import { WelcomeVisit } from './session/welcomeVisit.js';
 import { AudioBridge } from './sonification/audioBridge.js';
@@ -69,6 +71,8 @@ export class PanelShell {
   }
 
   start() {
+    this.colorSchemePreference = new ColorSchemePreference();
+    useColorBlindScheme(this.colorSchemePreference.prefersColorBlindScheme());
     this.topBar = element('div', 'l-topbar');
     this.root.appendChild(this.topBar);
     this.attribution = new Attribution(this.root);
@@ -108,7 +112,7 @@ export class PanelShell {
           onNothingTapped: () => this.#turnDownTheAsk(),
         })
       : null;
-    this.headline = this.panel.headline ? new Headline(this.root) : null;
+    this.headline = this.panel.headline ? new Headline(this.topBar) : null;
     this.clock = this.panel.capabilities.clock ? new Clock(this.topBar) : null;
 
     new KeyboardControls(window, {
@@ -319,7 +323,19 @@ export class PanelShell {
     if (this.stationSearch) {
       bindings.g = () => this.stationSearch.focus();
     }
+    if (this.panel.capabilities.categoryColors) {
+      bindings.c = () => this.#toggleColorBlindScheme();
+    }
     return bindings;
+  }
+
+  // The canvas follows on its next frame; what the DOM was painted with once has
+  // to be painted again.
+  #toggleColorBlindScheme() {
+    const colorBlind = this.colorSchemePreference.toggle();
+    useColorBlindScheme(colorBlind);
+    this.dock.redrawIcons();
+    this.panel.onColorSchemeChange?.(colorBlind);
   }
 
   #onFrameRendered() {
@@ -387,6 +403,9 @@ export class PanelShell {
       setInstrumentation: (instrumentation) =>
         this.#setInstrumentation(instrumentation),
       toggleInstrumentationEditor: this.#instrumentationEditorToggle(),
+      toggleColorBlindScheme: () => this.#toggleColorBlindScheme(),
+      colorBlindSchemeInUse:
+        this.colorSchemePreference.prefersColorBlindScheme(),
     });
     const globalSections = [
       ...sectionWhen(this.viewSwitcher !== null, {

@@ -3,11 +3,64 @@ import { test } from 'node:test';
 import {
   CATEGORY_BUS,
   CATEGORY_INTERCITY,
+  CATEGORY_REGIO,
   categoryColor,
   categoryLabel,
   categoryTextColor,
   layerOfCategory,
+  useColorBlindScheme,
 } from './transportCategories.js';
+
+const EVERY_CATEGORY = [0, 1, 2, 3, 4, 5, 6];
+
+const whileColorBlind = (check) => {
+  useColorBlindScheme(true);
+  try {
+    check();
+  } finally {
+    useColorBlindScheme(false);
+  }
+};
+
+test('the colour-blind scheme gives every layer a colour of its own', () => {
+  whileColorBlind(() => {
+    const colorByLayer = new Map(
+      EVERY_CATEGORY.map((category) => [
+        layerOfCategory(category),
+        String(categoryColor(category)),
+      ]),
+    );
+    assert.equal(new Set(colorByLayer.values()).size, colorByLayer.size);
+  });
+});
+
+test('the colour-blind scheme colours the categories of one layer alike', () => {
+  whileColorBlind(() => {
+    assert.deepEqual(categoryColor(3), categoryColor(CATEGORY_REGIO));
+    assert.deepEqual(categoryColor(4), categoryColor(CATEGORY_REGIO));
+  });
+});
+
+test('the colour-blind scheme recolours the long-distance red, not the unknown grey', () => {
+  whileColorBlind(() => {
+    assert.notDeepEqual(categoryColor(CATEGORY_INTERCITY), [207, 10, 44]);
+    assert.deepEqual(categoryColor(42), [200, 200, 200]);
+  });
+});
+
+test('the colour-blind scheme names a text colour for every category', () => {
+  whileColorBlind(() => {
+    EVERY_CATEGORY.forEach((category) => {
+      assert.equal(categoryTextColor(category).length, 3);
+    });
+  });
+});
+
+test('switching back restores the standard scheme', () => {
+  whileColorBlind(() => {});
+  assert.deepEqual(categoryColor(CATEGORY_BUS), [242, 183, 5]);
+  assert.deepEqual(categoryTextColor(CATEGORY_INTERCITY), [255, 255, 255]);
+});
 
 test('a category is named, an unknown one generically', () => {
   assert.equal(categoryLabel(CATEGORY_INTERCITY), 'Fernverkehr');

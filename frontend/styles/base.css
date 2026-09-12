@@ -51,6 +51,8 @@
     var(--space-s) +
     var(--space-m)
   );
+  --font-size-caption: 12px;
+  --attribution-width: 160px;
   --transition-panel: 0.25s ease;
   --font-ui: "Arimo", "Helvetica Neue", system-ui, sans-serif;
 }
