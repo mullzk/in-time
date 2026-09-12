@@ -111,11 +111,15 @@ const withinWorldBounds = (bounds, { east, north }) =>
 
 const STATION_NODE_FILL = [255, 255, 255];
 const STATION_NODE_FILL_ON_BLACK = [64, 64, 64];
-const STATION_STROKE_BY_MODE = new Map([
-  ['rail', [0, 0, 0]],
-  ['tram', categoryColor(CATEGORY_TRAM)],
-  ['bus', categoryColor(CATEGORY_BUS)],
+const RAIL_STATION_STROKE = [0, 0, 0];
+const STATION_STROKE_CATEGORY_BY_MODE = new Map([
+  ['tram', CATEGORY_TRAM],
+  ['bus', CATEGORY_BUS],
 ]);
+const stationStrokeColor = (mode) => {
+  const category = STATION_STROKE_CATEGORY_BY_MODE.get(mode);
+  return category === undefined ? RAIL_STATION_STROKE : categoryColor(category);
+};
 const STATION_STROKE_WIDTH_PIXELS = 1;
 
 // The ring around the chosen station. It is laid on a darker one of its own, so
@@ -174,6 +178,7 @@ export class TaktPanel extends Panel {
     mapBackground: true,
     clock: true,
     sonification: true,
+    categoryColors: true,
   };
 
   constructor(railBuffer, railStations) {
@@ -200,6 +205,7 @@ export class TaktPanel extends Panel {
     );
     this.previousZoomFraction = null;
     this.layerOptions = {};
+    this.swatches = [];
     this.camera = null;
     this.chosenStation = null;
     this.adoptSchedule(railBuffer, railStations);
@@ -359,12 +365,20 @@ export class TaktPanel extends Panel {
     });
   }
 
-  controlSections({ setInstrumentation, toggleInstrumentationEditor } = {}) {
+  controlSections({
+    setInstrumentation,
+    toggleInstrumentationEditor,
+    toggleColorBlindScheme,
+    colorBlindSchemeInUse = false,
+  } = {}) {
     const sections = [
       {
         id: 'layers',
         title: 'Kategorien',
-        element: this.#layerControl(),
+        element: this.#layerControl(
+          toggleColorBlindScheme,
+          colorBlindSchemeInUse,
+        ),
         keepInExhibition: true,
       },
     ];
@@ -395,6 +409,13 @@ export class TaktPanel extends Panel {
 
   welcomeContent() {
     return buildWelcomeContent();
+  }
+
+  onColorSchemeChange(colorBlind) {
+    this.colorBlindOption.checked = colorBlind;
+    this.swatches.forEach(({ swatch, category }) => {
+      this.#paintSwatch(swatch, category);
+    });
   }
 
   // The pixel maps draw the rail network themselves, so the overlay would
@@ -578,7 +599,7 @@ export class TaktPanel extends Panel {
     this.catalog.entries.forEach((station) => {
       if (this.#stationShown(station) && withinWorldBounds(bounds, station)) {
         if (outlined) {
-          const [r, g, b] = STATION_STROKE_BY_MODE.get(
+          const [r, g, b] = stationStrokeColor(
             dominantStationMode(station.modes),
           );
           p.stroke(r, g, b);
@@ -680,13 +701,30 @@ export class TaktPanel extends Panel {
     this.layers.network = !this.layers.network;
   }
 
-  #layerControl() {
+  #layerControl(toggleColorBlindScheme, colorBlindSchemeInUse) {
     const control = element('div', 'layer-choices');
     control.append(
       this.#layerGroup(TRAFFIC_LAYERS),
       this.#layerGroup(GROUND_LAYERS),
+      this.#colorSchemeGroup(toggleColorBlindScheme, colorBlindSchemeInUse),
     );
     return control;
+  }
+
+  #colorSchemeGroup(toggleColorBlindScheme, colorBlindSchemeInUse) {
+    const input = element('input');
+    input.type = 'checkbox';
+    input.checked = colorBlindSchemeInUse;
+    input.addEventListener('change', () => toggleColorBlindScheme());
+    this.colorBlindOption = input;
+
+    const text = element('span');
+    text.textContent = 'Dichromasie';
+    const option = element('label', 'control-option');
+    option.append(input, text);
+    const group = element('div', 'control-options');
+    group.appendChild(option);
+    return group;
   }
 
   #layerGroup(layers) {
@@ -721,9 +759,14 @@ export class TaktPanel extends Panel {
     if (category === undefined) {
       return [];
     }
-    const [red, green, blue] = categoryColor(category);
     const swatch = element('span', 'control-swatch');
-    swatch.style.setProperty('--swatch-color', `rgb(${red} ${green} ${blue})`);
+    this.swatches.push({ swatch, category });
+    this.#paintSwatch(swatch, category);
     return [swatch];
+  }
+
+  #paintSwatch(swatch, category) {
+    const [red, green, blue] = categoryColor(category);
+    swatch.style.setProperty('--swatch-color', `rgb(${red} ${green} ${blue})`);
   }
 }

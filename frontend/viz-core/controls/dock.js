@@ -75,6 +75,12 @@ export class Dock {
     });
   }
 
+  redrawIcons() {
+    this.tiles.forEach((tile) => {
+      tile.button.replaceChildren(iconNamed(tile.wearing));
+    });
+  }
+
   #tile({ id, label, sections, group, wideCard = false }) {
     const root = element('div', 'dock-tile');
     root.dataset.tile = id;
