@@ -108,7 +108,7 @@ export class PanelShell {
           onNothingTapped: () => this.#turnDownTheAsk(),
         })
       : null;
-    this.headline = this.panel.headline ? new Headline(this.root) : null;
+    this.headline = this.panel.headline ? new Headline(this.topBar) : null;
     this.clock = this.panel.capabilities.clock ? new Clock(this.topBar) : null;
 
     new KeyboardControls(window, {

@@ -1,17 +1,39 @@
-/* SMACSS Module: the headline over a panel — the question the view answers. It
-   hangs under the top control row. */
+/* SMACSS Module: the question a view answers — a caption in the bottom left
+   corner, or a box under the station search on a narrow screen. */
 .panel-headline {
-  position: absolute;
-  margin: 0;
-  color: var(--color-control-text);
-  font-size: clamp(10px, 6px + 0.6vw, 16px);
-  font-weight: 500;
+  /* Fixed, since the top bar it lives in would otherwise be what it stands
+     off. */
+  position: fixed;
   z-index: 10;
-  top: calc(var(--space-m) * 2 + var(--topbar-height));
-  left: var(--space-m);
-  max-width: min(46rem, calc(100vw - 2 * var(--space-l)));
-  padding: var(--space-s) var(--space-m);
-  background: var(--color-surface);
+  left: 0;
+  bottom: 0;
+  max-width: calc(100vw - 1.5 * var(--attribution-width));
+  margin: 0;
+  padding: 2px 8px calc(2px + env(safe-area-inset-bottom))
+    calc(8px + env(safe-area-inset-left));
+  border-radius: 0 6px 0 0;
+  background: var(--color-surface-translucent);
   backdrop-filter: blur(6px);
+  color: var(--color-text);
+  font-size: var(--font-size-caption);
   pointer-events: none;
+}
+
+@media (max-width: 640px) {
+  .panel-headline {
+    position: static;
+    grid-column: 2;
+    grid-row: 2;
+    /* Fills the search's column without widening it. */
+    width: 0;
+    min-width: 100%;
+    max-width: none;
+    padding: var(--space-s) 14px;
+    border-radius: 0;
+    background: var(--color-surface);
+  }
+
+  .l-topbar:has(.station-search.is-inviting) .panel-headline {
+    visibility: hidden;
+  }
 }

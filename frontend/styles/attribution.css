@@ -6,6 +6,7 @@
   z-index: 10;
   right: 0;
   bottom: 0;
+  min-width: var(--attribution-width);
   /* Keeps the writing clear of a rounded screen's edge and the home
      indicator. */
   padding: 2px calc(8px + env(safe-area-inset-right))
@@ -14,7 +15,8 @@
   background: var(--color-surface-translucent);
   backdrop-filter: blur(6px);
   color: var(--color-text);
-  font-size: 11px;
+  font-size: var(--font-size-caption);
+  text-align: right;
   display: none;
 }
 
