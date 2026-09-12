@@ -88,6 +88,7 @@ export class KaskadePanel extends Panel {
     mapBackground: true,
     needsAStation: true,
     clock: true,
+    categoryColors: true,
   };
 
   constructor(

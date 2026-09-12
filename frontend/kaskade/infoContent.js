@@ -35,12 +35,13 @@ export function buildInfoContent() {
       ],
     ],
     shortcuts: [
-      { keys: 'Leertaste', description: 'Wiedergabe anhalten und fortsetzen' },
+      { keys: 'Leertaste', description: 'Wiedergabe pause/weiter' },
       { keys: '+', description: 'Hineinzoomen' },
       { keys: '−', description: 'Herauszoomen' },
       { keys: 'F', description: 'Ganze Schweiz einpassen' },
       { keys: 'G', description: 'Stationssuche öffnen' },
-      { keys: 'I', description: 'Diese Information öffnen und schließen' },
+      { keys: 'C', description: 'Modus Farbenblinde' },
+      { keys: 'I', description: 'Diese Information öffnen' },
     ],
   };
 }

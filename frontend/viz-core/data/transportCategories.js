@@ -1,6 +1,6 @@
 // What the blobs mean by a category: rail spans 0-4 (Fernverkehr, InterRegio,
 // Regio, S-Bahn, other rail), then tram and bus. Every panel names and colours
-// them from here.
+// them from here, in whichever of the two colour schemes the visitor chose.
 
 export const CATEGORY_INTERCITY = 0;
 export const CATEGORY_INTERREGIO = 1;
@@ -11,37 +11,72 @@ export const CATEGORY_BUS = 6;
 const TEXT_ON_DARK_GROUND = [255, 255, 255];
 const TEXT_ON_LIGHT_GROUND = [16, 18, 26];
 
-const CATEGORY_COLORS = [
-  [207, 10, 44],
-  [226, 87, 30],
-  [47, 150, 224],
-  [82, 199, 226],
-  [122, 135, 148],
-  [138, 112, 206],
-  [242, 183, 5],
-];
+// Text colours are written out per category rather than computed from a
+// lightness threshold: half of the standard palette sits in a narrow band around
+// the middle, so any threshold cuts through it and several categories would
+// flip on the smallest palette correction.
+const STANDARD_SCHEME = {
+  colors: [
+    [207, 10, 44],
+    [226, 87, 30],
+    [47, 150, 224],
+    [82, 199, 226],
+    [122, 135, 148],
+    [138, 112, 206],
+    [242, 183, 5],
+  ],
+  textColors: [
+    TEXT_ON_DARK_GROUND,
+    TEXT_ON_LIGHT_GROUND,
+    TEXT_ON_LIGHT_GROUND,
+    TEXT_ON_LIGHT_GROUND,
+    TEXT_ON_LIGHT_GROUND,
+    TEXT_ON_DARK_GROUND,
+    TEXT_ON_LIGHT_GROUND,
+  ],
+};
 
-// Text colour for each category used as a ground. Written out per category
-// rather than computed from a lightness threshold: half of the palette sits in
-// a narrow band around the middle, so any threshold cuts through it and several
-// categories would flip on the smallest palette correction.
-const CATEGORY_TEXT_COLORS = [
-  TEXT_ON_DARK_GROUND,
-  TEXT_ON_LIGHT_GROUND,
-  TEXT_ON_LIGHT_GROUND,
-  TEXT_ON_LIGHT_GROUND,
-  TEXT_ON_LIGHT_GROUND,
-  TEXT_ON_DARK_GROUND,
-  TEXT_ON_LIGHT_GROUND,
-];
+// The standard hues, set on a ladder of lightness from the long-distance red up
+// to the bus yellow: a small dot keeps its lightness long after colour blindness
+// has taken its hue. The regional categories share one colour, as they share
+// one layer, which leaves five steps to set apart instead of seven.
+const REGIONAL_COLOR_BLIND = [37, 223, 223];
+const COLOR_BLIND_SCHEME = {
+  colors: [
+    [204, 42, 27],
+    [254, 126, 60],
+    REGIONAL_COLOR_BLIND,
+    REGIONAL_COLOR_BLIND,
+    REGIONAL_COLOR_BLIND,
+    [161, 103, 241],
+    [245, 231, 23],
+  ],
+  textColors: [
+    TEXT_ON_DARK_GROUND,
+    TEXT_ON_LIGHT_GROUND,
+    TEXT_ON_LIGHT_GROUND,
+    TEXT_ON_LIGHT_GROUND,
+    TEXT_ON_LIGHT_GROUND,
+    TEXT_ON_LIGHT_GROUND,
+    TEXT_ON_LIGHT_GROUND,
+  ],
+};
 
 const FALLBACK_COLOR = [200, 200, 200];
 
+// Held here rather than handed to every caller, since the drawing reads its
+// colours anew each frame and so follows a switch without being told.
+let activeScheme = STANDARD_SCHEME;
+
+export const useColorBlindScheme = (colorBlind) => {
+  activeScheme = colorBlind ? COLOR_BLIND_SCHEME : STANDARD_SCHEME;
+};
+
 export const categoryColor = (category) =>
-  CATEGORY_COLORS[category] ?? FALLBACK_COLOR;
+  activeScheme.colors[category] ?? FALLBACK_COLOR;
 
 export const categoryTextColor = (category) =>
-  CATEGORY_TEXT_COLORS[category] ?? TEXT_ON_LIGHT_GROUND;
+  activeScheme.textColors[category] ?? TEXT_ON_LIGHT_GROUND;
 
 const CATEGORY_LABELS = [
   'Fernverkehr',

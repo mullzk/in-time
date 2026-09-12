@@ -41,7 +41,7 @@ export function buildInfoContent() {
       { keys: '−', description: 'Herauszoomen' },
       { keys: 'F', description: 'Ganzes Bild einpassen' },
       { keys: 'G', description: 'Stationssuche öffnen' },
-      { keys: 'I', description: 'Diese Information öffnen und schließen' },
+      { keys: 'I', description: 'Diese Information öffnen' },
     ],
   };
 }

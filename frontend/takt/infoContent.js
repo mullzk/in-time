@@ -6,14 +6,15 @@ export function buildInfoContent() {
   // The card sets the list in two columns, filled row by row, so every second
   // entry lands in the second column.
   const shortcuts = [
-    { keys: 'Leertaste', description: 'Wiedergabe starten und pausieren' },
-    { keys: 'H', description: 'Haltestellen ein- und ausblenden' },
+    { keys: 'Leertaste', description: 'Wiedergabe pause/weiter' },
+    { keys: 'H', description: 'Haltestellen ein/aus' },
     { keys: '+', description: 'Hineinzoomen' },
-    { keys: 'N', description: 'Streckennetz ein- und ausblenden' },
+    { keys: 'N', description: 'Streckennetz ein/aus' },
     { keys: '−', description: 'Herauszoomen' },
     { keys: 'G', description: 'Stationssuche öffnen' },
     { keys: 'F', description: 'Ganze Schweiz einpassen' },
-    { keys: 'I', description: 'Diese Information öffnen und schließen' },
+    { keys: 'I', description: 'Diese Information öffnen' },
+    { keys: 'C', description: 'Modus Farbenblinde' },
   ];
 
   return {
