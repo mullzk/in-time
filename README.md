@@ -16,6 +16,11 @@ Each takes an optional station in the path (`/takt/zürich-hb`).
 instrumentation editor, and a view awaiting a station picks one itself instead
 of asking.
 
+A fourth view, **`/puls`**, shows the base hubs swelling with the trains
+standing in them. It is reached only by its address; nothing in the app links to
+it. It was strictly vibe-coded, so it takes code from the other modules but
+offers none of its own to them.
+
 ## Data
 
 GTFS planned timetable (opentransportdata.swiss) and swisstopo maps,
