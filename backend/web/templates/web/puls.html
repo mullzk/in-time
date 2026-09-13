@@ -1,0 +1,24 @@
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block title %}Puls — All in Time{% endblock %}
+
+{% block styles %}
+  <link rel="stylesheet" href="{% static 'styles/puls/tokens.css' %}" />
+  <link rel="stylesheet" href="{% static 'styles/dock.css' %}" />
+  <link rel="stylesheet" href="{% static 'styles/transportControls.css' %}" />
+  <link rel="stylesheet" href="{% static 'styles/popover.css' %}" />
+  <link rel="stylesheet" href="{% static 'styles/attribution.css' %}" />
+  <link rel="stylesheet" href="{% static 'styles/infoCard.css' %}" />
+  <link rel="stylesheet" href="{% static 'styles/choiceList.css' %}" />
+  <link rel="stylesheet" href="{% static 'styles/puls/stationClock.css' %}" />
+  <link rel="stylesheet" href="{% static 'styles/puls/hubLegend.css' %}" />
+{% endblock %}
+
+{% block content %}
+  <main id="viz-root" class="l-viz-root" data-config-url="/api/config"></main>
+{% endblock %}
+
+{% block scripts %}
+  <script type="module" src="{% static 'puls/main.js' %}"></script>
+{% endblock %}

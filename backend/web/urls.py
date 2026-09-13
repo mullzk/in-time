@@ -37,6 +37,8 @@ urlpatterns = [
     path("zeitkarte", views.zeitkarte),
     path("zeitkarte/", views.zeitkarte),
     path("zeitkarte/<str:station>", views.zeitkarte),
+    path("puls", views.puls),
+    path("puls/", views.puls),
     *_redirects_from_the_former_name("taktfahrplan", "takt"),
     *_redirects_from_the_former_name("ausbreitung", "kaskade"),
     *_redirects_from_the_former_name("reisefaecher", "kaskade"),

@@ -1,0 +1,45 @@
+/* SMACSS Module: the key to the hub layers in the bottom left corner of the Puls
+   view. */
+.hub-legend {
+  position: absolute;
+  z-index: 11;
+  left: calc(var(--space-m) + env(safe-area-inset-left));
+  bottom: calc(var(--space-m) + env(safe-area-inset-bottom));
+  padding: var(--space-s) var(--space-m);
+  background: var(--color-legend-surface);
+  color: var(--color-legend-text);
+  font-size: var(--font-size-caption);
+  pointer-events: none;
+}
+
+.hub-legend-heading {
+  margin: 0 0 var(--space-s);
+  font-weight: 600;
+}
+
+.hub-legend-segments {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s);
+}
+
+.hub-legend-segment {
+  display: flex;
+  align-items: center;
+  gap: var(--space-s);
+}
+
+.hub-legend-swatch {
+  width: 14px;
+  height: 14px;
+}
+
+/* The dock lies along the foot of a narrow screen, so the key stands above it. */
+@media (max-width: 640px) {
+  .hub-legend {
+    bottom: calc(var(--dock-outset) + env(safe-area-inset-bottom));
+  }
+}

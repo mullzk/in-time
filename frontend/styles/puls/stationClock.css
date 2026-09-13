@@ -1,0 +1,20 @@
+/* SMACSS Module: the station clock in the top right corner of the Puls view. */
+.station-clock {
+  position: absolute;
+  z-index: 12;
+  top: calc(var(--space-m) + env(safe-area-inset-top));
+  right: calc(var(--space-m) + env(safe-area-inset-right));
+  width: var(--station-clock-size);
+  height: var(--station-clock-size);
+  pointer-events: none;
+}
+
+.station-clock-face {
+  fill: var(--color-station-clock-face);
+  stroke: var(--color-station-clock-rim);
+  stroke-width: 1;
+}
+
+.station-clock-ink {
+  fill: var(--color-station-clock-ink);
+}

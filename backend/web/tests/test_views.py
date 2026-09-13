@@ -171,6 +171,15 @@ def test_kaskade_serves_its_own_shell(client: Client, published: Path) -> None:
     assert "kaskade/main" in markup
 
 
+def test_puls_serves_its_own_shell(client: Client, published: Path) -> None:
+    response = client.get("/puls")
+
+    assert response.status_code == 200
+    markup = response.content.decode("utf-8")
+    assert "/api/config" in markup
+    assert "puls/main" in markup
+
+
 @pytest.mark.parametrize(
     ("address", "script"),
     [
