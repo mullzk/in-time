@@ -31,7 +31,7 @@ export class HubLegend {
   constructor(container) {
     this.root = element('aside', 'hub-legend');
     const heading = element('p', 'hub-legend-heading');
-    heading.textContent = 'Stehende Züge im Knoten';
+    heading.textContent = 'Knotenpunkte: Züge zwischen Ankunft und Abfahrt';
     const list = element('ul', 'hub-legend-segments');
     list.append(
       ...TRAIN_CLASSES.map((trainClass, layerIndex) =>
