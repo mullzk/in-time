@@ -20,14 +20,14 @@ export const REGIONAL = 'regional';
 export const TRAIN_CLASSES = [
   {
     id: LONG_DISTANCE,
-    label: 'IC / EC',
+    label: 'InterCity',
     categories: [CATEGORY_INTERCITY],
     discColor: [0, 0, 0],
     discDiameterPixels: LARGE_DISC_PIXELS,
   },
   {
     id: INTERREGIO,
-    label: 'IR',
+    label: 'InterRegio',
     categories: [CATEGORY_INTERREGIO],
     discColor: REGIONAL_GREY,
     discDiameterPixels: LARGE_DISC_PIXELS,
