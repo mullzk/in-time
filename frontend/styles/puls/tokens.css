@@ -1,0 +1,16 @@
+/* SMACSS Base: the design tokens only the Puls view uses, linked by its page
+   alone so the other views never carry them. */
+:root {
+  --color-station-clock-face: #ffffff;
+  --color-station-clock-rim: #b4b4b4;
+  --color-station-clock-ink: #000000;
+  --station-clock-size: 96px;
+  --color-legend-surface: rgba(255, 255, 255, 0.85);
+  --color-legend-text: #10121a;
+}
+
+@media (max-width: 640px) {
+  :root {
+    --station-clock-size: 64px;
+  }
+}

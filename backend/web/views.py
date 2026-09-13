@@ -112,3 +112,9 @@ def kaskade(request: HttpRequest, station: str = "") -> HttpResponse:
 
 def zeitkarte(request: HttpRequest, station: str = "") -> HttpResponse:
     return render(request, "web/zeitkarte.html")
+
+
+# Not among the views the switcher offers: reached only by its address, and
+# without a station in it.
+def puls(request: HttpRequest) -> HttpResponse:
+    return render(request, "web/puls.html")
