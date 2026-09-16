@@ -35,10 +35,10 @@ async function bootstrap() {
     result.railBuffer,
     result.railStations,
     new StationClock(root),
+    new HubLegend(root),
   );
   const shell = new PanelShell(root, panel, time);
   shell.start();
-  new HubLegend(root);
   shell.startPlayback();
 }
 

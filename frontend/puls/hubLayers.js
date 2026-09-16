@@ -5,7 +5,8 @@
  */
 import { INTERREGIO, LONG_DISTANCE, REGIONAL } from './trainClasses.js';
 
-export const HUB_COLOR = [255, 0, 0];
+export const HUB_STEADY_COLOR = [255, 0, 0];
+export const HUB_NEUTRAL_COLOR = [70, 70, 70];
 
 export const HUB_LAYER_OPACITY = {
   [LONG_DISTANCE]: 1,

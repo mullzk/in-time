@@ -9,10 +9,12 @@ export function buildInfoContent() {
           'Bahnhof steht, der mittlere Ring mit jedem IR, der ' +
           'äussere Ring mit allen übrigen Zügen.',
       ],
+      ['Mit C färben sich Ankunfts- und Abfahrtsphase verschieden ein.'],
     ],
     shortcuts: [
       { keys: 'Leertaste', description: 'Wiedergabe pause/weiter' },
       { keys: 'F', description: 'Ganze Schweiz einpassen' },
+      { keys: 'C', description: 'Ankunfts- und Abfahrtsphase einfärben' },
       { keys: 'I', description: 'Diese Information öffnen' },
     ],
   };
