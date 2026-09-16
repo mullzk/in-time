@@ -37,6 +37,11 @@
   height: 14px;
 }
 
+.hub-legend-hint {
+  margin: var(--space-s) 0 0;
+  opacity: 0.7;
+}
+
 /* The dock lies along the foot of a narrow screen, so the key stands above it. */
 @media (max-width: 640px) {
   .hub-legend {

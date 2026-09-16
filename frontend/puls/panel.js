@@ -10,10 +10,15 @@ import {
   stationPickRadiusPixels,
 } from '../viz-core/render/stationNodes.js';
 import { VehiclePositionEngine } from '../viz-core/travel/vehiclePositionEngine.js';
-import { HUB_COLOR, HUB_LAYER_OPACITY } from './hubLayers.js';
+import {
+  HUB_LAYER_OPACITY,
+  HUB_NEUTRAL_COLOR,
+  HUB_STEADY_COLOR,
+} from './hubLayers.js';
 import { hubsOf } from './hubs.js';
 import { buildInfoContent } from './infoContent.js';
 import { edgesTravelledBy } from './network.js';
+import { taktPhaseColor } from './taktPhase.js';
 import {
   drawRank,
   TRAIN_CLASSES,
@@ -36,15 +41,18 @@ export class PulsPanel extends Panel {
     stationPicking: true,
   };
 
-  constructor(railBuffer, railStations, stationClock) {
+  constructor(railBuffer, railStations, stationClock, hubLegend) {
     super();
     this.stationClock = stationClock;
+    this.hubLegend = hubLegend;
     this.engine = new VehiclePositionEngine(railBuffer);
     this.railStations = railStations;
     this.networkEdges = edgesTravelledBy(this.engine.trips, this.engine.edges);
     this.hubs = hubsOf(railStations, this.engine.stations, this.engine.trips);
     this.trains = [];
     this.camera = null;
+    this.currentTimeSeconds = 0;
+    this.phaseColorsInUse = false;
   }
 
   init(context) {
@@ -53,6 +61,27 @@ export class PulsPanel extends Panel {
 
   groundColor() {
     return GROUND_COLOR;
+  }
+
+  keyBindings() {
+    return { c: () => this.#togglePhaseColors() };
+  }
+
+  #togglePhaseColors() {
+    this.phaseColorsInUse = !this.phaseColorsInUse;
+    this.hubLegend.showPhaseColors(this.phaseColorsInUse);
+  }
+
+  #trainColor(discColor) {
+    return this.phaseColorsInUse
+      ? taktPhaseColor(discColor, this.currentTimeSeconds)
+      : discColor;
+  }
+
+  #hubColor() {
+    return this.phaseColorsInUse
+      ? taktPhaseColor(HUB_NEUTRAL_COLOR, this.currentTimeSeconds)
+      : HUB_STEADY_COLOR;
   }
 
   controlSections() {
@@ -64,6 +93,7 @@ export class PulsPanel extends Panel {
   }
 
   update(currentTimeSeconds, deltaSeconds) {
+    this.currentTimeSeconds = currentTimeSeconds;
     this.stationClock.show(currentTimeSeconds);
     this.hubs.forEach((hub) => {
       hub.easeTowardsTheTrainsStandingAt(currentTimeSeconds, deltaSeconds);
@@ -106,12 +136,13 @@ export class PulsPanel extends Panel {
     p.noStroke();
     this.trains.forEach(({ trainClass, east, north }) => {
       const { discColor, discDiameterPixels } = trainClassById(trainClass);
-      p.fill(...discColor);
+      p.fill(...this.#trainColor(discColor));
       p.circle(east, north, discDiameterPixels * worldPerPixel);
     });
   }
 
   #drawHubs(p, worldPerPixel) {
+    const hubColor = this.#hubColor();
     this.hubs.forEach((hub) => {
       const radii = hub.layerRadii();
       TRAIN_CLASSES.forEach(({ id }) => {
@@ -119,6 +150,7 @@ export class PulsPanel extends Panel {
           p,
           hub,
           radii[id],
+          hubColor,
           HUB_LAYER_OPACITY[id] * OPAQUE,
           worldPerPixel,
         );
@@ -128,18 +160,18 @@ export class PulsPanel extends Panel {
 
   // A ring is stroked along its middle rather than laid as a disc beneath the
   // inner layers, so translucent layers never stack and each keeps its opacity.
-  #drawHubLayer(p, hub, { inner, outer }, alpha, worldPerPixel) {
+  #drawHubLayer(p, hub, { inner, outer }, color, alpha, worldPerPixel) {
     if (outer <= inner) {
       return;
     }
     if (inner === 0) {
       p.noStroke();
-      p.fill(...HUB_COLOR, alpha);
+      p.fill(...color, alpha);
       p.circle(hub.east, hub.north, 2 * outer * worldPerPixel);
       return;
     }
     p.noFill();
-    p.stroke(...HUB_COLOR, alpha);
+    p.stroke(...color, alpha);
     p.strokeWeight((outer - inner) * worldPerPixel);
     p.circle(hub.east, hub.north, (inner + outer) * worldPerPixel);
   }
