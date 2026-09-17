@@ -227,3 +227,67 @@ def test_a_redirect_keeps_the_exhibition_mode(client: Client) -> None:
     response = client.get("/taktfahrplan/bern?mode=exhibition")
 
     assert response["Location"] == "/takt/bern?mode=exhibition"
+
+
+@pytest.mark.parametrize(
+    ("address", "name", "canonical_path"),
+    [
+        ("/takt", "Takt", "/takt"),
+        ("/kaskade", "Kaskade", "/kaskade"),
+        ("/zeitkarte", "Zeitkarte", "/zeitkarte"),
+        ("/puls", "Puls", "/puls"),
+    ],
+)
+def test_a_page_names_and_describes_itself(
+    client: Client, published: Path, address: str, name: str, canonical_path: str
+) -> None:
+    markup = client.get(address).content.decode("utf-8")
+
+    assert f"<title>{name} — All in Time</title>" in markup
+    assert '<meta name="description" content="' in markup
+    assert f'<link rel="canonical" href="{canonical_path}" />' in markup
+    assert f'<meta property="og:title" content="{name} — All in Time" />' in markup
+
+
+# The station only tells the client which station to open on; the page behind
+# every station is the same one, so they all point at the view's own address.
+@pytest.mark.parametrize("address", ["/takt/bern", "/kaskade/z%C3%BCrich-hb", "/takt/"])
+def test_a_station_in_the_address_keeps_the_canonical_view(
+    client: Client, published: Path, address: str
+) -> None:
+    markup = client.get(address).content.decode("utf-8")
+
+    canonical = "/takt" if "takt" in address else "/kaskade"
+    assert f'<link rel="canonical" href="{canonical}" />' in markup
+
+
+def test_only_the_unlisted_view_is_kept_out_of_the_index(
+    client: Client, published: Path
+) -> None:
+    assert '<meta name="robots" content="noindex" />' in (
+        client.get("/puls").content.decode("utf-8")
+    )
+    assert "noindex" not in client.get("/takt").content.decode("utf-8")
+
+
+def test_robots_leaves_the_views_crawlable(client: Client) -> None:
+    response = client.get("/robots.txt")
+
+    assert response.status_code == 200
+    assert response["Content-Type"].startswith("text/plain")
+    body = response.content.decode("utf-8")
+    assert "Disallow: /api/" in body
+    assert "Disallow: /artifacts/" in body
+    assert "Disallow: /takt" not in body
+
+
+def test_a_page_describes_itself_without_scripts(
+    client: Client, published: Path
+) -> None:
+    markup = client.get("/takt").content.decode("utf-8")
+
+    noscript = markup.split("<noscript>")[1].split("</noscript>")[0]
+    assert "<h1" in noscript
+    assert "Taktfahrplan" in noscript or "Fahrplan" in noscript
+    assert 'href="/kaskade"' in noscript
+    assert "opentransportdata.swiss" in noscript

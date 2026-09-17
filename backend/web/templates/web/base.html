@@ -6,13 +6,54 @@
       name="viewport"
       content="width=device-width, initial-scale=1, viewport-fit=cover"
     />
-    <title>{% block title %}All in Time{% endblock %}</title>
+    <title>{{ page.title }}</title>
+    <meta name="description" content="{{ page.description }}" />
+    {% if not page.indexable %}<meta name="robots" content="noindex" />{% endif %}
+    <link rel="canonical" href="{{ page.canonical_path }}" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="All in Time" />
+    <meta property="og:locale" content="de_CH" />
+    <meta property="og:title" content="{{ page.title }}" />
+    <meta property="og:description" content="{{ page.description }}" />
+    <link rel="icon" href="{% static 'icons/favicon.svg' %}" type="image/svg+xml" />
+    <link rel="icon" href="{% static 'icons/favicon-32.png' %}" sizes="32x32" />
+    <link rel="apple-touch-icon" href="{% static 'icons/apple-touch-icon.png' %}" />
     <link rel="stylesheet" href="{% static 'styles/base.css' %}" />
     <link rel="stylesheet" href="{% static 'styles/layout.css' %}" />
     {% block styles %}{% endblock %}
   </head>
   <body>
     {% block content %}{% endblock %}
+    <noscript>
+      <h1>All in Time — {{ page.name }}</h1>
+      {% block summary %}{% endblock %}
+      <p>
+        All in Time zeichnet die Darstellung im Browser und braucht dafür
+        JavaScript. Mit aktiviertem JavaScript erscheint hier die Karte.
+      </p>
+      <nav>
+        <a href="/takt">Takt</a>
+        <a href="/kaskade">Kaskade</a>
+        <a href="/zeitkarte">Zeitkarte</a>
+      </nav>
+      <p>
+        Datengrundlage: der Fahrplan des heutigen Tages von
+        <a href="https://opentransportdata.swiss">opentransportdata.swiss</a>,
+        das Streckennetz des
+        <a href="https://www.bav.admin.ch/de/eisenbahn"
+          >Bundesamts für Verkehr</a
+        >
+        und die Karten von
+        <a href="https://www.swisstopo.admin.ch/de">swisstopo</a>. Entstanden
+        im
+        <a
+          href="https://www.hkb.bfh.ch/de/weiterbildung/cas/generative-data-design/"
+          >CAS Generative Data Design</a
+        >
+        der <a href="https://www.hkb.bfh.ch/de/">HKB</a>. Quellcode:
+        <a href="https://github.com/mullzk/in-time/">github.com/mullzk/in-time</a>.
+      </p>
+    </noscript>
     {% block scripts %}{% endblock %}
   </body>
 </html>
