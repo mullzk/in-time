@@ -1,0 +1,8 @@
+User-agent: *
+Disallow: /api/
+Disallow: /artifacts/
+Disallow: /tiles/
+
+# /puls is kept out of the index by a noindex meta tag on the page itself, not
+# by a rule here: a disallowed address is never fetched, so the tag that asks
+# for removal would never be read.

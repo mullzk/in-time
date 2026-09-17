@@ -120,6 +120,15 @@ ohne jede Serverlast._
 - **Runtime:** gunicorn/WSGI (`--preload`), mise (Python) + uv (Pakete), Nginx
   für Static + Artefakte + Tile-`proxy_cache` (kein WhiteNoise).
 - **API:** schlichte Django-Views (kein DRF), JSON.
+- **Seiten-Metadaten:** `web/pagemetadata.py` hält pro Ansicht Name,
+  Beschreibung, kanonische Adresse und ob sie indexiert werden darf; das
+  Base-Template macht daraus Title, `description`, `canonical`, Open Graph und —
+  für `/puls` — `noindex`. Die Station im Pfad ändert nichts daran: alle
+  Stationen einer Ansicht zeigen dieselbe Seite und kanonisieren auf deren
+  Adresse. Da das Bild erst im Browser entsteht, beschreibt ein
+  `<noscript>`-Block die Seite in Worten — für Crawler, die kein JS ausführen,
+  ist er der einzige Inhalt. `robots.txt` kommt aus einem Template und sperrt
+  nur `/api/`, `/artifacts/` und `/tiles/`.
 - **Build-Orchestrierung:** `build_schedule` (laufender Tag) als
   Management-Command, von einem Scheduler angestossen; atomarer Symlink-Swap
   `…/artifacts/current` (Artefakt-Publish, **nicht** der Code-Deploy). Details →

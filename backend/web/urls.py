@@ -1,5 +1,5 @@
 from django.urls import URLPattern, path
-from django.views.generic.base import RedirectView
+from django.views.generic.base import RedirectView, TemplateView
 
 from web import views
 
@@ -25,6 +25,10 @@ def _redirects_from_the_former_name(
 
 urlpatterns = [
     path("", RedirectView.as_view(url="/takt", permanent=False)),
+    path(
+        "robots.txt",
+        TemplateView.as_view(template_name="web/robots.txt", content_type="text/plain"),
+    ),
     path("api/config", views.config),
     path("api/stations-rail", views.stations_rail),
     path("api/stations-road", views.stations_road),

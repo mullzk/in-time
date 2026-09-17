@@ -1,8 +1,6 @@
 {% extends "web/base.html" %}
 {% load static %}
 
-{% block title %}Zeitkarte — All in Time{% endblock %}
-
 {% block styles %}
   <link rel="stylesheet" href="{% static 'styles/dock.css' %}" />
   <link rel="stylesheet" href="{% static 'styles/stationSearch.css' %}" />
@@ -14,6 +12,14 @@
 
 {% block content %}
   <main id="viz-root" class="l-viz-root" data-config-url="/api/config"></main>
+{% endblock %}
+
+{% block summary %}
+  <p>
+    Die Zeitkarte ordnet die Haltestellen radial um eine gewählte Station an:
+    Der Abstand vom Zentrum ist nicht die geografische Distanz, sondern die
+    Reisezeit. Die Schweiz, verzogen nach dem Fahrplan.
+  </p>
 {% endblock %}
 
 {% block scripts %}
