@@ -1,8 +1,6 @@
 {% extends "web/base.html" %}
 {% load static %}
 
-{% block title %}Takt — All in Time{% endblock %}
-
 {% block styles %}
   <link rel="stylesheet" href="{% static 'styles/dock.css' %}" />
   <link rel="stylesheet" href="{% static 'styles/transportControls.css' %}" />
@@ -18,6 +16,16 @@
 
 {% block content %}
   <main id="viz-root" class="l-viz-root" data-config-url="/api/config"></main>
+{% endblock %}
+
+{% block summary %}
+  <p>
+    Die Karte zeigt den Fahrplan des heutigen Tages in Bewegung: Jeder Zug,
+    jedes Tram und jeder Bus fährt dort und dann, wo und wann er laut Fahrplan
+    tatsächlich verkehrt. Wer eine Haltestelle wählt, hört den Takt zusätzlich —
+    jede Ankunft und jede Abfahrt wird zu einem Ton, abgestuft nach
+    Verkehrsträger.
+  </p>
 {% endblock %}
 
 {% block scripts %}
