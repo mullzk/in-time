@@ -11,6 +11,8 @@ import { StationClock } from './stationClock.js';
 
 const DAY_CUT_SECONDS = 3 * 3600;
 const PLAYBACK_LEAD_SECONDS = 10 * 60;
+// Fast enough that the swell and ebb of a half hour reads as one gesture.
+const PULSE_TEMPO = 8 * 60;
 
 const root = document.getElementById('viz-root');
 
@@ -39,6 +41,7 @@ async function bootstrap() {
   );
   const shell = new PanelShell(root, panel, time);
   shell.start();
+  time.setTempo(PULSE_TEMPO);
   shell.startPlayback();
 }
 

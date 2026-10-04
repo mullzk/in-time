@@ -8,6 +8,10 @@ import {
   TimeModel,
 } from './timeModel.js';
 
+// The range tests run a two-hour window a few real seconds at a time, so they
+// need a tempo under which those seconds still land inside it.
+const TEMPO_WITHIN_TWO_HOURS = 900;
+
 test('a paused model does not advance', () => {
   const time = new TimeModel(1000, 2000);
   time.advance(5);
@@ -89,30 +93,34 @@ test('a new range starts the clock at its beginning', () => {
 test('a clock in a new range runs to its end and begins again', () => {
   const time = new TimeModel(0, SECONDS_PER_DAY);
   time.setRange(8 * 3600, 10 * 3600);
-  time.setTempo(MAX_TEMPO);
+  time.setTempo(TEMPO_WITHIN_TWO_HOURS);
   time.play();
 
   time.advance(4);
 
-  assert.equal(time.current, 8 * 3600 + 4 * MAX_TEMPO);
+  assert.equal(time.current, 8 * 3600 + 4 * TEMPO_WITHIN_TWO_HOURS);
 
   time.advance(5);
 
   assert.equal(
     time.current,
-    8 * 3600 + (9 * MAX_TEMPO - 2 * 3600),
+    8 * 3600 + (9 * TEMPO_WITHIN_TWO_HOURS - 2 * 3600),
     'past the end it starts over',
   );
 });
 
 test('a clock that does not repeat stops at the end of its range', () => {
   const time = new TimeModel(8 * 3600, 10 * 3600, { repeats: false });
-  time.setTempo(MAX_TEMPO);
+  time.setTempo(TEMPO_WITHIN_TWO_HOURS);
   time.play();
 
   time.advance(4);
 
-  assert.equal(time.current, 8 * 3600 + 4 * MAX_TEMPO, 'still under way');
+  assert.equal(
+    time.current,
+    8 * 3600 + 4 * TEMPO_WITHIN_TWO_HOURS,
+    'still under way',
+  );
 
   time.advance(60);
 
@@ -154,14 +162,18 @@ test('a spread that reaches nowhere stands at the start of its scrubber', () => 
 
 test('a clock paused halfway carries on where it stood', () => {
   const time = new TimeModel(8 * 3600, 10 * 3600, { repeats: false });
-  time.setTempo(MAX_TEMPO);
+  time.setTempo(TEMPO_WITHIN_TWO_HOURS);
   time.play();
   time.advance(4);
   time.pause();
 
   time.play();
 
-  assert.equal(time.current, 8 * 3600 + 4 * MAX_TEMPO, 'nothing was rewound');
+  assert.equal(
+    time.current,
+    8 * 3600 + 4 * TEMPO_WITHIN_TWO_HOURS,
+    'nothing was rewound',
+  );
 });
 
 test('a spread gaining vehicles keeps the clock where it stood', () => {

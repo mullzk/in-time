@@ -26,8 +26,8 @@ export class Hub {
     );
   }
 
-  layerRadii() {
-    return hubLayerRadii(this.counts);
+  layerRadii(growthFactor) {
+    return hubLayerRadii(this.counts, growthFactor);
   }
 }
 

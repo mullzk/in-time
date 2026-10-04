@@ -1,7 +1,11 @@
 /* SMACSS Module: the dock — the control surface at the left edge, at the foot of
    a narrow screen. One tile per group of controls; hovering a tile names it,
    clicking it opens the card beside it that holds the controls themselves. Only
-   one card stands open at a time, as a class on the tile. */
+   one card stands open at a time, as a class on the tile.
+
+   The dock draws no ground of its own: the tiles carry their dark faces, and a
+   strip behind them would stand on the picture even where a view draws on
+   white. */
 .dock {
   position: absolute;
   z-index: 13;
@@ -10,9 +14,6 @@
   transform: translateY(-50%);
   display: flex;
   flex-direction: column;
-  padding: var(--space-s);
-  background: var(--color-surface-translucent);
-  backdrop-filter: blur(8px);
 }
 
 .dock-tile {

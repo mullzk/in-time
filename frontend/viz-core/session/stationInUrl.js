@@ -1,4 +1,4 @@
-import { viewAt } from './views.js';
+import { VIEWS, viewAt } from './views.js';
 
 const SEPARATOR = '-';
 const OUTSIDE_A_SLUG = /[^\p{Letter}\p{Number}]+/gu;
@@ -29,9 +29,12 @@ export function stationMatchingSlug(entries, slug) {
   return entries.find((entry) => comparableSlug(entry.name) === wanted) ?? null;
 }
 
+const carriesStation = (view) => view?.carriesStation === true;
+
 // The station a view is showing, kept in the view's own address (/takt/bern).
 // Everything else the address carries -- the exhibition mode -- is left
-// untouched.
+// untouched. A view that carries no station, and any page outside the gallery,
+// is never written to.
 export class StationInUrl {
   constructor(location = window.location, history = window.history) {
     this.location = location;
@@ -43,7 +46,7 @@ export class StationInUrl {
   // Replaces the address rather than pushing a step, so going back leaves the
   // view instead of walking through every station that was looked at.
   show(station) {
-    if (this.view === null) {
+    if (!carriesStation(this.view)) {
       return;
     }
     this.slug = stationSlug(station.name);
@@ -52,21 +55,26 @@ export class StationInUrl {
 
   // Back to the view's own address, again without a step in the history.
   forget() {
-    if (this.view === null) {
+    if (!carriesStation(this.view)) {
       return;
     }
     this.slug = null;
     this.history.replaceState(null, '', this.linkTo(this.view.path));
   }
 
+  // The station travels to the next view only where that view has a place for
+  // it; linking it to one that has none would address a route nobody serves.
   linkTo(viewPath) {
+    const target = VIEWS.find((view) => view.path === viewPath) ?? null;
     const station =
-      this.slug === null ? '' : `/${encodeURIComponent(this.slug)}`;
+      this.slug === null || !carriesStation(target)
+        ? ''
+        : `/${encodeURIComponent(this.slug)}`;
     return `${viewPath}${station}${this.location.search}`;
   }
 
   #slugInPath() {
-    if (this.view === null) {
+    if (!carriesStation(this.view)) {
       return null;
     }
     const [, station] = this.location.pathname

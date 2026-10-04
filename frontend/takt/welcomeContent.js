@@ -18,7 +18,7 @@ export function buildWelcomeContent() {
       {
         tile: 'views',
         title: 'Ansichten',
-        text: 'Der Fahrplan dreimal anders dargestellt: Der Takt im Taktfahrplan, die Kaskade aller Anschlussverbindungen, und eine Kartographie der Reisezeit.',
+        text: 'Der Fahrplan viermal anders dargestellt: Der Takt im Taktfahrplan, sein Puls, die Kaskade aller Anschlussverbindungen, und eine Kartographie der Reisezeit.',
       },
       {
         tile: 'map',

@@ -53,5 +53,4 @@ PULS = PageMetadata(
         "die zur vollen und zur halben Stunde in ihnen stehen."
     ),
     canonical_path="/puls",
-    indexable=False,
 )

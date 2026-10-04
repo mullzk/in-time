@@ -48,7 +48,9 @@ const recordingSketch = () => {
   };
 };
 
-const WORLD_CONTEXT = { camera: { worldPerPixel: () => 1 } };
+const WORLD_CONTEXT = {
+  camera: { worldPerPixel: () => 1, viewportWidth: 1440, viewportHeight: 900 },
+};
 
 // Hub layers carry an alpha beside their colour, trains and the network do not.
 const hubColorsDrawnBy = ({ fills, strokes }) =>
@@ -187,6 +189,56 @@ test('the trains keep their class colour until the phases are switched on', () =
   phaseColors.forEach((color, index) => {
     assert.notDeepEqual(color, classColors()[index]);
   });
+});
+
+test('the phases are offered as a dock tile that presses rather than opens', () => {
+  const panel = new PulsPanel(
+    RAIL_BUFFER,
+    RAIL_STATIONS,
+    recordingClock(),
+    recordingLegend(),
+  );
+  const [phases, ...rest] = panel.controlSections();
+
+  assert.deepEqual(rest, []);
+  assert.equal(phases.id, 'phases');
+  assert.equal(typeof phases.onActivate, 'function');
+  assert.ok(phases.keepInExhibition);
+});
+
+test('the tile wears what pressing it will do next', () => {
+  const legend = recordingLegend();
+  const panel = new PulsPanel(
+    RAIL_BUFFER,
+    RAIL_STATIONS,
+    recordingClock(),
+    legend,
+  );
+  const [{ onActivate, face }] = panel.controlSections();
+
+  const steady = face();
+  onActivate();
+  const colored = face();
+
+  assert.notEqual(steady.icon, colored.icon);
+  assert.notEqual(steady.label, colored.label);
+  assert.equal(typeof colored.draw, 'function');
+  assert.deepEqual(legend.schemes, [true]);
+});
+
+test('the tile and the key work the same switch', () => {
+  const panel = new PulsPanel(
+    RAIL_BUFFER,
+    RAIL_STATIONS,
+    recordingClock(),
+    recordingLegend(),
+  );
+  const [{ onActivate }] = panel.controlSections();
+
+  onActivate();
+  assert.equal(panel.phaseColorsInUse, true);
+  pressPhaseColorKey(panel);
+  assert.equal(panel.phaseColorsInUse, false);
 });
 
 test('the key tells the legend which scheme is on show', () => {

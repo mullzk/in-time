@@ -2,7 +2,7 @@ import { MAX_TEMPO, MIN_TEMPO } from '../time/timeModel.js';
 
 // The tempo slider runs geometrically from the slowest tempo to the fastest, so
 // every doubling takes the same distance; linear travel would leave the slow
-// tempos, a ninetieth of the fastest, on a few pixels.
+// tempos, a fraction of the fastest, on a few pixels.
 const TEMPO_SPAN = MAX_TEMPO / MIN_TEMPO;
 
 const clamp = (value, low, high) => Math.min(Math.max(value, low), high);

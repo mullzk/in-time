@@ -197,6 +197,85 @@ const infoIcon = () =>
     }),
   );
 
+// The half hour as a clock face. At the node minute -- noon and six o'clock on
+// the dial, where the trains change over from arriving to departing -- the
+// colour stands full from the centre out to the rim, and over the quarter that
+// follows it fades away to nothing, which is where the phases meet in the
+// neutral colour. Four quarters, so the dial is covered.
+const PHASE_RADIUS = 9.5;
+// A sector of a circle cannot be faded with a gradient, which runs along a line
+// rather than around a centre, so the sweep is stepped instead.
+const PHASE_STEPS = 16;
+
+const DEPARTING = 'departing';
+const ARRIVING = 'arriving';
+
+// In degrees of the dial, so the full and the half hour stand at the top and
+// the bottom and the quarters at the sides: departure sweeps away from the node
+// minute, arrival into it.
+const PHASE_SPANS = [
+  { solidAtDegrees: 0, towardsDegrees: 90, phase: DEPARTING },
+  { solidAtDegrees: 180, towardsDegrees: 90, phase: ARRIVING },
+  { solidAtDegrees: 180, towardsDegrees: 270, phase: DEPARTING },
+  { solidAtDegrees: 360, towardsDegrees: 270, phase: ARRIVING },
+];
+
+const CENTRE = ICON_SIZE / 2;
+const DEGREES_TO_RADIANS = Math.PI / 180;
+const DIAL_NOON_OFFSET_DEGREES = -90;
+
+const onTheDial = (degrees) => {
+  const radians = (degrees + DIAL_NOON_OFFSET_DEGREES) * DEGREES_TO_RADIANS;
+  return [
+    CENTRE + PHASE_RADIUS * Math.cos(radians),
+    CENTRE + PHASE_RADIUS * Math.sin(radians),
+  ];
+};
+
+const phaseSector = (fromDegrees, toDegrees, color, opacity) => {
+  const [startX, startY] = onTheDial(Math.min(fromDegrees, toDegrees));
+  const [endX, endY] = onTheDial(Math.max(fromDegrees, toDegrees));
+  return svgElement('path', {
+    d:
+      `M${CENTRE} ${CENTRE} L${startX.toFixed(2)} ${startY.toFixed(2)} ` +
+      `A${PHASE_RADIUS} ${PHASE_RADIUS} 0 0 1 ` +
+      `${endX.toFixed(2)} ${endY.toFixed(2)} Z`,
+    fill: `rgb(${color.join(' ')})`,
+    'fill-opacity': opacity.toFixed(3),
+    stroke: 'none',
+  });
+};
+
+// The steps are laid one inside the next rather than side by side: shapes that
+// merely abut leave a seam of bare ground between them, nested ones cannot.
+// Every layer reaches from the node minute a step less far and adds just the
+// share that lifts the one under it onto the next rung of an even ramp, so the
+// innermost wedge comes to stand in full colour.
+const phaseSteps = ({ solidAtDegrees, towardsDegrees }, color) => {
+  const stepDegrees = (towardsDegrees - solidAtDegrees) / PHASE_STEPS;
+  return Array.from({ length: PHASE_STEPS }, (_, index) => {
+    const stepsCovered = PHASE_STEPS - index;
+    return phaseSector(
+      solidAtDegrees,
+      solidAtDegrees + stepsCovered * stepDegrees,
+      color,
+      1 / stepsCovered,
+    );
+  });
+};
+
+// Handed its colours rather than reading them, so the icon belongs to the dock
+// while the phases belong to the view that colours them.
+export const phasesIcon = (departureColor, arrivalColor) =>
+  icon(
+    ...PHASE_SPANS.flatMap((span) =>
+      phaseSteps(
+        span,
+        span.phase === DEPARTING ? departureColor : arrivalColor,
+      ),
+    ),
+  );
+
 export const pencilIcon = () =>
   icon(
     svgElement('path', {

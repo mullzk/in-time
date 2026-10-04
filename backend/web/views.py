@@ -112,6 +112,6 @@ def zeitkarte(request: HttpRequest, station: str = "") -> HttpResponse:
     return render(request, "web/zeitkarte.html", {"page": pagemetadata.ZEITKARTE})
 
 
-# Not among the views the switcher offers: reached only by its address
+# Shows the whole country at once, so it carries no station in its address.
 def puls(request: HttpRequest) -> HttpResponse:
     return render(request, "web/puls.html", {"page": pagemetadata.PULS})

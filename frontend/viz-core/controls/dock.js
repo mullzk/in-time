@@ -24,6 +24,11 @@ class NoDockCard {
   keepWithin() {}
 }
 
+// A tile wears the icon its own name stands for, unless the face it is showing
+// draws one itself -- which is how a view brings an icon in its own colours.
+const faceIcon = (face, tileId) =>
+  face?.draw?.() ?? iconNamed(face?.icon ?? tileId);
+
 // The control surface at the left edge: one tile per group of controls, only
 // one card open at a time. A tile may instead be pressed directly (play), in
 // which case it wears the face of what pressing it will do next. The shell owns
@@ -69,7 +74,8 @@ export class Dock {
         return;
       }
       tile.wearing = face.icon;
-      tile.button.replaceChildren(iconNamed(face.icon));
+      tile.drawWearing = face.draw ?? null;
+      tile.button.replaceChildren(faceIcon(face, tile.id));
       tile.button.setAttribute('aria-label', face.label);
       tile.name.textContent = face.label;
     });
@@ -77,7 +83,9 @@ export class Dock {
 
   redrawIcons() {
     this.tiles.forEach((tile) => {
-      tile.button.replaceChildren(iconNamed(tile.wearing));
+      tile.button.replaceChildren(
+        tile.drawWearing?.() ?? iconNamed(tile.wearing),
+      );
     });
   }
 
@@ -86,23 +94,26 @@ export class Dock {
     root.dataset.tile = id;
     root.dataset.group = group;
 
+    const pressed = sections.find((section) => section.onActivate) ?? null;
+    const opening = pressed?.face?.() ?? null;
+
     const button = element('button', 'dock-tile-button');
     button.type = 'button';
     button.setAttribute('aria-label', label);
-    button.appendChild(iconNamed(id));
+    button.appendChild(faceIcon(opening, id));
 
     const name = element('span', 'dock-tile-name');
     name.textContent = label;
     root.append(button, name);
 
-    const pressed = sections.find((section) => section.onActivate) ?? null;
     const tile = {
       id,
       root,
       button,
       name,
       face: pressed?.face,
-      wearing: id,
+      wearing: opening?.icon ?? id,
+      drawWearing: opening?.draw ?? null,
       card: new NoDockCard(),
     };
     if (pressed === null) {

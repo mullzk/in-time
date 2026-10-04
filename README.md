@@ -5,21 +5,17 @@ of the Swiss clock-face timetable (Taktfahrplan). See https://all-in-time.ch
 
 ## Views
 
-Three views on the same day, one page each, switched by a page load:
+Four views on the same day, one page each, switched by a page load:
 
 - **`/takt`** — the day's timetable as pulsing motion; sonified.
+- **`/puls`** — the base hubs swelling with the trains standing in them.
 - **`/kaskade`** — reachability spreading from a station over time.
 - **`/zeitkarte`** — a radial still image of travel times from a station.
 
-Each takes an optional station in the path (`/takt/zürich-hb`).
-`?mode=exhibition` is the unattended kiosk variant: no view switcher, no
-instrumentation editor, and a view awaiting a station picks one itself instead
-of asking.
-
-A fourth view, **`/puls`**, shows the base hubs swelling with the trains
-standing in them. It is reached only by its address; nothing in the app links to
-it. It was strictly vibe-coded, so it takes code from the other modules but
-offers none of its own to them.
+All but Puls take an optional station in the path (`/takt/zürich-hb`); Puls
+shows every hub at once and so carries none. `?mode=exhibition` is the
+unattended kiosk variant: no view switcher, no instrumentation editor, and a
+view awaiting a station picks one itself instead of asking.
 
 ## Data
 

@@ -1,5 +1,6 @@
 export const MIN_TEMPO = 10;
-export const MAX_TEMPO = 900;
+// One real second for one scheduled hour: the whole clock-face day in 24 s.
+export const MAX_TEMPO = 3600;
 export const DEFAULT_TEMPO = 240;
 export const SECONDS_PER_DAY = 24 * 3600;
 

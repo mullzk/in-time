@@ -19,14 +19,31 @@ const CORE_RADIUS_PIXELS_PER_LONG_DISTANCE_TRAIN = 2;
 const RING_WIDTH_PIXELS_PER_INTERREGIO_TRAIN = 2;
 const RING_WIDTH_PIXELS_PER_REGIONAL_TRAIN = 1.5;
 
-export function hubLayerRadii(counts) {
+// The breakpoint the styles read a phone at, and the share of its growth a hub
+// keeps there: upright, a screen that narrow has the busiest hubs reaching
+// across it.
+const NARROW_VIEWPORT_PIXELS = 640;
+const GROWTH_KEPT_ON_A_NARROW_UPRIGHT_SCREEN = 0.6;
+
+export const hubGrowthFactor = (viewportWidth, viewportHeight) =>
+  viewportWidth <= NARROW_VIEWPORT_PIXELS && viewportHeight > viewportWidth
+    ? GROWTH_KEPT_ON_A_NARROW_UPRIGHT_SCREEN
+    : 1;
+
+// The factor holds back what the standing trains add, never the resting core:
+// a hub with nothing in it stays as visible as everywhere else.
+export function hubLayerRadii(counts, growthFactor = 1) {
   const coreRadius =
     CORE_MINIMUM_RADIUS_PIXELS +
-    CORE_RADIUS_PIXELS_PER_LONG_DISTANCE_TRAIN * counts[LONG_DISTANCE];
+    growthFactor *
+      CORE_RADIUS_PIXELS_PER_LONG_DISTANCE_TRAIN *
+      counts[LONG_DISTANCE];
   const interregioRadius =
-    coreRadius + RING_WIDTH_PIXELS_PER_INTERREGIO_TRAIN * counts[INTERREGIO];
+    coreRadius +
+    growthFactor * RING_WIDTH_PIXELS_PER_INTERREGIO_TRAIN * counts[INTERREGIO];
   const regionalRadius =
-    interregioRadius + RING_WIDTH_PIXELS_PER_REGIONAL_TRAIN * counts[REGIONAL];
+    interregioRadius +
+    growthFactor * RING_WIDTH_PIXELS_PER_REGIONAL_TRAIN * counts[REGIONAL];
   return {
     [LONG_DISTANCE]: { inner: 0, outer: coreRadius },
     [INTERREGIO]: { inner: coreRadius, outer: interregioRadius },

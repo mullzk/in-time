@@ -1,8 +1,8 @@
 /**
  * The Puls view: the rail network on white, the trains of the three shown
- * classes, and the base hubs swelling with the trains standing in them. Reached
- * only by its address; no other view links to it.
+ * classes, and the base hubs swelling with the trains standing in them.
  */
+import { phasesIcon } from '../viz-core/controls/dockIcons.js';
 import { categoryLabel } from '../viz-core/data/transportCategories.js';
 import { Panel } from '../viz-core/panel.js';
 import {
@@ -14,11 +14,16 @@ import {
   HUB_LAYER_OPACITY,
   HUB_NEUTRAL_COLOR,
   HUB_STEADY_COLOR,
+  hubGrowthFactor,
 } from './hubLayers.js';
 import { hubsOf } from './hubs.js';
 import { buildInfoContent } from './infoContent.js';
 import { edgesTravelledBy } from './network.js';
-import { taktPhaseColor } from './taktPhase.js';
+import {
+  PULS_ARRIVAL_COLOR,
+  PULS_DEPARTURE_COLOR,
+  taktPhaseColor,
+} from './taktPhase.js';
 import {
   drawRank,
   TRAIN_CLASSES,
@@ -84,8 +89,31 @@ export class PulsPanel extends Panel {
       : HUB_STEADY_COLOR;
   }
 
+  // A press tile rather than a card, and wearing what pressing it will do next:
+  // the phase colours are the one thing here to switch, and without the tile
+  // they would be out of reach on a screen without a keyboard.
   controlSections() {
-    return [];
+    return [
+      {
+        id: 'phases',
+        title: 'Farb-Phasen',
+        onActivate: () => this.#togglePhaseColors(),
+        face: () =>
+          this.phaseColorsInUse
+            ? {
+                icon: 'phasesSteady',
+                label: 'Farb-Phasen aus',
+                draw: () => phasesIcon(HUB_STEADY_COLOR, HUB_STEADY_COLOR),
+              }
+            : {
+                icon: 'phases',
+                label: 'Farb-Phasen',
+                draw: () =>
+                  phasesIcon(PULS_DEPARTURE_COLOR, PULS_ARRIVAL_COLOR),
+              },
+        keepInExhibition: true,
+      },
+    ];
   }
 
   infoContent() {
@@ -113,10 +141,15 @@ export class PulsPanel extends Panel {
   }
 
   drawWorld(p, context) {
-    const worldPerPixel = context.camera.worldPerPixel();
+    const { camera } = context;
+    const worldPerPixel = camera.worldPerPixel();
     this.#drawNetwork(p, worldPerPixel);
     this.#drawTrains(p, worldPerPixel);
-    this.#drawHubs(p, worldPerPixel);
+    this.#drawHubs(
+      p,
+      worldPerPixel,
+      hubGrowthFactor(camera.viewportWidth, camera.viewportHeight),
+    );
   }
 
   #drawNetwork(p, worldPerPixel) {
@@ -141,10 +174,10 @@ export class PulsPanel extends Panel {
     });
   }
 
-  #drawHubs(p, worldPerPixel) {
+  #drawHubs(p, worldPerPixel, growthFactor) {
     const hubColor = this.#hubColor();
     this.hubs.forEach((hub) => {
-      const radii = hub.layerRadii();
+      const radii = hub.layerRadii(growthFactor);
       TRAIN_CLASSES.forEach(({ id }) => {
         this.#drawHubLayer(
           p,

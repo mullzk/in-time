@@ -47,6 +47,16 @@ test('the exhibition hangs only what survives it', () => {
   assert.deepEqual(idsOf(tiles), ['map', 'info']);
 });
 
+test('the phase colours hang beside the controls of the view, before the app', () => {
+  const tiles = tilesToHang([
+    section('views'),
+    section('phases'),
+    section('tempo'),
+  ]);
+
+  assert.deepEqual(idsOf(tiles), ['time', 'phases', 'views']);
+});
+
 test('the info text is a tile like any other', () => {
   const tiles = tilesToHang([section('info'), section('layers')]);
   assert.deepEqual(idsOf(tiles), ['elements', 'info']);
