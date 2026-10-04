@@ -48,6 +48,12 @@ export function buildInfoContent() {
         ' Verkehrsträger, Ankunft, Abfahrt und Aufenthalt. So lässt sich der',
         ' Takt des Taktfahrplans auch als Rhythmus erfahren.',
       ],
+      [
+        'Dies ist keine Echtzeit-Anzeige. Die Visualisierung kennt keine',
+        ' Verspätung-Meldungen und keine Ausfälle. Die Position der',
+        ' Züge wird mit konstanter Durchschnittsgeschwindigkeit zwischen den',
+        ' Haltestellen interpoliert.',
+      ],
     ],
     shortcuts,
   };
