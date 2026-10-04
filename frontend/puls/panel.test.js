@@ -191,6 +191,47 @@ test('the trains keep their class colour until the phases are switched on', () =
   });
 });
 
+// The fixture's only hub is Zürich HB, where trip 0 starts: it leaves at 36000
+// and calls again at 36600, 37260. Trip 1 runs from 40000 and touches no hub.
+const JUST_OUT_OF_THE_HUB = 36_500;
+const A_STOP_PAST_THE_HUB = 37_000;
+const A_RUN_WITHOUT_A_HUB = 40_300;
+
+const phaseColorsFollowTheTrains = (moments) => {
+  const panel = new PulsPanel(
+    RAIL_BUFFER,
+    RAIL_STATIONS,
+    recordingClock(),
+    recordingLegend(),
+  );
+  pressPhaseColorKey(panel);
+  return moments.map((moment) => {
+    const [drawn] = trainColorsDrawnBy(
+      drawnAt(panel, momentAwayFromTheQuarter(moment)),
+    );
+    const [{ trainClass }] = panel.trains;
+    return { drawn, ofItsClass: trainClassById(trainClass).discColor };
+  });
+};
+
+test('a train on its way to or from a hub takes the phase colour', () => {
+  const [leavingTheHub] = phaseColorsFollowTheTrains([JUST_OUT_OF_THE_HUB]);
+
+  assert.notDeepEqual(leavingTheHub.drawn, leavingTheHub.ofItsClass);
+});
+
+test('the same train keeps its class colour once it is a stop past the hub', () => {
+  const [wellAway] = phaseColorsFollowTheTrains([A_STOP_PAST_THE_HUB]);
+
+  assert.deepEqual(wellAway.drawn, wellAway.ofItsClass);
+});
+
+test('a run that serves no hub is never coloured', () => {
+  const [elsewhere] = phaseColorsFollowTheTrains([A_RUN_WITHOUT_A_HUB]);
+
+  assert.deepEqual(elsewhere.drawn, elsewhere.ofItsClass);
+});
+
 test('the phases are offered as a dock tile that presses rather than opens', () => {
   const panel = new PulsPanel(
     RAIL_BUFFER,

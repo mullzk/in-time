@@ -40,7 +40,7 @@ export class HubLegend {
     this.swatches = [];
     const heading = element('p', 'hub-legend-heading');
     heading.textContent =
-      'Knotenpunkte: Anzahl Züge zwischen Ankunft und Abfahrt';
+      'Grösse Takt-Knoten: Anzahl Züge zwischen Ankunft und Abfahrt';
     const list = element('ul', 'hub-legend-segments');
     list.append(
       ...TRAIN_CLASSES.map((trainClass, layerIndex) =>

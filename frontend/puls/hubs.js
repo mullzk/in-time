@@ -38,6 +38,11 @@ const clusterStationIndices = (stations, didok) =>
     ),
   );
 
+export const everyHubStationIndex = (stations) =>
+  new Set(
+    HUB_DIDOKS.flatMap((didok) => [...clusterStationIndices(stations, didok)]),
+  );
+
 export function hubsOf(stations, stationPositions, trips) {
   return HUB_DIDOKS.flatMap((didok) => {
     const stationIndex = stations.findIndex(

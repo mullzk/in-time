@@ -16,13 +16,16 @@ import {
   HUB_STEADY_COLOR,
   hubGrowthFactor,
 } from './hubLayers.js';
-import { hubsOf } from './hubs.js';
+import { everyHubStationIndex, hubsOf } from './hubs.js';
+import { hubSpansByTrip, withinAHubSpan } from './hubVisits.js';
 import { buildInfoContent } from './infoContent.js';
 import { edgesTravelledBy } from './network.js';
 import {
-  PULS_ARRIVAL_COLOR,
-  PULS_DEPARTURE_COLOR,
-  taktPhaseColor,
+  hubPhaseColor,
+  PULS_TRAIN_ARRIVAL_COLOR,
+  PULS_TRAIN_DEPARTURE_COLOR,
+  phaseOfTheHalfHour,
+  trainPhaseColor,
 } from './taktPhase.js';
 import {
   drawRank,
@@ -54,6 +57,10 @@ export class PulsPanel extends Panel {
     this.railStations = railStations;
     this.networkEdges = edgesTravelledBy(this.engine.trips, this.engine.edges);
     this.hubs = hubsOf(railStations, this.engine.stations, this.engine.trips);
+    this.hubSpansByTrip = hubSpansByTrip(
+      this.engine.trips,
+      everyHubStationIndex(railStations),
+    );
     this.trains = [];
     this.camera = null;
     this.currentTimeSeconds = 0;
@@ -77,15 +84,20 @@ export class PulsPanel extends Panel {
     this.hubLegend.showPhaseColors(this.phaseColorsInUse);
   }
 
-  #trainColor(discColor) {
-    return this.phaseColorsInUse
-      ? taktPhaseColor(discColor, this.currentTimeSeconds)
+  #trainColor(discColor, tripIndex) {
+    return this.phaseColorsInUse &&
+      withinAHubSpan(
+        this.hubSpansByTrip[tripIndex],
+        phaseOfTheHalfHour(this.currentTimeSeconds),
+        this.currentTimeSeconds,
+      )
+      ? trainPhaseColor(discColor, this.currentTimeSeconds)
       : discColor;
   }
 
   #hubColor() {
     return this.phaseColorsInUse
-      ? taktPhaseColor(HUB_NEUTRAL_COLOR, this.currentTimeSeconds)
+      ? hubPhaseColor(HUB_NEUTRAL_COLOR, this.currentTimeSeconds)
       : HUB_STEADY_COLOR;
   }
 
@@ -109,7 +121,10 @@ export class PulsPanel extends Panel {
                 icon: 'phases',
                 label: 'Farb-Phasen',
                 draw: () =>
-                  phasesIcon(PULS_DEPARTURE_COLOR, PULS_ARRIVAL_COLOR),
+                  phasesIcon(
+                    PULS_TRAIN_DEPARTURE_COLOR,
+                    PULS_TRAIN_ARRIVAL_COLOR,
+                  ),
               },
         keepInExhibition: true,
       },
@@ -167,9 +182,9 @@ export class PulsPanel extends Panel {
 
   #drawTrains(p, worldPerPixel) {
     p.noStroke();
-    this.trains.forEach(({ trainClass, east, north }) => {
+    this.trains.forEach(({ trainClass, tripIndex, east, north }) => {
       const { discColor, discDiameterPixels } = trainClassById(trainClass);
-      p.fill(...this.#trainColor(discColor));
+      p.fill(...this.#trainColor(discColor, tripIndex));
       p.circle(east, north, discDiameterPixels * worldPerPixel);
     });
   }
