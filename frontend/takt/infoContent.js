@@ -1,5 +1,7 @@
 // The Takt panel's info-modal content.
 
+import { contactLink } from '../viz-core/controls/contactLink.js';
+
 const link = (label, href) => ({ label, href });
 
 export function buildInfoContent() {
@@ -40,6 +42,8 @@ export function buildInfoContent() {
           'github.com/mullzk/in-time/',
           'https://github.com/mullzk/in-time/',
         ),
+        '. Kontakt: ',
+        contactLink(),
         '.',
       ],
       [
@@ -47,6 +51,12 @@ export function buildInfoContent() {
         ' Haltestelle durch einen Ton repräsentiert - abgestuft nach',
         ' Verkehrsträger, Ankunft, Abfahrt und Aufenthalt. So lässt sich der',
         ' Takt des Taktfahrplans auch als Rhythmus erfahren.',
+      ],
+      [
+        'Dies ist keine Echtzeit-Anzeige. Die Visualisierung kennt keine',
+        ' Verspätung-Meldungen und keine Ausfälle. Die Position der',
+        ' Züge wird mit konstanter Durchschnittsgeschwindigkeit zwischen den',
+        ' Haltestellen interpoliert.',
       ],
     ],
     shortcuts,

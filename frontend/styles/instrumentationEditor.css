@@ -7,7 +7,7 @@
   position: absolute;
   /* Above the top bar: the bar spans the full width, so its transparent right
      end would otherwise take the taps meant for the drawer's head. */
-  z-index: 15;
+  z-index: 16;
   top: 0;
   right: 0;
   bottom: 0;

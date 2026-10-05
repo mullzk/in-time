@@ -3,17 +3,16 @@
  * opacities as the canvas.
  */
 import { element } from '../viz-core/controls/dom.js';
+import { svgElement } from '../viz-core/controls/svg.js';
 import {
   HUB_LAYER_OPACITY,
   HUB_NEUTRAL_COLOR,
   HUB_STEADY_COLOR,
 } from './hubLayers.js';
-import { svgElement } from './svg.js';
 import { TRAIN_CLASSES } from './trainClasses.js';
 
 const SWATCH_RADIUS = 7;
 const SWATCH_RING_WIDTH = 4;
-const PHASE_HINT = "Drücke 'c' um Ankunft und Abfahrt zu unterscheiden";
 
 const cssColor = (color) => `rgb(${color.join(' ')})`;
 
@@ -40,16 +39,15 @@ export class HubLegend {
     this.root = element('aside', 'hub-legend');
     this.swatches = [];
     const heading = element('p', 'hub-legend-heading');
-    heading.textContent = 'Knotenpunkte: Züge zwischen Ankunft und Abfahrt';
+    heading.textContent =
+      'Grösse Takt-Knoten: Anzahl Züge zwischen Ankunft und Abfahrt';
     const list = element('ul', 'hub-legend-segments');
     list.append(
       ...TRAIN_CLASSES.map((trainClass, layerIndex) =>
         this.#segment(trainClass, layerIndex),
       ),
     );
-    const hint = element('p', 'hub-legend-hint');
-    hint.textContent = PHASE_HINT;
-    this.root.append(heading, list, hint);
+    this.root.append(heading, list);
     container.appendChild(this.root);
     this.showPhaseColors(false);
   }

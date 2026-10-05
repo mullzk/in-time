@@ -1,4 +1,4 @@
-/* SMACSS Module: the station clock in the top right corner of the Puls view. */
+/* SMACSS Module: the station clock, in the top right corner of the picture. */
 .station-clock {
   position: absolute;
   z-index: 12;

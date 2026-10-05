@@ -1,3 +1,5 @@
+import { strokePolylines } from './render/polylines.js';
+
 // The zoom a station is centred at unless the view is already closer.
 export const MEDIUM_ZOOM_FRACTION = 0.5;
 
@@ -44,12 +46,6 @@ export class PanelContext {
     p.noFill();
     p.stroke(...(this.tilesVisible ? NETWORK_ON_RASTER : NETWORK_ON_BLACK));
     p.strokeWeight(1.1 / this.camera.scale);
-    edges.forEach((polyline) => {
-      p.beginShape();
-      polyline.forEach(([east, north]) => {
-        p.vertex(east, north);
-      });
-      p.endShape();
-    });
+    strokePolylines(p, edges);
   }
 }

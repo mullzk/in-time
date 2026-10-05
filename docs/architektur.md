@@ -74,9 +74,12 @@ ohne jede Serverlast._
   `TileLayer` (mit `tileMatrixSet`, dem LV95-Kachelraster) · `TimeModel` ·
   `StationCatalog` (beide Netze vereinigt, Such-Ranking) ·
   `VehiclePositionEngine` (geteilte Klasse, **Instanz je Blob**) ·
-  `ConnectionList` + `ConnectionScan` (der Erreichbarkeits-Baum) · `Dock` und
-  die übrigen DOM-Bedien-Elemente · `Panel` (Basisklasse) · `PanelContext`
-  (kuratierte Fassade auf Kamera, Zeit und Zeichenhilfen, nicht der ganze Core).
+  `VehicleFleet` (hält die Engines je Netz und beantwortet, wo ein Fahrzeug
+  steht und wie es heisst; ein Fahrzeug trägt den Index seines Netzes, weil ein
+  Trip-Index nur darin gilt) · `ConnectionList` + `ConnectionScan` (der
+  Erreichbarkeits-Baum) · `Dock` und die übrigen DOM-Bedien-Elemente · `Panel`
+  (Basisklasse) · `PanelContext` (kuratierte Fassade auf Kamera, Zeit und
+  Zeichenhilfen, nicht der ganze Core).
 - **Sonifikation:** vier Bausteine statt eines. **`SonificationEngine`** ist das
   Geschwister zur `VehiclePositionEngine` — eine Instanz **je Blob**, die dessen
   Halte-Ereignisse nach Station indiziert. Der **`Sonifier`** ist das Uhrwerk:

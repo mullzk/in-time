@@ -1,24 +1,33 @@
 /**
  * The Puls view: the rail network on white, the trains of the three shown
- * classes, and the base hubs swelling with the trains standing in them. Reached
- * only by its address; no other view links to it.
+ * classes, and the base hubs swelling with the trains standing in them.
  */
-import { categoryLabel } from '../viz-core/data/transportCategories.js';
+import { phasesIcon } from '../viz-core/controls/dockIcons.js';
 import { Panel } from '../viz-core/panel.js';
+import { strokePolylines } from '../viz-core/render/polylines.js';
 import {
   nearestStation,
   stationPickRadiusPixels,
+  VEHICLE_PICK_RADIUS_PIXELS,
 } from '../viz-core/render/stationNodes.js';
-import { VehiclePositionEngine } from '../viz-core/travel/vehiclePositionEngine.js';
+import { VehicleFleet } from '../viz-core/travel/vehicleFleet.js';
 import {
   HUB_LAYER_OPACITY,
   HUB_NEUTRAL_COLOR,
   HUB_STEADY_COLOR,
+  hubGrowthFactor,
 } from './hubLayers.js';
-import { hubsOf } from './hubs.js';
+import { everyHubStationIndex, hubsOf } from './hubs.js';
+import { hubSpansByTrip, withinAHubSpan } from './hubVisits.js';
 import { buildInfoContent } from './infoContent.js';
 import { edgesTravelledBy } from './network.js';
-import { taktPhaseColor } from './taktPhase.js';
+import {
+  hubPhaseColor,
+  PULS_TRAIN_ARRIVAL_COLOR,
+  PULS_TRAIN_DEPARTURE_COLOR,
+  phaseOfTheHalfHour,
+  trainPhaseColor,
+} from './taktPhase.js';
 import {
   drawRank,
   TRAIN_CLASSES,
@@ -31,9 +40,6 @@ const NETWORK_COLOR = [205, 205, 205];
 const NETWORK_WIDTH_PIXELS = 1;
 const OPAQUE = 255;
 
-const VEHICLE_HIT_RADIUS_PIXELS = 10;
-const ONLY_POSITION_ENGINE_INDEX = 0;
-
 export class PulsPanel extends Panel {
   capabilities = {
     simulationSpeed: true,
@@ -45,10 +51,14 @@ export class PulsPanel extends Panel {
     super();
     this.stationClock = stationClock;
     this.hubLegend = hubLegend;
-    this.engine = new VehiclePositionEngine(railBuffer);
-    this.railStations = railStations;
+    this.fleet = new VehicleFleet();
+    this.engine = this.fleet.add(railBuffer, railStations);
     this.networkEdges = edgesTravelledBy(this.engine.trips, this.engine.edges);
     this.hubs = hubsOf(railStations, this.engine.stations, this.engine.trips);
+    this.hubSpansByTrip = hubSpansByTrip(
+      this.engine.trips,
+      everyHubStationIndex(railStations),
+    );
     this.trains = [];
     this.camera = null;
     this.currentTimeSeconds = 0;
@@ -72,20 +82,51 @@ export class PulsPanel extends Panel {
     this.hubLegend.showPhaseColors(this.phaseColorsInUse);
   }
 
-  #trainColor(discColor) {
-    return this.phaseColorsInUse
-      ? taktPhaseColor(discColor, this.currentTimeSeconds)
+  #trainColor(discColor, tripIndex) {
+    return this.phaseColorsInUse &&
+      withinAHubSpan(
+        this.hubSpansByTrip[tripIndex],
+        phaseOfTheHalfHour(this.currentTimeSeconds),
+        this.currentTimeSeconds,
+      )
+      ? trainPhaseColor(discColor, this.currentTimeSeconds)
       : discColor;
   }
 
   #hubColor() {
     return this.phaseColorsInUse
-      ? taktPhaseColor(HUB_NEUTRAL_COLOR, this.currentTimeSeconds)
+      ? hubPhaseColor(HUB_NEUTRAL_COLOR, this.currentTimeSeconds)
       : HUB_STEADY_COLOR;
   }
 
+  // A press tile rather than a card, and wearing what pressing it will do next:
+  // the phase colours are the one thing here to switch, and without the tile
+  // they would be out of reach on a screen without a keyboard.
   controlSections() {
-    return [];
+    return [
+      {
+        id: 'phases',
+        title: 'Farb-Phasen',
+        onActivate: () => this.#togglePhaseColors(),
+        face: () =>
+          this.phaseColorsInUse
+            ? {
+                icon: 'phasesSteady',
+                label: 'Farb-Phasen aus',
+                draw: () => phasesIcon(HUB_STEADY_COLOR, HUB_STEADY_COLOR),
+              }
+            : {
+                icon: 'phases',
+                label: 'Farb-Phasen',
+                draw: () =>
+                  phasesIcon(
+                    PULS_TRAIN_DEPARTURE_COLOR,
+                    PULS_TRAIN_ARRIVAL_COLOR,
+                  ),
+              },
+        keepInExhibition: true,
+      },
+    ];
   }
 
   infoContent() {
@@ -98,12 +139,11 @@ export class PulsPanel extends Panel {
     this.hubs.forEach((hub) => {
       hub.easeTowardsTheTrainsStandingAt(currentTimeSeconds, deltaSeconds);
     });
-    this.trains = this.engine
+    this.trains = this.fleet
       .activeAt(currentTimeSeconds)
       .map((train) => ({
         ...train,
         trainClass: trainClassOf(train.category),
-        positionEngineIndex: ONLY_POSITION_ENGINE_INDEX,
       }))
       .filter(({ trainClass }) => trainClass !== null)
       .sort(
@@ -113,38 +153,37 @@ export class PulsPanel extends Panel {
   }
 
   drawWorld(p, context) {
-    const worldPerPixel = context.camera.worldPerPixel();
+    const { camera } = context;
+    const worldPerPixel = camera.worldPerPixel();
     this.#drawNetwork(p, worldPerPixel);
     this.#drawTrains(p, worldPerPixel);
-    this.#drawHubs(p, worldPerPixel);
+    this.#drawHubs(
+      p,
+      worldPerPixel,
+      hubGrowthFactor(camera.viewportWidth, camera.viewportHeight),
+    );
   }
 
   #drawNetwork(p, worldPerPixel) {
     p.noFill();
     p.stroke(...NETWORK_COLOR);
     p.strokeWeight(NETWORK_WIDTH_PIXELS * worldPerPixel);
-    this.networkEdges.forEach((polyline) => {
-      p.beginShape();
-      polyline.forEach(([east, north]) => {
-        p.vertex(east, north);
-      });
-      p.endShape();
-    });
+    strokePolylines(p, this.networkEdges);
   }
 
   #drawTrains(p, worldPerPixel) {
     p.noStroke();
-    this.trains.forEach(({ trainClass, east, north }) => {
+    this.trains.forEach(({ trainClass, tripIndex, east, north }) => {
       const { discColor, discDiameterPixels } = trainClassById(trainClass);
-      p.fill(...this.#trainColor(discColor));
+      p.fill(...this.#trainColor(discColor, tripIndex));
       p.circle(east, north, discDiameterPixels * worldPerPixel);
     });
   }
 
-  #drawHubs(p, worldPerPixel) {
+  #drawHubs(p, worldPerPixel, growthFactor) {
     const hubColor = this.#hubColor();
     this.hubs.forEach((hub) => {
-      const radii = hub.layerRadii();
+      const radii = hub.layerRadii(growthFactor);
       TRAIN_CLASSES.forEach(({ id }) => {
         this.#drawHubLayer(
           p,
@@ -204,22 +243,15 @@ export class PulsPanel extends Panel {
       this.camera,
       screenX,
       screenY,
-      VEHICLE_HIT_RADIUS_PIXELS,
+      VEHICLE_PICK_RADIUS_PIXELS,
     );
   }
 
-  describeVehicle({ tripIndex, category }) {
-    const { originStation, destinationStation } =
-      this.engine.tripEndpoints(tripIndex);
-    return {
-      label: categoryLabel(category),
-      category,
-      origin: this.railStations[originStation]?.name,
-      destination: this.railStations[destinationStation]?.name,
-    };
+  describeVehicle(vehicle) {
+    return this.fleet.describe(vehicle);
   }
 
-  vehiclePosition({ tripIndex }, currentTimeSeconds) {
-    return this.engine.positionAt(tripIndex, currentTimeSeconds);
+  vehiclePosition(vehicle, currentTimeSeconds) {
+    return this.fleet.positionOf(vehicle, currentTimeSeconds);
   }
 }

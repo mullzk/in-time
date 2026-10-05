@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from django.conf import settings
 from django.core.management import call_command
 from django.test import override_settings
 
@@ -7,6 +8,10 @@ from config.staticfiles import HashedStaticFilesStorage
 
 IMPORTER = "viz-core/sonification/presets.js"
 DOCUMENT = "viz-core/sonification/instrumentations/marimba-gm.json"
+
+# Vendor bundles import nothing and their minified string literals are what the
+# blanket rewrite false-positives on, so they are the one tree left out.
+TREES_WITHOUT_OWN_MODULES = {"vendor"}
 
 
 def _collect(source: Path, target: Path) -> dict[str, str]:
@@ -40,6 +45,27 @@ def _write_module_tree(root: Path, gain: float) -> None:
         "};\n"
         "export const INSTRUMENTATIONS = [marimba];\n"
     )
+
+
+def _trees_carrying_modules() -> set[str]:
+    frontend = Path(settings.STATICFILES_DIRS[0])
+    return {
+        tree.name
+        for tree in frontend.iterdir()
+        if tree.is_dir()
+        and tree.name not in TREES_WITHOUT_OWN_MODULES
+        and any(tree.rglob("*.js"))
+    }
+
+
+def test_every_module_tree_has_its_imports_rewritten() -> None:
+    covered = {
+        pattern.removesuffix("/*.js")
+        for pattern, _ in HashedStaticFilesStorage.patterns
+        if pattern.endswith("/*.js")
+    }
+
+    assert _trees_carrying_modules() <= covered
 
 
 def test_a_json_import_points_at_the_hashed_document(tmp_path: Path) -> None:

@@ -32,7 +32,13 @@ class HashedStaticFilesStorage(ManifestStaticFilesStorage):
         ManifestStaticFilesStorage._js_module_import_aggregation_patterns[1]  # type: ignore[attr-defined]
     )
     _our_module_patterns = (JSON_MODULE_IMPORT_PATTERN, *_module_import_patterns)
+    # Every tree of our own modules, so an import left unhashed can never serve
+    # a cached module against a freshly hashed importer. A tree missing here is
+    # caught by test_every_module_tree_has_its_imports_rewritten.
     patterns = ManifestStaticFilesStorage.patterns + (
-        ("takt/*.js", _our_module_patterns),
         ("viz-core/*.js", _our_module_patterns),
+        ("takt/*.js", _our_module_patterns),
+        ("puls/*.js", _our_module_patterns),
+        ("kaskade/*.js", _our_module_patterns),
+        ("zeitkarte/*.js", _our_module_patterns),
     )

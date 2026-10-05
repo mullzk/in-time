@@ -1,18 +1,25 @@
 /* SMACSS Module: the dock — the control surface at the left edge, at the foot of
    a narrow screen. One tile per group of controls; hovering a tile names it,
    clicking it opens the card beside it that holds the controls themselves. Only
-   one card stands open at a time, as a class on the tile. */
+   one card stands open at a time, as a class on the tile.
+
+   The dock draws no ground of its own: the tiles carry their dark faces, and a
+   strip behind them would stand on the picture even where a view draws on
+   white. */
 .dock {
   position: absolute;
   z-index: 13;
   left: calc(var(--dock-inset) + env(safe-area-inset-left));
-  top: 50%;
-  transform: translateY(-50%);
+  top: 0;
+  bottom: 0;
+  height: fit-content;
+  margin-block: auto;
   display: flex;
   flex-direction: column;
-  padding: var(--space-s);
-  background: var(--color-surface-translucent);
-  backdrop-filter: blur(8px);
+}
+
+.dock:has(.dock-tile.is-open) {
+  z-index: 15;
 }
 
 .dock-tile {
@@ -129,6 +136,22 @@
   width: 560px;
 }
 
+@media (width > 640px) {
+  .dock-card-wide {
+    position: fixed;
+    left: calc(var(--dock-outset) + env(safe-area-inset-left));
+    top: 0;
+    bottom: 0;
+    height: fit-content;
+    margin-block: auto;
+    transform: translateX(-6px);
+  }
+
+  .dock-tile.is-open .dock-card-wide {
+    transform: none;
+  }
+}
+
 .dock-card-section {
   display: flex;
   flex-direction: column;
@@ -224,8 +247,6 @@
     right: calc(var(--space-m) + env(safe-area-inset-right));
     top: auto;
     bottom: calc(var(--dock-inset) + env(safe-area-inset-bottom));
-    /* Nothing to centre vertically any more. */
-    transform: none;
     flex-direction: row;
     justify-content: center;
   }
@@ -270,7 +291,15 @@
     top: auto;
     bottom: calc(100% + var(--space-m));
     max-width: var(--dock-card-room);
-    max-height: 60vh;
+    max-height: calc(
+      100dvh -
+      env(safe-area-inset-top) -
+      env(safe-area-inset-bottom) -
+      2 *
+      var(--space-m) -
+      var(--control-height) -
+      var(--dock-outset)
+    );
     transform: translate(calc(-50% + var(--dock-card-shift, 0px)), 6px);
     /* The card takes its place at once instead of sliding into it: a card
        travelling from over its own tile would reach off the screen on the way,

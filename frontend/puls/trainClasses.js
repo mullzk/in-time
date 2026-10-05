@@ -6,9 +6,9 @@ import {
   CATEGORY_INTERCITY,
   CATEGORY_INTERREGIO,
   CATEGORY_REGIO,
+  CATEGORY_SBAHN,
 } from '../viz-core/data/transportCategories.js';
 
-const CATEGORY_SBAHN = 3;
 const REGIONAL_GREY = [120, 120, 120];
 const LARGE_DISC_PIXELS = 7;
 const SMALL_DISC_PIXELS = 3;

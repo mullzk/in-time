@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import {
   CORE_MINIMUM_RADIUS_PIXELS,
   HUB_LAYER_OPACITY,
+  hubGrowthFactor,
   hubLayerRadii,
 } from './hubLayers.js';
 import { INTERREGIO, LONG_DISTANCE, REGIONAL } from './trainClasses.js';
@@ -62,6 +63,36 @@ test('counts part-way between two whole trains give radii part-way between', () 
   const at = (interregio) =>
     hubLayerRadii(counts(0, interregio, 0))[INTERREGIO].outer;
   closeTo(at(1.5), (at(1) + at(2)) / 2);
+});
+
+test('only a narrow screen held upright holds the growth back', () => {
+  assert.ok(hubGrowthFactor(390, 844) < 1, 'phone upright');
+  assert.equal(hubGrowthFactor(844, 390), 1, 'phone turned sideways');
+  assert.equal(hubGrowthFactor(1440, 900), 1, 'desktop');
+  assert.equal(hubGrowthFactor(1200, 1600), 1, 'tall but wide enough');
+});
+
+test('a held-back hub grows less per train but keeps its resting core', () => {
+  const held = hubLayerRadii(counts(4, 0, 0), hubGrowthFactor(390, 844));
+  const full = hubLayerRadii(counts(4, 0, 0));
+
+  closeTo(
+    held[LONG_DISTANCE].outer - CORE_MINIMUM_RADIUS_PIXELS,
+    hubGrowthFactor(390, 844) *
+      (full[LONG_DISTANCE].outer - CORE_MINIMUM_RADIUS_PIXELS),
+  );
+  assert.equal(
+    hubLayerRadii(counts(0, 0, 0), hubGrowthFactor(390, 844))[LONG_DISTANCE]
+      .outer,
+    CORE_MINIMUM_RADIUS_PIXELS,
+  );
+});
+
+test('the layers of a held-back hub still nest without gap or overlap', () => {
+  const radii = hubLayerRadii(counts(2, 3, 4), hubGrowthFactor(390, 844));
+
+  assert.equal(radii[INTERREGIO].inner, radii[LONG_DISTANCE].outer);
+  assert.equal(radii[REGIONAL].inner, radii[INTERREGIO].outer);
 });
 
 test('the core is opaque and the rings grow more translucent outwards', () => {
