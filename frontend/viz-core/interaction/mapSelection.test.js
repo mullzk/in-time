@@ -3,9 +3,9 @@ import { test } from 'node:test';
 import { MapSelection, sameSelectionTarget } from './mapSelection.js';
 
 const station = (station) => ({ kind: 'station', station });
-const vehicle = (positionEngineIndex, tripIndex) => ({
+const vehicle = (networkIndex, tripIndex) => ({
   kind: 'vehicle',
-  vehicle: { positionEngineIndex, tripIndex },
+  vehicle: { networkIndex, tripIndex },
 });
 
 test('two picks of the same station are the same target', () => {
@@ -170,7 +170,7 @@ test('hovering a station shows a popover that re-anchors each frame', () => {
 
 test('hovering a vehicle shows and follows it', () => {
   const hoverPopover = makeFakePopover();
-  const bus = { east: 5, north: 6, positionEngineIndex: 0, tripIndex: 1 };
+  const bus = { east: 5, north: 6, networkIndex: 0, tripIndex: 1 };
   const { selection } = makeSelection({
     hoverPopover,
     panel: vehiclePanel(bus, { east: 7, north: 6 }),
@@ -187,7 +187,7 @@ test('hovering a vehicle shows and follows it', () => {
 
 test('a hovered vehicle whose trip ended hides its popover', () => {
   const hoverPopover = makeFakePopover();
-  const bus = { east: 5, north: 6, positionEngineIndex: 0, tripIndex: 1 };
+  const bus = { east: 5, north: 6, networkIndex: 0, tripIndex: 1 };
   const panel = vehiclePanel(bus, { east: 7, north: 6 });
   const { selection } = makeSelection({ hoverPopover, panel });
   const canvas = makeFakeCanvas();
@@ -278,7 +278,7 @@ test('a rail station wins over a vehicle on top of it', () => {
     vehicleAt: () => ({
       east: 5,
       north: 6,
-      positionEngineIndex: 0,
+      networkIndex: 0,
       tripIndex: 1,
     }),
     minorStationNear: () => null,
@@ -300,7 +300,7 @@ test('a vehicle wins over a nearby tram or bus stop', () => {
     vehicleAt: () => ({
       east: 5,
       north: 6,
-      positionEngineIndex: 0,
+      networkIndex: 0,
       tripIndex: 1,
     }),
     minorStationNear: () => ({ east: 100, north: 200, name: 'Tramhalt' }),

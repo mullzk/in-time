@@ -10,7 +10,6 @@ import {
   CATEGORY_REGIO,
   CATEGORY_TRAM,
   categoryColor,
-  categoryLabel,
   layerOfCategory,
 } from '../viz-core/data/transportCategories.js';
 import { Panel } from '../viz-core/panel.js';
@@ -19,6 +18,7 @@ import {
   nearestStation,
   nodeDiameterPixels,
   stationPickRadiusPixels,
+  VEHICLE_PICK_RADIUS_PIXELS,
 } from '../viz-core/render/stationNodes.js';
 import { BACKGROUNDS } from '../viz-core/render/tiles/tileSource.js';
 import {
@@ -32,7 +32,7 @@ import { drawnStationThatTravels } from '../viz-core/session/startStation.js';
 import { INSTRUMENTATIONS } from '../viz-core/sonification/presets.js';
 import { TRANSPORT_GROUPS } from '../viz-core/sonification/scheduling.js';
 import { SonificationEngine } from '../viz-core/sonification/sonificationEngine.js';
-import { VehiclePositionEngine } from '../viz-core/travel/vehiclePositionEngine.js';
+import { VehicleFleet } from '../viz-core/travel/vehicleFleet.js';
 import { buildInfoContent } from './infoContent.js';
 import { buildWelcomeContent } from './welcomeContent.js';
 
@@ -131,8 +131,6 @@ const CHOSEN_STATION_RING_WIDTH_PIXELS = 2;
 const CHOSEN_STATION_HALO_COLOR = [0, 0, 0, 140];
 const CHOSEN_STATION_HALO_WIDTH_PIXELS = 4;
 
-const VEHICLE_HIT_RADIUS_PIXELS = 10;
-
 // Zoom fraction at and above which the stops layer switches itself on; below it,
 // off. A manual toggle persists until the next crossing.
 const STOPS_ZOOM_THRESHOLD = 0.5;
@@ -184,7 +182,7 @@ export class TaktPanel extends Panel {
   constructor(railBuffer, railStations) {
     super();
     this.catalog = new StationCatalog([]);
-    this.positionEngines = [];
+    this.fleet = new VehicleFleet();
     this.soundEngines = [];
     this.clusterToDidoks = new Map();
     this.activeVehicles = [];
@@ -226,9 +224,7 @@ export class TaktPanel extends Panel {
   adoptSchedule(buffer, stations) {
     const points = readStationPoints(buffer);
     this.catalog.addPublished(stations, points);
-    // Trips index into their own blob's station list, so each engine keeps it.
-    const engine = new VehiclePositionEngine(buffer);
-    this.positionEngines.push({ engine, stations });
+    const engine = this.fleet.add(buffer, stations);
     this.soundEngines.push({
       engine: new SonificationEngine(engine.trips),
       didokToIndex: didokToIndex(stations),
@@ -278,13 +274,8 @@ export class TaktPanel extends Panel {
 
   update(currentTimeSeconds) {
     this.currentTimeSeconds = currentTimeSeconds;
-    this.activeVehicles = this.positionEngines
-      .flatMap(({ engine }, positionEngineIndex) =>
-        engine.activeAt(currentTimeSeconds).map((vehicle) => {
-          vehicle.positionEngineIndex = positionEngineIndex;
-          return vehicle;
-        }),
-      )
+    this.activeVehicles = this.fleet
+      .activeAt(currentTimeSeconds)
       .sort(
         (first, second) =>
           drawPriority(first.category) - drawPriority(second.category),
@@ -296,7 +287,7 @@ export class TaktPanel extends Panel {
   drawWorld(p, context) {
     context.drawTiles(p);
     if (this.layers.network) {
-      this.positionEngines.forEach(({ engine }) => {
+      this.fleet.engines().forEach((engine) => {
         context.drawBasemap(p, engine.edges);
       });
     }
@@ -351,9 +342,9 @@ export class TaktPanel extends Panel {
     vehicles.forEach((vehicle) => {
       const [r, g, b] = categoryColor(vehicle.category);
       const sampleCount = trailSampleCount(vehicle.category);
-      this.positionEngines[vehicle.positionEngineIndex].engine
+      this.fleet
         .trailPositions(
-          vehicle.tripIndex,
+          vehicle,
           this.currentTimeSeconds,
           sampleCount,
           trailSpacingSeconds(vehicle.category),
@@ -668,29 +659,16 @@ export class TaktPanel extends Panel {
       this.camera,
       screenX,
       screenY,
-      VEHICLE_HIT_RADIUS_PIXELS,
+      VEHICLE_PICK_RADIUS_PIXELS,
     );
   }
 
   describeVehicle(vehicle) {
-    const { engine, stations } =
-      this.positionEngines[vehicle.positionEngineIndex];
-    const { originStation, destinationStation } = engine.tripEndpoints(
-      vehicle.tripIndex,
-    );
-    return {
-      label: categoryLabel(vehicle.category),
-      category: vehicle.category,
-      origin: stations[originStation]?.name,
-      destination: stations[destinationStation]?.name,
-    };
+    return this.fleet.describe(vehicle);
   }
 
   vehiclePosition(vehicle, currentTimeSeconds) {
-    return this.positionEngines[vehicle.positionEngineIndex].engine.positionAt(
-      vehicle.tripIndex,
-      currentTimeSeconds,
-    );
+    return this.fleet.positionOf(vehicle, currentTimeSeconds);
   }
 
   toggleStops() {

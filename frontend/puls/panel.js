@@ -3,13 +3,13 @@
  * classes, and the base hubs swelling with the trains standing in them.
  */
 import { phasesIcon } from '../viz-core/controls/dockIcons.js';
-import { categoryLabel } from '../viz-core/data/transportCategories.js';
 import { Panel } from '../viz-core/panel.js';
 import {
   nearestStation,
   stationPickRadiusPixels,
+  VEHICLE_PICK_RADIUS_PIXELS,
 } from '../viz-core/render/stationNodes.js';
-import { VehiclePositionEngine } from '../viz-core/travel/vehiclePositionEngine.js';
+import { VehicleFleet } from '../viz-core/travel/vehicleFleet.js';
 import {
   HUB_LAYER_OPACITY,
   HUB_NEUTRAL_COLOR,
@@ -39,9 +39,6 @@ const NETWORK_COLOR = [205, 205, 205];
 const NETWORK_WIDTH_PIXELS = 1;
 const OPAQUE = 255;
 
-const VEHICLE_HIT_RADIUS_PIXELS = 10;
-const ONLY_POSITION_ENGINE_INDEX = 0;
-
 export class PulsPanel extends Panel {
   capabilities = {
     simulationSpeed: true,
@@ -53,8 +50,8 @@ export class PulsPanel extends Panel {
     super();
     this.stationClock = stationClock;
     this.hubLegend = hubLegend;
-    this.engine = new VehiclePositionEngine(railBuffer);
-    this.railStations = railStations;
+    this.fleet = new VehicleFleet();
+    this.engine = this.fleet.add(railBuffer, railStations);
     this.networkEdges = edgesTravelledBy(this.engine.trips, this.engine.edges);
     this.hubs = hubsOf(railStations, this.engine.stations, this.engine.trips);
     this.hubSpansByTrip = hubSpansByTrip(
@@ -141,12 +138,11 @@ export class PulsPanel extends Panel {
     this.hubs.forEach((hub) => {
       hub.easeTowardsTheTrainsStandingAt(currentTimeSeconds, deltaSeconds);
     });
-    this.trains = this.engine
+    this.trains = this.fleet
       .activeAt(currentTimeSeconds)
       .map((train) => ({
         ...train,
         trainClass: trainClassOf(train.category),
-        positionEngineIndex: ONLY_POSITION_ENGINE_INDEX,
       }))
       .filter(({ trainClass }) => trainClass !== null)
       .sort(
@@ -252,22 +248,15 @@ export class PulsPanel extends Panel {
       this.camera,
       screenX,
       screenY,
-      VEHICLE_HIT_RADIUS_PIXELS,
+      VEHICLE_PICK_RADIUS_PIXELS,
     );
   }
 
-  describeVehicle({ tripIndex, category }) {
-    const { originStation, destinationStation } =
-      this.engine.tripEndpoints(tripIndex);
-    return {
-      label: categoryLabel(category),
-      category,
-      origin: this.railStations[originStation]?.name,
-      destination: this.railStations[destinationStation]?.name,
-    };
+  describeVehicle(vehicle) {
+    return this.fleet.describe(vehicle);
   }
 
-  vehiclePosition({ tripIndex }, currentTimeSeconds) {
-    return this.engine.positionAt(tripIndex, currentTimeSeconds);
+  vehiclePosition(vehicle, currentTimeSeconds) {
+    return this.fleet.positionOf(vehicle, currentTimeSeconds);
   }
 }
