@@ -45,8 +45,10 @@ export class InfoCard {
     const anchor = element('a', 'info-card-link');
     anchor.textContent = label;
     anchor.href = href;
-    anchor.target = '_blank';
-    anchor.rel = 'noopener';
+    if (!href.startsWith('mailto:')) {
+      anchor.target = '_blank';
+      anchor.rel = 'noopener';
+    }
     return anchor;
   }
 

@@ -6,7 +6,7 @@ import { TrackedPopover } from './trackedPopover.js';
 
 // Whether two picks mean the same target -- what a double click and a finger's
 // second tap are recognised by. Stations are stable objects, but vehicleAt
-// rebuilds its picks every frame, so vehicles compare by their engine and trip
+// rebuilds its picks every frame, so vehicles compare by their network and trip
 // index instead of reference.
 export function sameSelectionTarget(first, second) {
   if (first.kind !== second.kind) {
@@ -16,7 +16,7 @@ export function sameSelectionTarget(first, second) {
     return first.station === second.station;
   }
   return (
-    first.vehicle.positionEngineIndex === second.vehicle.positionEngineIndex &&
+    first.vehicle.networkIndex === second.vehicle.networkIndex &&
     first.vehicle.tripIndex === second.vehicle.tripIndex
   );
 }

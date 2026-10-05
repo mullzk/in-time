@@ -261,13 +261,11 @@ def test_a_station_in_the_address_keeps_the_canonical_view(
     assert f'<link rel="canonical" href="{canonical}" />' in markup
 
 
-def test_only_the_unlisted_view_is_kept_out_of_the_index(
-    client: Client, published: Path
+@pytest.mark.parametrize("address", ["/takt", "/puls", "/kaskade", "/zeitkarte"])
+def test_every_view_is_left_in_the_index(
+    client: Client, published: Path, address: str
 ) -> None:
-    assert '<meta name="robots" content="noindex" />' in (
-        client.get("/puls").content.decode("utf-8")
-    )
-    assert "noindex" not in client.get("/takt").content.decode("utf-8")
+    assert "noindex" not in client.get(address).content.decode("utf-8")
 
 
 def test_robots_leaves_the_views_crawlable(client: Client) -> None:

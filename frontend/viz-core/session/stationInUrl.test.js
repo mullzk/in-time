@@ -153,3 +153,23 @@ test('a link to another view carries the station chosen since the page loaded', 
 
   assert.equal(stationInUrl.linkTo('/kaskade'), '/kaskade/z%C3%BCrich-hb');
 });
+
+test('a view that carries no station is linked to without one', () => {
+  const stationInUrl = stationInUrlAt('/takt/bern', '?mode=exhibition');
+
+  assert.equal(stationInUrl.linkTo('/puls'), '/puls?mode=exhibition');
+});
+
+test('a view that carries no station never writes one into the address', () => {
+  const stationInUrl = stationInUrlAt('/puls');
+
+  stationInUrl.show({ name: 'Bern' });
+  stationInUrl.forget();
+
+  assert.deepEqual(stationInUrl.history.written, []);
+  assert.equal(stationInUrl.slug, null);
+});
+
+test('a station typed at a view that carries none is ignored', () => {
+  assert.equal(stationInUrlAt('/puls/bern').slug, null);
+});

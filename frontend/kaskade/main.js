@@ -5,8 +5,12 @@ import {
   departureToOpenOn,
   secondsOfDayInZurich,
 } from '../viz-core/time/openingTime.js';
-import { MAX_TEMPO, TimeModel } from '../viz-core/time/timeModel.js';
+import { TimeModel } from '../viz-core/time/timeModel.js';
 import { KaskadePanel } from './panel.js';
+
+// A spread covers an hour and is worth watching in a minute, so it runs far
+// faster than the default -- but not at the tempo scale's own maximum.
+const SPREAD_TEMPO = 15 * 60;
 
 const root = document.getElementById('viz-root');
 
@@ -35,7 +39,7 @@ async function bootstrap() {
   });
   const shell = new PanelShell(root, panel, time, stationInUrl);
   shell.start();
-  time.setTempo(MAX_TEMPO);
+  time.setTempo(SPREAD_TEMPO);
   shell.startPlayback();
 
   result.roadBuffer

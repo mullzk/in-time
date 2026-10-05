@@ -16,6 +16,7 @@ const TILES = [
     sections: ['tempo', 'clock', 'departure'],
     group: VIEW,
   },
+  { id: 'phases', label: 'Farb-Phasen', sections: ['phases'], group: VIEW },
   { id: 'views', label: 'Ansichten', sections: ['views'], group: APP },
   { id: 'info', label: 'Info', sections: ['info'], wideCard: true, group: APP },
 ];

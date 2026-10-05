@@ -8,8 +8,20 @@ test('every intro link carries a label and an absolute href', () => {
   assert.ok(links.length > 0);
   links.forEach(({ label, href }) => {
     assert.ok(label.length > 0);
-    assert.ok(href.startsWith('https://'));
+    assert.ok(href.startsWith('https://') || href.startsWith('mailto:'));
   });
+});
+
+test('the contact address is offered as a mail link', () => {
+  const { intro } = buildInfoContent();
+  const mailLinks = intro
+    .flat()
+    .filter((part) => typeof part !== 'string')
+    .filter(({ href }) => href.startsWith('mailto:'));
+  assert.equal(mailLinks.length, 1);
+  const [{ label, href }] = mailLinks;
+  assert.match(label, /^[\w.]+@[\w.]+\.[a-z]+$/);
+  assert.equal(href, `mailto:${label}`);
 });
 
 test('the key that switches to the colour-blind scheme is listed', () => {

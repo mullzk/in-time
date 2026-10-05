@@ -33,7 +33,7 @@ const isExhibition = () =>
 const backgroundById = (id) =>
   BACKGROUNDS.find((background) => background.id === id) ?? null;
 
-const BLACK_BACKGROUND = backgroundById('black');
+const BACKGROUND_WITHOUT_A_MAP = backgroundById('black');
 
 const sectionWhen = (isOffered, section) => (isOffered ? [section] : []);
 
@@ -57,11 +57,11 @@ export class PanelShell {
     this.welcome = new NoWelcome();
     this.welcomeContent = null;
     this.playbackAwaitsTheWelcome = false;
-    // A panel that draws no map gets the black ground and no chooser; one that
-    // does may name the background it opens on.
+    // A panel that draws no map gets no tiles and no chooser; one that does may
+    // name the background it opens on.
     this.background = panel.capabilities.mapBackground
       ? (backgroundById(panel.initialBackgroundId?.()) ?? BACKGROUNDS[0])
-      : BLACK_BACKGROUND;
+      : BACKGROUND_WITHOUT_A_MAP;
     this.camera = new Camera(root.clientWidth, root.clientHeight);
     this.context = new PanelContext({
       camera: this.camera,

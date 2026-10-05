@@ -31,3 +31,18 @@ test('every view path is absolute, so a link never depends on where it hangs', (
     assert.ok(view.path.startsWith('/'), view.path);
   });
 });
+
+test('the gallery shows Puls last', () => {
+  assert.deepEqual(
+    VIEWS.map((view) => view.label),
+    ['Takt', 'Kaskade', 'Zeitkarte', 'Puls'],
+  );
+});
+
+test('every view says whether it carries a station in its address', () => {
+  VIEWS.forEach((view) => {
+    assert.equal(typeof view.carriesStation, 'boolean', view.path);
+  });
+  assert.equal(viewAt('/puls').carriesStation, false);
+  assert.equal(viewAt('/takt').carriesStation, true);
+});

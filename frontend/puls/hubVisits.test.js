@@ -1,11 +1,14 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
+  hubSpansByTrip,
   hubVisits,
   standingCounts,
   standingSpan,
   TERMINUS_DWELL_SECONDS,
+  withinAHubSpan,
 } from './hubVisits.js';
+import { ARRIVING, DEPARTING } from './taktPhase.js';
 import { INTERREGIO, LONG_DISTANCE, REGIONAL } from './trainClasses.js';
 
 const HUB = 7;
@@ -89,5 +92,94 @@ test('an empty hub counts nothing in every class', () => {
     [LONG_DISTANCE]: 0,
     [INTERREGIO]: 0,
     [REGIONAL]: 0,
+  });
+});
+
+const HUB_STATIONS = new Set([HUB]);
+const FAR = 2;
+const FURTHER = 3;
+
+const LONG_RUN = trip(0, [
+  call(ELSEWHERE, 0, 0),
+  call(FAR, 100, 110),
+  call(FURTHER, 200, 210),
+  call(HUB, 300, 360),
+  call(ELSEWHERE, 500, 500),
+]);
+
+test('the run to a hub and the run away from it are told apart', () => {
+  const [spans] = hubSpansByTrip([LONG_RUN], HUB_STATIONS);
+
+  assert.deepEqual(spans, [
+    { phase: ARRIVING, from: 210, to: 360 },
+    { phase: DEPARTING, from: 360, to: 500 },
+  ]);
+});
+
+test('a train heading for a hub shows no departure phase, whatever the clock says', () => {
+  const [spans] = hubSpansByTrip([LONG_RUN], HUB_STATIONS);
+
+  assert.ok(withinAHubSpan(spans, ARRIVING, 250), 'on its way to the hub');
+  assert.ok(!withinAHubSpan(spans, DEPARTING, 250), 'it left no hub behind');
+});
+
+test('a train that has left a hub shows no arrival phase', () => {
+  const [spans] = hubSpansByTrip([LONG_RUN], HUB_STATIONS);
+
+  assert.ok(withinAHubSpan(spans, DEPARTING, 450), 'on its way out');
+  assert.ok(!withinAHubSpan(spans, ARRIVING, 450), 'no hub lies ahead');
+});
+
+test('a run far from its hub belongs to neither phase', () => {
+  const [spans] = hubSpansByTrip([LONG_RUN], HUB_STATIONS);
+
+  [ARRIVING, DEPARTING].forEach((phase) => {
+    assert.ok(!withinAHubSpan(spans, phase, 150), 'two calls short of the hub');
+    assert.ok(!withinAHubSpan(spans, phase, 501), 'the run is over');
+  });
+});
+
+test('a run touching no hub belongs to none', () => {
+  const [spans] = hubSpansByTrip(
+    [trip(0, [call(ELSEWHERE, 0, 0), call(FAR, 100, 100)])],
+    HUB_STATIONS,
+  );
+
+  assert.deepEqual(spans, []);
+});
+
+test('a run starting at a hub has no approach to it, one ending there no departure', () => {
+  const [starts, ends] = hubSpansByTrip(
+    [
+      trip(0, [call(HUB, 0, 60), call(FAR, 200, 200)]),
+      trip(0, [call(FAR, 0, 0), call(HUB, 200, 200)]),
+    ],
+    HUB_STATIONS,
+  );
+
+  assert.deepEqual(starts, [{ phase: DEPARTING, from: 60, to: 200 }]);
+  assert.deepEqual(ends, [{ phase: ARRIVING, from: 0, to: 200 }]);
+});
+
+test('a run between two hubs leaves one and reaches the next', () => {
+  const [spans] = hubSpansByTrip(
+    [
+      trip(0, [
+        call(HUB, 0, 60),
+        call(FAR, 200, 210),
+        call(FURTHER, 400, 410),
+        call(HUB, 600, 600),
+      ]),
+    ],
+    HUB_STATIONS,
+  );
+
+  assert.ok(withinAHubSpan(spans, DEPARTING, 100), 'still leaving the first');
+  assert.ok(withinAHubSpan(spans, ARRIVING, 500), 'already nearing the second');
+  [ARRIVING, DEPARTING].forEach((phase) => {
+    assert.ok(
+      !withinAHubSpan(spans, phase, 300),
+      'the stretch between is bare',
+    );
   });
 });

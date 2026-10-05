@@ -36,6 +36,9 @@ export function stationPickRadiusPixels(zoomFraction) {
   );
 }
 
+// Tighter than a station's reach: a vehicle is aimed at between the nodes.
+export const VEHICLE_PICK_RADIUS_PIXELS = 10;
+
 export function nearestStation(stations, camera, screenX, screenY, maxPixels) {
   let nearest = null;
   let nearestDistanceSquared = maxPixels * maxPixels;

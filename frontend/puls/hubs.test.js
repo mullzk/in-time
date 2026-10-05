@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { hubLayerRadii } from './hubLayers.js';
-import { HUB_DIDOKS, hubsOf } from './hubs.js';
+import { everyHubStationIndex, HUB_DIDOKS, hubsOf } from './hubs.js';
 import { INTERREGIO, LONG_DISTANCE, REGIONAL } from './trainClasses.js';
 
-const [FIRST_HUB] = HUB_DIDOKS;
+const [FIRST_HUB, SECOND_HUB] = HUB_DIDOKS;
 const OUTSIDE = 1_000_001;
 
 const STATIONS = [
@@ -56,4 +56,23 @@ test('a hub counts the trains standing at every station of its cluster', () => {
     hub.layerRadii(),
     hubLayerRadii({ [LONG_DISTANCE]: 1, [INTERREGIO]: 0, [REGIONAL]: 1 }),
   );
+});
+
+test('every platform of a hub cluster is a station the hub is served at', () => {
+  assert.deepEqual([...everyHubStationIndex(STATIONS)].sort(), [1, 2]);
+});
+
+test('a hub missing from the published day contributes no station', () => {
+  const withoutAnyHub = [{ didok: OUTSIDE, name: 'Irgendwo' }];
+
+  assert.equal(everyHubStationIndex(withoutAnyHub).size, 0);
+});
+
+test('every hub of the published day is covered, not just the first', () => {
+  const twoHubs = [
+    ...STATIONS,
+    { didok: SECOND_HUB, name: 'Zweiter Knoten', cluster: SECOND_HUB },
+  ];
+
+  assert.deepEqual([...everyHubStationIndex(twoHubs)].sort(), [1, 2, 3]);
 });

@@ -26,8 +26,8 @@ export class Hub {
     );
   }
 
-  layerRadii() {
-    return hubLayerRadii(this.counts);
+  layerRadii(growthFactor) {
+    return hubLayerRadii(this.counts, growthFactor);
   }
 }
 
@@ -36,6 +36,11 @@ const clusterStationIndices = (stations, didok) =>
     stations.flatMap((station, index) =>
       station.didok === didok || station.cluster === didok ? [index] : [],
     ),
+  );
+
+export const everyHubStationIndex = (stations) =>
+  new Set(
+    HUB_DIDOKS.flatMap((didok) => [...clusterStationIndices(stations, didok)]),
   );
 
 export function hubsOf(stations, stationPositions, trips) {

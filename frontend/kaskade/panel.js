@@ -10,7 +10,6 @@ import {
   CATEGORY_INTERREGIO,
   CATEGORY_TRAM,
   categoryColor,
-  categoryLabel,
 } from '../viz-core/data/transportCategories.js';
 import { Panel } from '../viz-core/panel.js';
 import {
@@ -18,6 +17,7 @@ import {
   nearestStation,
   nodeDiameterPixels,
   stationPickRadiusPixels,
+  VEHICLE_PICK_RADIUS_PIXELS,
 } from '../viz-core/render/stationNodes.js';
 import {
   StartStationChoice,
@@ -29,7 +29,7 @@ import { formatTimeOfDay } from '../viz-core/time/timeOfDay.js';
 import { buildConnectionList } from '../viz-core/travel/connectionList.js';
 import { ConnectionScan } from '../viz-core/travel/connectionScan.js';
 import { JourneyOnTheGround } from '../viz-core/travel/journeyOnTheGround.js';
-import { VehiclePositionEngine } from '../viz-core/travel/vehiclePositionEngine.js';
+import { VehicleFleet } from '../viz-core/travel/vehicleFleet.js';
 import { buildInfoContent } from './infoContent.js';
 import { ReachedPlaces } from './reachedPlaces.js';
 import { SettledLayer } from './settledLayer.js';
@@ -52,8 +52,6 @@ const START_NODE_SIZE_FACTOR = 2.4;
 const VEHICLE_DIAMETER_PIXELS = 5;
 const START_COLOR = [255, 255, 255];
 const START_RING_WIDTH_PIXELS = 1.5;
-
-const VEHICLE_HIT_RADIUS_PIXELS = 10;
 
 // The line is drawn against the ground it lies on: white on the black one, and
 // laid on in black wherever the map itself is light. Thin and half see-through,
@@ -99,7 +97,7 @@ export class KaskadePanel extends Panel {
   ) {
     super();
     this.catalog = new StationCatalog([]);
-    this.networks = [];
+    this.fleet = new VehicleFleet();
     this.startTimeSeconds = startTimeSeconds;
     this.startStationChoice = new StartStationChoice(addressedStationSlug, {
       drawsOnItsOwn: false,
@@ -136,14 +134,13 @@ export class KaskadePanel extends Panel {
   // The road blob arrives after the first picture stands, so the connection
   // list is rebuilt around it.
   adoptSchedule(buffer, stations) {
-    const engine = new VehiclePositionEngine(buffer);
     this.catalog.addPublished(stations, readStationPoints(buffer));
-    this.networks.push({ engine, trips: engine.trips, stations });
-    this.connections = buildConnectionList(this.networks);
+    this.fleet.add(buffer, stations);
+    this.connections = buildConnectionList(this.fleet.networks);
     this.scan = new ConnectionScan(this.connections);
     this.journeys = new JourneyOnTheGround(
       this.connections,
-      this.networks.map((network) => network.engine),
+      this.fleet.engines(),
     );
     this.#settleOnAStartStation();
     this.#rescan();
@@ -253,7 +250,7 @@ export class KaskadePanel extends Panel {
     return this.tree.rides().map((ride) => ({
       ...ride,
       category: this.connections.categoryOfTrip(ride.trip),
-      positionEngineIndex: this.connections.networkOfTrip(ride.trip),
+      networkIndex: this.connections.networkOfTrip(ride.trip),
       tripIndex: this.connections.tripInNetwork(ride.trip),
     }));
   }
@@ -548,28 +545,16 @@ export class KaskadePanel extends Panel {
       this.camera,
       screenX,
       screenY,
-      VEHICLE_HIT_RADIUS_PIXELS,
+      VEHICLE_PICK_RADIUS_PIXELS,
     );
   }
 
   describeVehicle(vehicle) {
-    const { engine, stations } = this.networks[vehicle.positionEngineIndex];
-    const { originStation, destinationStation } = engine.tripEndpoints(
-      vehicle.tripIndex,
-    );
-    return {
-      label: categoryLabel(vehicle.category),
-      category: vehicle.category,
-      origin: stations[originStation]?.name,
-      destination: stations[destinationStation]?.name,
-    };
+    return this.fleet.describe(vehicle);
   }
 
   vehiclePosition(vehicle, seconds) {
-    return this.networks[vehicle.positionEngineIndex].engine.positionAt(
-      vehicle.tripIndex,
-      seconds,
-    );
+    return this.fleet.positionOf(vehicle, seconds);
   }
 
   infoContent() {
