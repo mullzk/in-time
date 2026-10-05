@@ -4,6 +4,7 @@
  */
 import { phasesIcon } from '../viz-core/controls/dockIcons.js';
 import { Panel } from '../viz-core/panel.js';
+import { strokePolylines } from '../viz-core/render/polylines.js';
 import {
   nearestStation,
   stationPickRadiusPixels,
@@ -167,13 +168,7 @@ export class PulsPanel extends Panel {
     p.noFill();
     p.stroke(...NETWORK_COLOR);
     p.strokeWeight(NETWORK_WIDTH_PIXELS * worldPerPixel);
-    this.networkEdges.forEach((polyline) => {
-      p.beginShape();
-      polyline.forEach(([east, north]) => {
-        p.vertex(east, north);
-      });
-      p.endShape();
-    });
+    strokePolylines(p, this.networkEdges);
   }
 
   #drawTrains(p, worldPerPixel) {

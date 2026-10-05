@@ -5,6 +5,8 @@
 export const CATEGORY_INTERCITY = 0;
 export const CATEGORY_INTERREGIO = 1;
 export const CATEGORY_REGIO = 2;
+export const CATEGORY_SBAHN = 3;
+export const CATEGORY_OTHER_RAIL = 4;
 export const CATEGORY_TRAM = 5;
 export const CATEGORY_BUS = 6;
 
@@ -96,8 +98,8 @@ const LAYER_BY_CATEGORY = new Map([
   [CATEGORY_INTERCITY, 'fernverkehr'],
   [CATEGORY_INTERREGIO, 'interregio'],
   [CATEGORY_REGIO, 'regionalverkehr'],
-  [3, 'regionalverkehr'],
-  [4, 'regionalverkehr'],
+  [CATEGORY_SBAHN, 'regionalverkehr'],
+  [CATEGORY_OTHER_RAIL, 'regionalverkehr'],
   [CATEGORY_TRAM, 'tram'],
   [CATEGORY_BUS, 'bus'],
 ]);

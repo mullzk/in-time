@@ -1,16 +1,10 @@
 import { StationClock } from '../viz-core/controls/stationClock.js';
 import { loadSchedule } from '../viz-core/data/loader.js';
 import { PanelShell } from '../viz-core/panelShell.js';
-import {
-  playbackToOpenOn,
-  secondsOfDayInZurich,
-} from '../viz-core/time/openingTime.js';
-import { SECONDS_PER_DAY, TimeModel } from '../viz-core/time/timeModel.js';
+import { clockOnTheLoopingDay } from '../viz-core/time/scheduleDay.js';
 import { HubLegend } from './hubLegend.js';
 import { PulsPanel } from './panel.js';
 
-const DAY_CUT_SECONDS = 3 * 3600;
-const PLAYBACK_LEAD_SECONDS = 10 * 60;
 // Fast enough that the swell and ebb of a half hour reads as one gesture.
 const PULSE_TEMPO = 8 * 60;
 
@@ -23,16 +17,7 @@ async function bootstrap() {
     return;
   }
 
-  const time = new TimeModel(
-    DAY_CUT_SECONDS,
-    DAY_CUT_SECONDS + SECONDS_PER_DAY,
-  );
-  time.seekToTime(
-    playbackToOpenOn(secondsOfDayInZurich(), {
-      leadSeconds: PLAYBACK_LEAD_SECONDS,
-    }),
-  );
-
+  const time = clockOnTheLoopingDay();
   const panel = new PulsPanel(
     result.railBuffer,
     result.railStations,
