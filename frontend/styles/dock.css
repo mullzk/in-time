@@ -10,10 +10,16 @@
   position: absolute;
   z-index: 13;
   left: calc(var(--dock-inset) + env(safe-area-inset-left));
-  top: 50%;
-  transform: translateY(-50%);
+  top: 0;
+  bottom: 0;
+  height: fit-content;
+  margin-block: auto;
   display: flex;
   flex-direction: column;
+}
+
+.dock:has(.dock-tile.is-open) {
+  z-index: 15;
 }
 
 .dock-tile {
@@ -130,6 +136,22 @@
   width: 560px;
 }
 
+@media (width > 640px) {
+  .dock-card-wide {
+    position: fixed;
+    left: calc(var(--dock-outset) + env(safe-area-inset-left));
+    top: 0;
+    bottom: 0;
+    height: fit-content;
+    margin-block: auto;
+    transform: translateX(-6px);
+  }
+
+  .dock-tile.is-open .dock-card-wide {
+    transform: none;
+  }
+}
+
 .dock-card-section {
   display: flex;
   flex-direction: column;
@@ -225,8 +247,6 @@
     right: calc(var(--space-m) + env(safe-area-inset-right));
     top: auto;
     bottom: calc(var(--dock-inset) + env(safe-area-inset-bottom));
-    /* Nothing to centre vertically any more. */
-    transform: none;
     flex-direction: row;
     justify-content: center;
   }
@@ -271,7 +291,15 @@
     top: auto;
     bottom: calc(100% + var(--space-m));
     max-width: var(--dock-card-room);
-    max-height: 60vh;
+    max-height: calc(
+      100dvh -
+      env(safe-area-inset-top) -
+      env(safe-area-inset-bottom) -
+      2 *
+      var(--space-m) -
+      var(--control-height) -
+      var(--dock-outset)
+    );
     transform: translate(calc(-50% + var(--dock-card-shift, 0px)), 6px);
     /* The card takes its place at once instead of sliding into it: a card
        travelling from over its own tile would reach off the screen on the way,

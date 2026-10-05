@@ -4,9 +4,9 @@
 // is served by one route rather than two.
 export const VIEWS = [
   { path: '/takt', label: 'Takt', carriesStation: true },
-  { path: '/puls', label: 'Puls', carriesStation: false },
   { path: '/kaskade', label: 'Kaskade', carriesStation: true },
   { path: '/zeitkarte', label: 'Zeitkarte', carriesStation: true },
+  { path: '/puls', label: 'Puls', carriesStation: false },
 ];
 
 // A view's name is the head of the address; what follows is the station.

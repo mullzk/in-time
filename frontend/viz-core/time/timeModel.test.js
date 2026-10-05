@@ -38,7 +38,7 @@ test('playback loops back over the operating window', () => {
 test('tempo is clamped and defaults to 240', () => {
   const time = new TimeModel(1000, 2000);
   assert.equal(time.tempo, DEFAULT_TEMPO);
-  time.setTempo(10);
+  time.setTempo(0.5);
   assert.equal(time.tempo, MIN_TEMPO);
   time.setTempo(9000);
   assert.equal(time.tempo, MAX_TEMPO);

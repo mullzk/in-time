@@ -1,5 +1,7 @@
 // The Takt panel's info-modal content.
 
+import { contactLink } from '../viz-core/controls/contactLink.js';
+
 const link = (label, href) => ({ label, href });
 
 export function buildInfoContent() {
@@ -40,6 +42,8 @@ export function buildInfoContent() {
           'github.com/mullzk/in-time/',
           'https://github.com/mullzk/in-time/',
         ),
+        '. Kontakt: ',
+        contactLink(),
         '.',
       ],
       [

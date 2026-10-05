@@ -8,9 +8,9 @@ of the Swiss clock-face timetable (Taktfahrplan). See https://all-in-time.ch
 Four views on the same day, one page each, switched by a page load:
 
 - **`/takt`** — the day's timetable as pulsing motion; sonified.
-- **`/puls`** — the base hubs swelling with the trains standing in them.
 - **`/kaskade`** — reachability spreading from a station over time.
 - **`/zeitkarte`** — a radial still image of travel times from a station.
+- **`/puls`** — the base hubs swelling with the trains standing in them.
 
 All but Puls take an optional station in the path (`/takt/zürich-hb`); Puls
 shows every hub at once and so carries none. `?mode=exhibition` is the

@@ -55,8 +55,8 @@
   :root {
     --control-height: 32px;
     /* The dock lies along the foot of the picture here, over the map credit in
-       the corner, so it stands further off the edge. */
-    --dock-inset: calc(var(--space-m) + var(--space-l));
+       the corner, so it stands just clear of the credit's single line. */
+    --dock-inset: calc(var(--space-m) + var(--space-s));
   }
 }
 

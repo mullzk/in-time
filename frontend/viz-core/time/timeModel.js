@@ -1,6 +1,6 @@
-export const MIN_TEMPO = 10;
-// One real second for one scheduled hour: the whole clock-face day in 24 s.
-export const MAX_TEMPO = 3600;
+export const MIN_TEMPO = 1;
+// One real second for one scheduled half hour: the whole clock-face day in 48 s.
+export const MAX_TEMPO = 1800;
 export const DEFAULT_TEMPO = 240;
 export const SECONDS_PER_DAY = 24 * 3600;
 

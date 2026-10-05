@@ -32,10 +32,10 @@ test('every view path is absolute, so a link never depends on where it hangs', (
   });
 });
 
-test('the gallery shows Puls between Takt and Kaskade', () => {
+test('the gallery shows Puls last', () => {
   assert.deepEqual(
     VIEWS.map((view) => view.label),
-    ['Takt', 'Puls', 'Kaskade', 'Zeitkarte'],
+    ['Takt', 'Kaskade', 'Zeitkarte', 'Puls'],
   );
 });
 
