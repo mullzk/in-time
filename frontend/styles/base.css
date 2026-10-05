@@ -45,6 +45,10 @@
      into it -- the second is what anything standing clear of the dock reads. */
   --dock-inset: var(--space-m);
   --dock-outset: calc(var(--dock-inset) + var(--dock-tile) + var(--space-m));
+  --color-station-clock-face: #ffffff;
+  --color-station-clock-rim: #b4b4b4;
+  --color-station-clock-ink: #000000;
+  --station-clock-size: 96px;
   --font-size-caption: 12px;
   --attribution-width: 160px;
   --transition-panel: 0.25s ease;
@@ -57,6 +61,7 @@
     /* The dock lies along the foot of the picture here, over the map credit in
        the corner, so it stands just clear of the credit's single line. */
     --dock-inset: calc(var(--space-m) + var(--space-s));
+    --station-clock-size: 64px;
   }
 }
 

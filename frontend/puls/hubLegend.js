@@ -3,12 +3,12 @@
  * opacities as the canvas.
  */
 import { element } from '../viz-core/controls/dom.js';
+import { svgElement } from '../viz-core/controls/svg.js';
 import {
   HUB_LAYER_OPACITY,
   HUB_NEUTRAL_COLOR,
   HUB_STEADY_COLOR,
 } from './hubLayers.js';
-import { svgElement } from './svg.js';
 import { TRAIN_CLASSES } from './trainClasses.js';
 
 const SWATCH_RADIUS = 7;

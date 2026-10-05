@@ -1,3 +1,4 @@
+import { StationClock } from '../viz-core/controls/stationClock.js';
 import { loadSchedule } from '../viz-core/data/loader.js';
 import { PanelShell } from '../viz-core/panelShell.js';
 import {
@@ -7,7 +8,6 @@ import {
 import { SECONDS_PER_DAY, TimeModel } from '../viz-core/time/timeModel.js';
 import { HubLegend } from './hubLegend.js';
 import { PulsPanel } from './panel.js';
-import { StationClock } from './stationClock.js';
 
 const DAY_CUT_SECONDS = 3 * 3600;
 const PLAYBACK_LEAD_SECONDS = 10 * 60;

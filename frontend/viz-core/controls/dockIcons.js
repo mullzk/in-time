@@ -6,17 +6,9 @@ import {
   CATEGORY_TRAM,
   categoryColor,
 } from '../data/transportCategories.js';
+import { svgElement } from './svg.js';
 
-const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
 const ICON_SIZE = 24;
-
-const svgElement = (tag, attributes) => {
-  const node = document.createElementNS(SVG_NAMESPACE, tag);
-  Object.entries(attributes).forEach(([name, value]) => {
-    node.setAttribute(name, String(value));
-  });
-  return node;
-};
 
 const icon = (...children) => {
   const svg = svgElement('svg', {

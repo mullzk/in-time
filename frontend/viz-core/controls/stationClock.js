@@ -3,7 +3,7 @@
  * of jumping by the minute: the schedule runs many times faster than the wall
  * clock, and jumps would stutter.
  */
-import { formatTimeOfDay } from '../viz-core/time/timeOfDay.js';
+import { formatTimeOfDay } from '../time/timeOfDay.js';
 import { svgElement } from './svg.js';
 
 const MINUTE_STEPS = 60;
