@@ -87,8 +87,18 @@ function makeSelection({
 } = {}) {
   const camera = {
     pan: 0,
+    centerEast: 0,
+    centerNorth: 0,
+    zoomedOut: false,
     worldToScreen(east, north) {
       return [east + this.pan, north];
+    },
+    centerOn(east, north) {
+      this.centerEast = east;
+      this.centerNorth = north;
+    },
+    fullyZoomedOut() {
+      return this.zoomedOut;
     },
   };
   const focused = [];
@@ -197,6 +207,109 @@ test('a hovered vehicle whose trip ended hides its popover', () => {
   panel.vehiclePosition = () => null;
   selection.onFrameRendered();
   assert.deepEqual(hoverPopover.calls.at(-1), ['hide']);
+});
+
+const mouseClick = (canvas, clientX, clientY) => {
+  const event = { pointerId: 1, pointerType: 'mouse', clientX, clientY };
+  canvas.handlers.pointerdown(event);
+  canvas.handlers.pointerup(event);
+};
+
+const followingPanel = (vehicle, position) => ({
+  ...vehiclePanel(vehicle, position),
+  capabilities: { followSelectedVehicle: true },
+});
+
+function selectionFollowing(panel) {
+  const made = makeSelection({ panel });
+  const canvas = makeFakeCanvas();
+  made.selection.attachTo(canvas);
+  return { ...made, canvas };
+}
+
+test('a selected vehicle draws the view towards itself each frame', () => {
+  const bus = { east: 5, north: 6, networkIndex: 0, tripIndex: 1 };
+  const { selection, camera, canvas } = selectionFollowing(
+    followingPanel(bus, { east: 1000, north: 400 }),
+  );
+  mouseClick(canvas, 5, 5);
+
+  selection.onFrameAdvanced(0.1);
+  assert.ok(camera.centerEast > 0 && camera.centerEast < 1000);
+  assert.ok(camera.centerNorth > 0 && camera.centerNorth < 400);
+});
+
+test('a centred selected vehicle keeps the view on itself as it moves', () => {
+  const bus = { east: 5, north: 6, networkIndex: 0, tripIndex: 1 };
+  const panel = followingPanel(bus, { east: 0, north: 0 });
+  const { selection, camera, canvas } = selectionFollowing(panel);
+  mouseClick(canvas, 5, 5);
+  selection.onFrameAdvanced(0.1);
+
+  panel.vehiclePosition = () => ({ east: 300, north: -200 });
+  selection.onFrameAdvanced(0.1);
+  assert.deepEqual([camera.centerEast, camera.centerNorth], [300, -200]);
+});
+
+test('a fully zoomed-out view stays on the country', () => {
+  const bus = { east: 5, north: 6, networkIndex: 0, tripIndex: 1 };
+  const { selection, camera, canvas } = selectionFollowing(
+    followingPanel(bus, { east: 1000, north: 400 }),
+  );
+  mouseClick(canvas, 5, 5);
+  camera.zoomedOut = true;
+
+  selection.onFrameAdvanced(0.1);
+  assert.deepEqual([camera.centerEast, camera.centerNorth], [0, 0]);
+});
+
+test('a panel that does not follow leaves the view where it is', () => {
+  const bus = { east: 5, north: 6, networkIndex: 0, tripIndex: 1 };
+  const { selection, camera, canvas } = selectionFollowing(
+    vehiclePanel(bus, { east: 1000, north: 400 }),
+  );
+  mouseClick(canvas, 5, 5);
+
+  selection.onFrameAdvanced(0.1);
+  assert.deepEqual([camera.centerEast, camera.centerNorth], [0, 0]);
+});
+
+test('a selected station is not followed', () => {
+  const bern = { east: 100, north: 200, name: 'Bern' };
+  const { selection, camera } = makeSelection({
+    panel: {
+      ...railPanel(bern),
+      capabilities: { followSelectedVehicle: true },
+    },
+  });
+  selection.selectStation(bern);
+  camera.centerOn(0, 0);
+
+  selection.onFrameAdvanced(0.1);
+  assert.deepEqual([camera.centerEast, camera.centerNorth], [0, 0]);
+});
+
+test('a vehicle whose trip ended no longer moves the view', () => {
+  const bus = { east: 5, north: 6, networkIndex: 0, tripIndex: 1 };
+  const panel = followingPanel(bus, { east: 1000, north: 400 });
+  const { selection, camera, canvas } = selectionFollowing(panel);
+  mouseClick(canvas, 5, 5);
+  panel.vehiclePosition = () => null;
+
+  selection.onFrameAdvanced(0.1);
+  assert.deepEqual([camera.centerEast, camera.centerNorth], [0, 0]);
+});
+
+test('a cleared vehicle selection no longer moves the view', () => {
+  const bus = { east: 5, north: 6, networkIndex: 0, tripIndex: 1 };
+  const { selection, camera, canvas } = selectionFollowing(
+    followingPanel(bus, { east: 1000, north: 400 }),
+  );
+  mouseClick(canvas, 5, 5);
+  selection.clear();
+
+  selection.onFrameAdvanced(0.1);
+  assert.deepEqual([camera.centerEast, camera.centerNorth], [0, 0]);
 });
 
 test('leaving a hovered station hides its popover', () => {
