@@ -28,11 +28,12 @@ export class VizCore {
     container,
     panel,
     context,
-    { onFrameRendered, onCanvasReady, onZoomGesture } = {},
+    { onFrameAdvanced, onFrameRendered, onCanvasReady, onZoomGesture } = {},
   ) {
     this.container = container;
     this.panel = panel;
     this.context = context;
+    this.onFrameAdvanced = onFrameAdvanced;
     this.onFrameRendered = onFrameRendered;
     this.onCanvasReady = onCanvasReady;
     this.onZoomGesture = onZoomGesture;
@@ -67,6 +68,7 @@ export class VizCore {
     const deltaSeconds = Math.min(p.deltaTime / 1000, LONGEST_FRAME_SECONDS);
     this.context.time.advance(deltaSeconds);
     this.panel.update?.(this.context.time.current, deltaSeconds);
+    this.onFrameAdvanced?.(deltaSeconds);
 
     p.background(...this.groundColor);
     this.#drawThroughCamera(p);

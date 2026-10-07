@@ -1,3 +1,4 @@
+import { followedCentre } from '../render/cameraFollow.js';
 import { HoverInteraction } from './hoverInteraction.js';
 import { InterchangeLabels } from './interchangeLabels.js';
 import { Popover } from './popover.js';
@@ -24,7 +25,9 @@ export function sameSelectionTarget(first, second) {
 // Tap- and hover-to-select on the map, sharing one ranked picker so a hover
 // previews exactly what a click would take: a rail station wins, then a vehicle,
 // then a tram or bus stop. The committed selection and the preview each drive
-// their own tracked popover, both following the moving camera every frame. A
+// their own tracked popover, both following the moving camera every frame; a
+// panel with the followSelectedVehicle capability also has the camera ride along
+// with a selected vehicle while zoomed in. A
 // mouse previews by hovering and commits by clicking; a finger, which cannot
 // hover, previews with its first tap and commits with a second one on the same
 // target. The panel supplies the pickers and, for vehicles, describeVehicle and
@@ -69,6 +72,7 @@ export class MapSelection {
     this.onStationChosen = onStationChosen;
     this.onNothingTapped = onNothingTapped;
     this.previewed = null;
+    this.followed = null;
   }
 
   attachTo(canvasElement) {
@@ -89,6 +93,51 @@ export class MapSelection {
       sameTarget: sameSelectionTarget,
       onHover: (target) => this.#hover(target),
     });
+  }
+
+  // Runs before the frame is drawn, so the vehicle and its popover are drawn
+  // through the camera that has already moved.
+  onFrameAdvanced(deltaSeconds) {
+    const target = this.#followableVehicle();
+    const position =
+      target === null
+        ? null
+        : this.panel.vehiclePosition(target.vehicle, this.time.current);
+    if (position === null) {
+      this.followed = null;
+      return;
+    }
+    const { east, north } = followedCentre(
+      { east: this.camera.centerEast, north: this.camera.centerNorth },
+      this.#previousFollowedPosition(target) ?? position,
+      position,
+      deltaSeconds,
+    );
+    this.camera.centerOn(east, north);
+    this.followed = { target, position };
+  }
+
+  // Zoomed all the way out, the whole country is the picture and stays put.
+  #followableVehicle() {
+    const selected = this.selection.target();
+    if (
+      !this.panel.capabilities?.followSelectedVehicle ||
+      this.camera.fullyZoomedOut() ||
+      selected?.kind !== 'vehicle'
+    ) {
+      return null;
+    }
+    return selected;
+  }
+
+  #previousFollowedPosition(target) {
+    if (
+      this.followed === null ||
+      !sameSelectionTarget(this.followed.target, target)
+    ) {
+      return null;
+    }
+    return this.followed.position;
   }
 
   onFrameRendered() {

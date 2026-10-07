@@ -173,6 +173,7 @@ export class TaktPanel extends Panel {
     timeScrubber: true,
     stationSearch: true,
     stationPicking: true,
+    followSelectedVehicle: true,
     mapBackground: true,
     clock: true,
     sonification: true,
