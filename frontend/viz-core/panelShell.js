@@ -123,6 +123,8 @@ export class PanelShell {
       bindings: this.#keyBindings(),
     });
     new VizCore(this.root, this.panel, this.context, {
+      onFrameAdvanced: (deltaSeconds) =>
+        this.selection?.onFrameAdvanced(deltaSeconds),
       onFrameRendered: () => this.#onFrameRendered(),
       onCanvasReady: (canvasElement) => this.#onCanvasReady(canvasElement),
     });
