@@ -1,7 +1,7 @@
 [tools]
-python = "3.13"
-uv = "latest"
-node = "25"
+python = "3.13.17"
+uv = "0.13.5"
+node = "24.22.1"
 
 [env]
 _.python.venv = { path = ".venv", create = true }
