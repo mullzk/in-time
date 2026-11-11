@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 from django.test import Client
-from pytest_django.fixtures import SettingsWrapper
+from pytest_django import Settings
 
 from pipeline.artifacts import (
     SCHEDULE_RAIL_BLOB_NAME,
@@ -32,7 +32,7 @@ def _publish(root: Path, service_date: date, blob: bytes = b"itsb") -> None:
 
 
 @pytest.fixture
-def published(tmp_path: Path, settings: SettingsWrapper) -> Path:
+def published(tmp_path: Path, settings: Settings) -> Path:
     settings.DATA_DIR = tmp_path
     _publish(tmp_path, date(2026, 7, 16))
     return tmp_path
@@ -53,7 +53,7 @@ def test_config_returns_the_published_day(client: Client, published: Path) -> No
 
 
 def test_config_is_503_without_publication(
-    client: Client, settings: SettingsWrapper, tmp_path: Path
+    client: Client, settings: Settings, tmp_path: Path
 ) -> None:
     settings.DATA_DIR = tmp_path
 
@@ -84,7 +84,7 @@ def test_stations_road_passes_the_artifact_through(
 
 
 def test_stations_rail_is_503_without_publication(
-    client: Client, settings: SettingsWrapper, tmp_path: Path
+    client: Client, settings: Settings, tmp_path: Path
 ) -> None:
     settings.DATA_DIR = tmp_path
 
